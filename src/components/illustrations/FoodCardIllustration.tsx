@@ -1,4 +1,4 @@
-import Svg, { Circle, Path, Ellipse } from 'react-native-svg';
+﻿import Svg, { Circle, Path, Ellipse } from 'react-native-svg';
 
 type Props = { width?: number; height?: number };
 
@@ -9,7 +9,7 @@ export default function FoodCardIllustration({ width = 72, height = 72 }: Props)
   return (
     <Svg width={width} height={height} viewBox="0 0 72 72" fill="none">
       {/* Plate shadow */}
-      <Ellipse cx="36" cy="62" rx="22" ry="5" fill="#d70f64" fillOpacity={0.08} />
+      <Ellipse cx="36" cy="62" rx="22" ry="5" fill="#ff2b85" fillOpacity={0.08} />
 
       {/* Bun bottom */}
       <Ellipse cx="36" cy="52" rx="20" ry="7" fill="#f9a825" />

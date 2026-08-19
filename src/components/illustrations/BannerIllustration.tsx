@@ -1,4 +1,4 @@
-import Svg, { Circle, Path, Ellipse, Rect } from 'react-native-svg';
+﻿import Svg, { Circle, Path, Ellipse, Rect } from 'react-native-svg';
 
 type Props = { width?: number; height?: number };
 

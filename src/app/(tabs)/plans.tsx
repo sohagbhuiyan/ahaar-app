@@ -1,141 +1,103 @@
-import { ScrollView, Text, View, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import PlanIllustration from '../../components/illustrations/PlanIllustration';
 
-const PLANS = [
-  {
-    id: '1',
-    name: 'Basic',
-    subtitle: 'Light & Healthy',
-    price: '৳ 2,499',
-    period: '/week',
-    meals: 3,
-    perDay: 1,
-    features: ['1 meal/day', 'Chef-curated menu', 'Free delivery', 'Cancel anytime'],
-    popular: false,
-    color: 'bg-surface-secondary',
-    textColor: 'text-text-primary',
-    badgeColor: 'bg-brand-100 text-brand-500',
-  },
-  {
-    id: '2',
-    name: 'Standard',
-    subtitle: 'Most Popular 🔥',
-    price: '৳ 4,199',
-    period: '/week',
-    meals: 14,
-    perDay: 2,
-    features: ['2 meals/day', 'Customisable menu', 'Free delivery', 'Nutrition tracking', 'Cancel anytime'],
-    popular: true,
-    color: 'bg-brand-500',
-    textColor: 'text-white',
-    badgeColor: 'bg-white text-brand-500',
-  },
-  {
-    id: '3',
-    name: 'Premium',
-    subtitle: 'Full Day Coverage',
-    price: '৳ 5,999',
-    period: '/week',
-    meals: 21,
-    perDay: 3,
-    features: ['3 meals/day', 'Personal dietitian', 'Priority delivery', 'Nutrition tracking', 'Snacks included', 'Cancel anytime'],
-    popular: false,
-    color: 'bg-surface-secondary',
-    textColor: 'text-text-primary',
-    badgeColor: 'bg-brand-100 text-brand-500',
-  },
-];
+import { PlanCard, OfflineBanner } from '@/components/shared';
+import { EmptyState, ErrorState, SkeletonCard } from '@/components/ui';
+import PlanIllustration from '@/components/illustrations/PlanIllustration';
+import { useFeaturedPlanId, usePlans } from '@/lib/query/hooks';
+import { useCartStore } from '@/lib/store';
+import type { Plan } from '@/lib/api/types/catalog';
 
+/**
+ * Plan selection.
+ *
+ * Durations come from the API (7, 15, 25, 30…) rather than a hardcoded
+ * weekly/monthly toggle — the backend allows any length, so the list simply
+ * shows what exists, ordered by duration.
+ *
+ * Two routes out, and the distinction matters: tapping the card opens the plan
+ * detail, where the whole week and its quotas are readable before committing;
+ * "Choose" is the shortcut for someone who already knows, and goes straight to
+ * checkout. Neither needs an account — the sign-in ask waits until checkout.
+ */
 export default function PlansScreen() {
+  const router = useRouter();
+  const { data: plans, isLoading, isFetching, isError, error, refetch } = usePlans();
+  const { data: featuredId } = useFeaturedPlanId();
+
+  const selectPlan = useCartStore((s) => s.selectPlan);
+  const selectedPlanId = useCartStore((s) => s.plan?.id ?? null);
+
+  const openPlan = (plan: Plan) =>
+    router.push({ pathname: '/plan/[id]', params: { id: String(plan.id) } });
+
+  const onSelect = (plan: Plan) => {
+    // Snapshot enough to render a total instantly; the server reconfirms it.
+    selectPlan({
+      id: plan.id,
+      name: plan.name,
+      duration_days: plan.duration_days,
+      price: plan.price,
+      currency: plan.currency,
+    });
+    router.push('/checkout');
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-surface" edges={['top', 'left', 'right']}>
+      <OfflineBanner />
+
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={
+          // `isFetching && !isLoading` — a background refetch spins the pull
+          // control; only a true first load takes over the screen.
+          <RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} />
+        }
       >
-        {/* ── Header ── */}
-        <View className="px-5 pt-6 pb-2">
+        <View className="px-5 pb-2 pt-6">
           <Text className="text-2xl font-bold text-text-primary">Meal Plans</Text>
-          <Text className="text-sm text-text-secondary mt-1">
-            Subscribe and save — fresh meals every day
+          <Text className="mt-1 text-sm text-text-secondary">
+            Subscribe and save — one meal a day, delivered fresh
           </Text>
         </View>
 
-        {/* ── Illustration ── */}
-        <View className="items-center my-4">
+        <View className="my-4 items-center">
           <PlanIllustration width={200} height={120} />
         </View>
 
-        {/* ── Toggle weekly/monthly (decorative) ── */}
-        <View className="mx-5 flex-row bg-surface-muted rounded-2xl p-1 mb-6">
-          <TouchableOpacity className="flex-1 bg-white rounded-xl py-2 items-center" style={{ elevation: 1 }}>
-            <Text className="text-sm font-bold text-brand-500">Weekly</Text>
-          </TouchableOpacity>
-          <TouchableOpacity className="flex-1 py-2 items-center">
-            <Text className="text-sm font-semibold text-text-muted">Monthly</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Plan cards ── */}
-        <View className="px-5 gap-4">
-          {PLANS.map((plan) => (
-            <View
-              key={plan.id}
-              className={`${plan.color} rounded-3xl overflow-hidden`}
-              style={
-                plan.popular
-                  ? { elevation: 6, shadowColor: '#d70f64', shadowOpacity: 0.25, shadowRadius: 16, shadowOffset: { width: 0, height: 4 } }
-                  : { borderWidth: 1, borderColor: '#ffd6e5' }
-              }
-            >
-              <View className="p-5">
-                {/* Title row */}
-                <View className="flex-row items-start justify-between mb-3">
-                  <View>
-                    <Text className={`text-xl font-bold ${plan.textColor}`}>{plan.name}</Text>
-                    <Text className={`text-xs font-semibold mt-0.5 ${plan.popular ? 'text-brand-100' : 'text-text-muted'}`}>
-                      {plan.subtitle}
-                    </Text>
-                  </View>
-                  <View className={`${plan.badgeColor} rounded-xl px-3 py-1`}>
-                    <Text className="text-xs font-bold">
-                      {plan.perDay}x / day
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Price */}
-                <View className="flex-row items-end mb-4">
-                  <Text className={`text-3xl font-bold ${plan.textColor}`}>{plan.price}</Text>
-                  <Text className={`text-sm mb-1 ml-1 ${plan.popular ? 'text-brand-200' : 'text-text-muted'}`}>
-                    {plan.period}
-                  </Text>
-                </View>
-
-                {/* Features */}
-                <View className="gap-2 mb-5">
-                  {plan.features.map((f, i) => (
-                    <View key={i} className="flex-row items-center gap-2">
-                      <Text className={plan.popular ? 'text-brand-200' : 'text-brand-500'}>✓</Text>
-                      <Text className={`text-sm ${plan.popular ? 'text-brand-100' : 'text-text-secondary'}`}>{f}</Text>
-                    </View>
-                  ))}
-                </View>
-
-                {/* CTA */}
-                <TouchableOpacity
-                  className={`rounded-2xl py-3 items-center ${plan.popular ? 'bg-white' : 'bg-brand-500'}`}
-                >
-                  <Text className={`font-bold text-sm ${plan.popular ? 'text-brand-500' : 'text-white'}`}>
-                    Choose {plan.name}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-        </View>
+        {isLoading ? (
+          <View className="gap-4 px-5">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </View>
+        ) : isError ? (
+          <ErrorState error={error} onRetry={refetch} retrying={isFetching} />
+        ) : !plans || plans.length === 0 ? (
+          <EmptyState
+            title="No plans available"
+            description="Check back soon for new subscription plans."
+            actionLabel="Refresh"
+            onAction={refetch}
+          />
+        ) : (
+          <View className="gap-4 px-5">
+            {plans.map((plan) => (
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                featured={plan.id === featuredId}
+                selected={plan.id === selectedPlanId}
+                onPress={openPlan}
+                onSelect={onSelect}
+              />
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

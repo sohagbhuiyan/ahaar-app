@@ -1,3 +1,5 @@
+const { brand, surface, text, border, status } = require("./src/lib/tokens.js");
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -7,30 +9,21 @@ module.exports = {
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
+      // Colours come from src/lib/tokens.js so the RN runtime (theme.ts) and
+      // these utility classes can never disagree.
       colors: {
-        brand: {
-          50:  "#fff0f5",
-          100: "#ffd6e5",
-          200: "#ffadcc",
-          300: "#ff85b3",
-          400: "#ff5c99",
-          500: "#d70f64",
-          600: "#c00d59",
-          700: "#a00a4a",
-          800: "#80083b",
-          900: "#60062c",
-        },
-        surface: {
-          DEFAULT:   "#ffffff",
-          secondary: "#fdf2f6",
-          muted:     "#f5f5f5",
-        },
-        text: {
-          primary:   "#1a1a1a",
-          secondary: "#6b6b6b",
-          muted:     "#9e9e9e",
-          inverse:   "#ffffff",
-        },
+        brand,
+        surface,
+        text,
+        border,
+        success: status.success,
+        "success-soft": status.successSoft,
+        warning: status.warning,
+        "warning-soft": status.warningSoft,
+        danger: status.danger,
+        "danger-soft": status.dangerSoft,
+        info: status.info,
+        "info-soft": status.infoSoft,
       },
       fontFamily: {
         sans: ["System", "ui-sans-serif"],

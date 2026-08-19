@@ -1,0 +1,13 @@
+# pnpm settings. As of pnpm 11 these live here rather than in package.json's
+# "pnpm" field, which is no longer read.
+#
+# pnpm blocks dependency install scripts by default — a supply-chain guard.
+# @sentry/cli's postinstall downloads the sentry-cli binary, which EAS Build
+# uses to upload source maps. Without it, production stack traces stay minified
+# and are effectively unreadable.
+#
+# The runtime SDK works either way, so flip this to `false` if you would rather
+# not run the script and can live without readable production traces.
+allowBuilds:
+  '@sentry/cli': true
+  unrs-resolver: false

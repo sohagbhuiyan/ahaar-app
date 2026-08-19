@@ -1,4 +1,4 @@
-import Svg, { Circle, Path, Ellipse } from 'react-native-svg';
+﻿import Svg, { Circle, Path, Ellipse } from 'react-native-svg';
 
 type Props = { width?: number; height?: number };
 
@@ -12,13 +12,13 @@ export default function AvatarIllustration({ width = 64, height = 64 }: Props) {
       <Circle cx="32" cy="22" r="14" fill="#fff" fillOpacity={0.9} />
 
       {/* Eyes */}
-      <Circle cx="26" cy="21" r="2" fill="#d70f64" />
-      <Circle cx="38" cy="21" r="2" fill="#d70f64" />
+      <Circle cx="26" cy="21" r="2" fill="#ff2b85" />
+      <Circle cx="38" cy="21" r="2" fill="#ff2b85" />
 
       {/* Smile */}
       <Path
         d="M26 27 Q32 32 38 27"
-        stroke="#d70f64"
+        stroke="#ff2b85"
         strokeWidth={2}
         strokeLinecap="round"
         fill="none"
@@ -34,7 +34,7 @@ export default function AvatarIllustration({ width = 64, height = 64 }: Props) {
       {/* Hair */}
       <Path
         d="M18 18 Q18 8 32 8 Q46 8 46 18 Q44 12 32 12 Q20 12 18 18Z"
-        fill="#c00d59"
+        fill="#d4006b"
         fillOpacity={0.7}
       />
     </Svg>
