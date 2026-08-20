@@ -4,7 +4,7 @@
     "slug": "ahaar-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/images/ahaar2.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "ahaarapp",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -13,9 +13,8 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/images/ahaar2.png",
-        "backgroundImage": "./assets/images/images/ahaar2.png",
-        "monochromeImage": "./assets/images/images/ahaar2.png"
+        "foregroundImage": "./assets/images/images/ahaar2-adaptive.png",
+        "monochromeImage": "./assets/images/images/ahaar2-adaptive.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.sohagexpo.ahaarapp"
@@ -34,7 +33,9 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -11,3 +11,10 @@
 allowBuilds:
   '@sentry/cli': true
   unrs-resolver: false
+
+# Metro and Gradle autolinking resolve modules by real path, so pnpm's default
+# symlinked node_modules breaks the release JS bundle (`expo-router/entry` fails
+# to resolve), which is what fails the "Run gradlew" phase on EAS Build.
+# A hoisted layout is what Expo documents for pnpm. Mirrored in .npmrc for
+# pnpm <11, which reads settings from there instead of this file.
+nodeLinker: hoisted
