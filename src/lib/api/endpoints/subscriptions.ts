@@ -5,6 +5,10 @@
  * `pending`, initiates a payment, and returns them together. Note the response
  * is **double-wrapped**: `{ data: { subscription: {...} } }`. Activation (and
  * therefore delivery generation) happens when the payment succeeds, not here.
+ *
+ * A subscription covers **every meal its plan serves** — there is no slot to
+ * send. The covered meals come back as `slots`, read from the plan's weekly
+ * menu server-side and frozen at purchase.
  */
 import { apiClient, unwrap } from '../client';
 import {

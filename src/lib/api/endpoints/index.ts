@@ -10,6 +10,7 @@ import * as foods from './foods';
 import * as home from './home';
 import * as menu from './menu';
 import * as orders from './orders';
+import * as packages from './packages';
 import * as plans from './plans';
 import * as profile from './profile';
 import * as quota from './quota';
@@ -23,6 +24,7 @@ export const api = {
   home,
   menu,
   orders,
+  packages,
   plans,
   profile,
   quota,
@@ -30,4 +32,17 @@ export const api = {
   swap,
 } as const;
 
-export { addons, auth, foods, home, menu, orders, plans, profile, quota, subscriptions, swap };
+export {
+  addons,
+  auth,
+  foods,
+  home,
+  menu,
+  orders,
+  packages,
+  plans,
+  profile,
+  quota,
+  subscriptions,
+  swap,
+};

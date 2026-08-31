@@ -1,64 +1,116 @@
 /**
- * Day swap — exchanging one day's item for another within the plan's menu set.
+ * Meal swapping — exchanging one scheduled dish for another the customer
+ * already owns.
+ *
+ * A swap is a **transposition**: today's lunch beef and tonight's dinner fish
+ * trade places, so lunch serves fish and dinner serves beef. Nothing enters the
+ * subscription from outside it, which is why the endpoint takes two *positions*
+ * (`daily_delivery_items` ids) rather than a menu item — the same dish can sit
+ * on several plates that week, and it matters which one moves.
+ *
+ * That shape is also why the call is scoped to the **subscription**, not to a
+ * delivery: the two plates may sit on different days and different meals.
  *
  * Every rule is server-side and must not be re-derived on the client:
- *   - `before_cutoff` decides whether the delivery may change at all
- *   - only the returned `categories` are swappable
- *   - only the returned `options` are legal targets
- *   - an option with `quota !== null && quota.remaining <= 0` is unselectable
+ *   - `before_cutoff` decides whether a meal may change at all
+ *   - only the returned `positions` are swappable
+ *   - only a target with `eligible: true` is a legal partner
+ *   - each position gets exactly one exchange, then it is settled for good
  *
- * The swap itself is atomic on the backend: the outgoing item's quota slot is
- * released and the incoming item's is consumed inside one transaction, so a
- * 422 here means a genuine conflict (exhausted quota, past cutoff), not a
- * client mistake to retry blindly.
+ * There is deliberately no revert. A swap moves two plates at once, so undoing
+ * one of them would leave the other holding a duplicate — the backend dropped
+ * the endpoint rather than let that state exist.
  */
 import { apiClient, unwrap } from '../client';
-import { normalizeDelivery, normalizeSwapOptions } from '../normalize';
+import {
+  normalizeDelivery,
+  normalizeMealSwapEntry,
+  normalizeSubscriptionSchedule,
+  normalizeSwapOptions,
+  normalizeSwapPosition,
+} from '../normalize';
 import type { ApiEnvelope } from '../types/common';
 import type { Delivery } from '../types/subscription';
-import type { ApplySwapsPayload, SwapOptions } from '../types/swap';
+import type {
+  ApplySwapPayload,
+  DeliverySwapOptions,
+  MealSwapEntry,
+  SubscriptionSchedule,
+  SwapPosition,
+} from '../types/swap';
 
 type Raw = Record<string, unknown>;
 
-/** GET /deliveries/{id}/swap-options */
+/**
+ * GET /subscriptions/{id}/schedule
+ *
+ * The whole plan as bought: every day, every meal, every dish, and whether each
+ * dish can still be moved. `week` narrows it to one quota week — which is also
+ * the horizon a swap may reach.
+ *
+ * This reads the customer's *deliveries*, not the plan's weekly template. After
+ * a swap the two differ, and the deliveries are what the kitchen will cook.
+ */
+export async function getSubscriptionSchedule(
+  subscriptionId: number | string,
+  week?: number,
+): Promise<SubscriptionSchedule> {
+  const { data } = await apiClient.get<ApiEnvelope<Raw>>(
+    `/subscriptions/${subscriptionId}/schedule`,
+    week ? { params: { week } } : undefined,
+  );
+  return normalizeSubscriptionSchedule(unwrap(data));
+}
+
+/** GET /deliveries/{id}/swap-options — every position on one meal, with targets. */
 export async function getSwapOptions(
   deliveryId: number | string,
-): Promise<SwapOptions> {
+): Promise<DeliverySwapOptions> {
   const { data } = await apiClient.get<ApiEnvelope<Raw>>(
     `/deliveries/${deliveryId}/swap-options`,
   );
   return normalizeSwapOptions(unwrap(data));
 }
 
-/**
- * POST /deliveries/{id}/customize
- *
- * Applies one or more `{ category_id, to_menu_item_id }` swaps and returns the
- * updated delivery. All-or-nothing: the backend pre-validates every swap
- * before writing any of them.
- */
-export async function applySwaps(
-  deliveryId: number | string,
-  payload: ApplySwapsPayload,
-): Promise<Delivery> {
-  const { data } = await apiClient.post<ApiEnvelope<Raw>>(
-    `/deliveries/${deliveryId}/customize`,
-    payload,
+/** GET /delivery-items/{id}/swap-targets — one dish, when the UI drills in. */
+export async function getSwapTargets(
+  itemId: number | string,
+): Promise<SwapPosition> {
+  const { data } = await apiClient.get<ApiEnvelope<Raw>>(
+    `/delivery-items/${itemId}/swap-targets`,
   );
-  return normalizeDelivery(unwrap(data));
+  return normalizeSwapPosition(unwrap(data));
 }
 
 /**
- * DELETE /deliveries/{id}/customize
+ * POST /subscriptions/{id}/swaps
  *
- * Restores the plan's defaults for that day. Items attached to a paid order
- * (extras, guest portions) are kept — the customer paid for those separately.
+ * Returns **both** affected deliveries, already updated, so the caller can seed
+ * the cache for each end of the exchange rather than refetching twice. A 422
+ * carries a machine-readable `reason` alongside the sentence — see
+ * `SwapBlockedReason`.
  */
-export async function revertSwaps(
-  deliveryId: number | string,
-): Promise<Delivery> {
-  const { data } = await apiClient.delete<ApiEnvelope<Raw>>(
-    `/deliveries/${deliveryId}/customize`,
+export async function applyMealSwap(
+  subscriptionId: number | string,
+  payload: ApplySwapPayload,
+): Promise<{ swap_id: number; deliveries: Delivery[] }> {
+  const { data } = await apiClient.post<ApiEnvelope<Raw>>(
+    `/subscriptions/${subscriptionId}/swaps`,
+    payload,
   );
-  return normalizeDelivery(unwrap(data));
+  const body = unwrap(data);
+  return {
+    swap_id: body.swap_id as number,
+    deliveries: ((body.deliveries as Raw[] | undefined) ?? []).map(normalizeDelivery),
+  };
+}
+
+/** GET /subscriptions/{id}/swaps — the customer's own exchange history. */
+export async function getSwapHistory(
+  subscriptionId: number | string,
+): Promise<MealSwapEntry[]> {
+  const { data } = await apiClient.get<ApiEnvelope<Raw[]>>(
+    `/subscriptions/${subscriptionId}/swaps`,
+  );
+  return unwrap(data).map(normalizeMealSwapEntry);
 }

@@ -14,7 +14,7 @@ import {
 } from '@/components/ui';
 import type { Subscription, SubscriptionStatus } from '@/lib/api/types/subscription';
 import { isPayable } from '@/lib/payments';
-import { useDeliverySlotMap, useIsSignedIn, useSubscriptions } from '@/lib/query/hooks';
+import { useIsSignedIn, useSubscriptions } from '@/lib/query/hooks';
 import { useAuthPromptStore } from '@/lib/store';
 import { formatMoney, formatShortDate } from '@/lib/utils';
 
@@ -51,7 +51,6 @@ export default function SubscriptionsScreen() {
     refetch,
   } = useSubscriptions();
 
-  const { data: slotById } = useDeliverySlotMap();
 
   const open = (subscription: Subscription) =>
     router.push({
@@ -104,7 +103,9 @@ export default function SubscriptionsScreen() {
         ) : (
           <View className="gap-3">
             {subscriptions.map((subscription) => {
-              const slot = slotById?.get(subscription.slot_id);
+              // Every meal the plan serves, not one — the row names them all,
+              // because "30-day Full Board" alone does not say what arrives.
+              const meals = subscription.slots.map((s) => s.name).join(', ');
               const awaitingPayment = isPayable(subscription.payment);
 
               return (
@@ -117,7 +118,7 @@ export default function SubscriptionsScreen() {
                         </Text>
                         <Text className="mt-0.5 text-xs text-text-muted">
                           #{subscription.id}
-                          {slot ? ` · ${slot.name}` : ''}
+                          {meals ? ` · ${meals}` : ''}
                           {subscription.plan
                             ? ` · ${subscription.plan.duration_days} days`
                             : ''}

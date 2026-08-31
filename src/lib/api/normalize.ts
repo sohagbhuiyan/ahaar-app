@@ -38,7 +38,18 @@ import type {
   HomeSectionContent,
 } from './types/home';
 import { APP_SECTION_TYPES } from './types/home';
-import type { SwapCategory, SwapOption, SwapOptions } from './types/swap';
+import type {
+  DeliverySwapOptions,
+  MealSwapEntry,
+  ScheduleDay,
+  ScheduleMeal,
+  SchedulePlate,
+  SubscriptionSchedule,
+  SwapBlockedReason,
+  SwapPosition,
+  SwapTarget,
+} from './types/swap';
+import type { FoodPackage } from './types/package';
 import type { Paginated, PaginationMeta } from './types/common';
 
 /**
@@ -278,14 +289,37 @@ export function normalizePayment(raw: Raw): Payment {
 
 export function normalizeOrderItem(raw: Raw): OrderItem {
   const menuItem = raw.menu_item as Raw | undefined;
+  const pkg = raw.package as Raw | undefined;
+  const packageId = (raw.package_id as number | null) ?? null;
+
+  // A line is either a dish or a bundle. The fallbacks keep an older payload
+  // (no `kind`, no `name`) reading as a dish rather than as a blank row.
+  const kind = (raw.kind as OrderItem['kind']) ?? (packageId !== null ? 'package' : 'item');
+
   return {
     id: raw.id as number,
-    menu_item_id: raw.menu_item_id as number,
+    kind,
+    name:
+      (raw.name as string) ??
+      (menuItem?.name as string) ??
+      (pkg?.name as string) ??
+      '',
+    menu_item_id: (raw.menu_item_id as number | null) ?? null,
     menu_item: menuItem
       ? {
           id: menuItem.id as number,
           name: menuItem.name as string,
           slug: menuItem.slug as string,
+          image_url: (menuItem.image_url as string | null) ?? null,
+        }
+      : undefined,
+    package_id: packageId,
+    package: pkg
+      ? {
+          id: pkg.id as number,
+          name: pkg.name as string,
+          slug: pkg.slug as string,
+          image_url: (pkg.image_url as string | null) ?? null,
         }
       : undefined,
     quantity: raw.quantity as number,
@@ -326,11 +360,16 @@ export function normalizeOrder(raw: Raw): Order {
 export function normalizeSubscription(raw: Raw): Subscription {
   const plan = raw.plan as Raw | undefined;
   const payment = raw.payment as Raw | undefined;
+  const slots = raw.slots as Raw[] | undefined;
   return {
     id: raw.id as number,
     plan: plan ? normalizePlan(plan) : undefined,
     address_id: (raw.address_id as number | null) ?? null,
-    slot_id: raw.slot_id as number,
+    // Every meal the plan serves, not one. Defaults to [] rather than staying
+    // undefined: a subscription always covers at least one meal, so an empty
+    // list means "the API didn't send them", which reads the same to the UI as
+    // "none" and is safer than a crash on `.map`.
+    slots: (slots ?? []).map(normalizeDeliverySlot),
     status: raw.status as Subscription['status'],
     start_date: (raw.start_date as string) ?? '',
     end_date: (raw.end_date as string) ?? '',
@@ -345,30 +384,59 @@ export function normalizeSubscription(raw: Raw): Subscription {
 
 export function normalizeDeliveryItem(raw: Raw): DeliveryItem {
   const menuItem = raw.menu_item as Raw | undefined;
+  const category = raw.category as Raw | undefined;
+  const pkg = raw.package as Raw | null | undefined;
+
   return {
     id: raw.id as number,
+    menu_item_id: (raw.menu_item_id as number | null) ?? null,
     menu_item: menuItem
       ? {
           id: menuItem.id as number,
           name: menuItem.name as string,
           slug: menuItem.slug as string,
+          image_url: (menuItem.image_url as string | null) ?? null,
         }
       : undefined,
     category_id: raw.category_id as number,
+    category: category
+      ? {
+          id: category.id as number,
+          name: category.name as string,
+          is_swappable: Boolean(category.is_swappable),
+        }
+      : undefined,
     quantity: raw.quantity as number,
     is_addon: Boolean(raw.is_addon),
+    is_free_addon: Boolean(raw.is_free_addon),
     is_default: Boolean(raw.is_default),
     source: raw.source as DeliveryItem['source'],
+    package: pkg ? { id: pkg.id as number, name: pkg.name as string } : null,
+
+    // Swap state. `can_swap` is the server's whole answer — cutoff, lock and
+    // category swappability folded into one boolean — so it is read, never
+    // recomputed. A payload without these fields (an older backend) must read
+    // as "not swappable" rather than as permission.
+    swap_locked: Boolean(raw.swap_locked),
+    swap_locked_at: (raw.swap_locked_at as string | null) ?? null,
+    was_swapped: Boolean(raw.was_swapped),
+    swapped_from: (raw.swapped_from as string | null) ?? null,
+    can_swap: Boolean(raw.can_swap),
+    swap_blocked_reason:
+      (raw.swap_blocked_reason as DeliveryItem['swap_blocked_reason']) ?? null,
+    swap_blocked_message: (raw.swap_blocked_message as string | null) ?? null,
   };
 }
 
 export function normalizeDelivery(raw: Raw): Delivery {
   const items = raw.items as Raw[] | undefined;
+  const slot = raw.slot as Raw | undefined;
   return {
     id: raw.id as number,
     subscription_id: raw.subscription_id as number,
     delivery_date: (raw.delivery_date as string) ?? '',
     slot_id: raw.slot_id as number,
+    slot: slot ? normalizeDeliverySlot(slot) : undefined,
     status: raw.status as Delivery['status'],
     is_customized: Boolean(raw.is_customized),
     cutoff_at: (raw.cutoff_at as string) ?? '',
@@ -403,38 +471,170 @@ export function normalizeQuota(raw: Raw): SubscriptionQuota {
 
 // â”€â”€ Swap options â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-export function normalizeSwapOption(raw: Raw): SwapOption {
-  const quota = raw.quota as Raw | null | undefined;
+export function normalizeSwapTarget(raw: Raw): SwapTarget {
   return {
+    item_id: raw.item_id as number,
+    delivery_id: raw.delivery_id as number,
+    delivery_date: (raw.delivery_date as string) ?? '',
+    slot_id: (raw.slot_id as number | null) ?? null,
+    slot_name: (raw.slot_name as string | null) ?? null,
     menu_item_id: raw.menu_item_id as number,
-    name: raw.name as string,
-    slug: raw.slug as string,
-    base_price: toNumber(raw.base_price),
-    dietary_tags: (raw.dietary_tags as string[] | null) ?? [],
-    allergens: (raw.allergens as string[] | null) ?? [],
-    is_current: Boolean(raw.is_current),
-    // `null` is meaningful (unlimited) â€” do not collapse it to { remaining: 0 }.
-    quota: quota ? { remaining: toNumber(quota.remaining) } : null,
+    name: (raw.name as string | null) ?? null,
+    image_url: (raw.image_url as string | null) ?? null,
+    quantity: toNumber(raw.quantity),
+    eligible: Boolean(raw.eligible),
+    reason: (raw.reason as SwapBlockedReason | null) ?? null,
+    message: (raw.message as string | null) ?? null,
   };
 }
 
-export function normalizeSwapCategory(raw: Raw): SwapCategory {
-  const options = (raw.options as Raw[] | undefined) ?? [];
+export function normalizeSwapPosition(raw: Raw): SwapPosition {
+  const targets = (raw.targets as Raw[] | undefined) ?? [];
   return {
+    item_id: raw.item_id as number,
+    delivery_id: raw.delivery_id as number,
+    menu_item_id: raw.menu_item_id as number,
+    name: (raw.name as string | null) ?? null,
     category_id: raw.category_id as number,
-    category_name: raw.category_name as string,
-    current_item_id: (raw.current_item_id as number | null) ?? null,
-    options: options.map(normalizeSwapOption),
+    category_name: (raw.category_name as string | null) ?? null,
+    quantity: toNumber(raw.quantity),
+    is_addon: Boolean(raw.is_addon),
+    week_number: toNumber(raw.week_number),
+    can_swap: Boolean(raw.can_swap),
+    blocked_reason: (raw.blocked_reason as SwapBlockedReason | null) ?? null,
+    blocked_message: (raw.blocked_message as string | null) ?? null,
+    targets: targets.map(normalizeSwapTarget),
   };
 }
 
-export function normalizeSwapOptions(raw: Raw): SwapOptions {
-  const categories = (raw.categories as Raw[] | undefined) ?? [];
+export function normalizeSwapOptions(raw: Raw): DeliverySwapOptions {
+  const positions = (raw.positions as Raw[] | undefined) ?? [];
   return {
     delivery_id: raw.delivery_id as number,
+    delivery_date: (raw.delivery_date as string) ?? '',
     before_cutoff: Boolean(raw.before_cutoff),
-    cutoff_at: (raw.cutoff_at as string) ?? '',
-    categories: categories.map(normalizeSwapCategory),
+    cutoff_at: (raw.cutoff_at as string | null) ?? null,
+    positions: positions.map(normalizeSwapPosition),
+  };
+}
+
+// â”€â”€ The plan schedule â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+function normalizeSchedulePlate(raw: Raw): SchedulePlate {
+  const pkg = raw.package as Raw | null | undefined;
+  return {
+    id: raw.id as number,
+    menu_item_id: raw.menu_item_id as number,
+    name: (raw.name as string | null) ?? null,
+    slug: (raw.slug as string | null) ?? null,
+    image_url: (raw.image_url as string | null) ?? null,
+    category_id: raw.category_id as number,
+    category_name: (raw.category_name as string | null) ?? null,
+    quantity: toNumber(raw.quantity),
+    is_addon: Boolean(raw.is_addon),
+    is_free_addon: Boolean(raw.is_free_addon),
+    source: (raw.source as string) ?? 'plan',
+    package: pkg ? { id: pkg.id as number, name: pkg.name as string } : null,
+    was_swapped: Boolean(raw.was_swapped),
+    original_name: (raw.original_name as string | null) ?? null,
+    can_swap: Boolean(raw.can_swap),
+    swap_blocked_reason: (raw.swap_blocked_reason as SwapBlockedReason | null) ?? null,
+    swap_blocked_message: (raw.swap_blocked_message as string | null) ?? null,
+  };
+}
+
+function normalizeScheduleMeal(raw: Raw): ScheduleMeal {
+  const slot = (raw.slot as Raw | undefined) ?? {};
+  const items = (raw.items as Raw[] | undefined) ?? [];
+  return {
+    delivery_id: raw.delivery_id as number,
+    slot: {
+      id: slot.id as number,
+      name: (slot.name as string) ?? '',
+      slug: (slot.slug as string) ?? '',
+      start_time: (slot.start_time as string | null) ?? null,
+      end_time: (slot.end_time as string | null) ?? null,
+    },
+    status: (raw.status as string) ?? 'scheduled',
+    cutoff_at: (raw.cutoff_at as string | null) ?? null,
+    before_cutoff: Boolean(raw.before_cutoff),
+    is_customized: Boolean(raw.is_customized),
+    items: items.map(normalizeSchedulePlate),
+  };
+}
+
+function normalizeScheduleDayEntry(raw: Raw): ScheduleDay {
+  const meals = (raw.meals as Raw[] | undefined) ?? [];
+  const dayNumber = toNumber(raw.day_number) || 1;
+  return {
+    date: (raw.date as string) ?? '',
+    day_number: dayNumber,
+    day_name: (raw.day_name as string) ?? DAY_NAMES[dayNumber - 1] ?? '',
+    week_number: toNumber(raw.week_number) || 1,
+    meals: meals.map(normalizeScheduleMeal),
+  };
+}
+
+export function normalizeSubscriptionSchedule(raw: Raw): SubscriptionSchedule {
+  const weeks = (raw.weeks as Raw[] | undefined) ?? [];
+  return {
+    subscription_id: raw.subscription_id as number,
+    start_date: (raw.start_date as string) ?? '',
+    end_date: (raw.end_date as string) ?? '',
+    weeks: weeks.map((week) => ({
+      week_number: toNumber(week.week_number) || 1,
+      starts_on: (week.starts_on as string) ?? '',
+      ends_on: (week.ends_on as string) ?? '',
+      days: ((week.days as Raw[] | undefined) ?? []).map(normalizeScheduleDayEntry),
+    })),
+  };
+}
+
+export function normalizeMealSwapEntry(raw: Raw): MealSwapEntry {
+  const side = (value: unknown) => {
+    const s = (value as Raw | undefined) ?? {};
+    return {
+      dish: (s.dish as string | null) ?? null,
+      from: (s.from as string | null) ?? null,
+      to: (s.to as string | null) ?? null,
+    };
+  };
+
+  return {
+    id: raw.id as number,
+    week_number: toNumber(raw.week_number),
+    category: (raw.category as string | null) ?? null,
+    swapped_at: (raw.swapped_at as string) ?? '',
+    moved: side(raw.moved),
+    in_exchange_for: side(raw.in_exchange_for),
+  };
+}
+
+// â”€â”€ Packages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+export function normalizePackage(raw: Raw): FoodPackage {
+  const items = raw.items as Raw[] | undefined;
+  return {
+    id: raw.id as number,
+    name: raw.name as string,
+    slug: raw.slug as string,
+    description: (raw.description as string | null) ?? null,
+    image_url: (raw.image_url as string | null) ?? null,
+    price: toNumber(raw.price),
+    sort_order: toNumber(raw.sort_order),
+    // Only sent when the API loaded the contents; `null` keeps "no comparison
+    // available" distinct from "costs nothing extra".
+    a_la_carte_price:
+      raw.a_la_carte_price === undefined || raw.a_la_carte_price === null
+        ? null
+        : toNumber(raw.a_la_carte_price),
+    items: (items ?? []).map((item) => ({
+      menu_item_id: item.menu_item_id as number,
+      name: (item.name as string | null) ?? null,
+      slug: (item.slug as string | null) ?? null,
+      image_url: (item.image_url as string | null) ?? null,
+      quantity: toNumber(item.quantity) || 1,
+    })),
   };
 }
 

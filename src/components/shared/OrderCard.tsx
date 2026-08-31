@@ -81,7 +81,7 @@ function OrderCardComponent({ order, slotName, onPress, action }: Props) {
         {itemCount > 0 ? (
           <Text numberOfLines={2} className="mt-2 text-xs text-text-secondary">
             {(order.items ?? [])
-              .map((i) => `${i.quantity}× ${i.menu_item?.name ?? `Item #${i.menu_item_id}`}`)
+              .map((i) => `${i.quantity}× ${i.name}`)
               .join(', ')}
           </Text>
         ) : null}

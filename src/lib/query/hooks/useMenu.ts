@@ -87,7 +87,15 @@ export function useSubscriptionDeliveries(subscriptionId: number | undefined) {
 }
 
 /**
- * Today's delivery, for the Home screen highlight.
+ * Today's meals, for the Home screen highlight.
+ *
+ * Plural on purpose: a subscription covers every meal its plan serves, so
+ * "today" is up to three deliveries — breakfast, lunch and dinner — not one.
+ * They are ordered by time of day so Home reads down the day.
+ *
+ * `delivery` is the next one still open, or the first if the day has closed:
+ * that is the one a customer arriving at Home can still act on, and it keeps
+ * the single-delivery callers working.
  *
  * Derived from the already-cached list rather than a separate request, so Home
  * and Menu can never disagree about what is being delivered today.
@@ -97,8 +105,57 @@ export function useTodaysDelivery(
   todayIso: string,
 ) {
   const query = useSubscriptionDeliveries(subscriptionId);
-  const delivery =
-    query.data?.find((d) => d.delivery_date === todayIso) ?? null;
 
-  return { ...query, delivery };
+  const deliveries = useMemo(
+    () => sortByTimeOfDay((query.data ?? []).filter((d) => d.delivery_date === todayIso)),
+    [query.data, todayIso],
+  );
+
+  const delivery = deliveries.find((d) => d.before_cutoff) ?? deliveries[0] ?? null;
+
+  return { ...query, deliveries, delivery };
+}
+
+/**
+ * Every meal on one date, in time-of-day order.
+ *
+ * The order matters and cannot be taken from the id: the catalogue happens to
+ * create lunch before breakfast, so sorting by `slot_id` would print the day
+ * out of sequence.
+ */
+export function useDeliveriesOnDate(
+  subscriptionId: number | undefined,
+  dateIso: string | null,
+) {
+  const query = useSubscriptionDeliveries(subscriptionId);
+
+  const data = useMemo(() => {
+    if (!query.data || !dateIso) return [];
+    return sortByTimeOfDay(query.data.filter((d) => d.delivery_date === dateIso));
+  }, [query.data, dateIso]);
+
+  return { ...query, data };
+}
+
+/** Chronological within a day. Deliveries without a slot sort last. */
+function sortByTimeOfDay(deliveries: Delivery[]): Delivery[] {
+  return [...deliveries].sort((a, b) =>
+    (a.slot?.start_time ?? '99:99').localeCompare(b.slot?.start_time ?? '99:99'),
+  );
+}
+
+/**
+ * The distinct calendar dates a subscription delivers on.
+ *
+ * The day selector is per *date*, not per delivery — with three meals a day the
+ * raw list would otherwise render three tabs for Monday.
+ */
+export function useDeliveryDates(subscriptionId: number | undefined): string[] {
+  const query = useSubscriptionDeliveries(subscriptionId);
+
+  return useMemo(() => {
+    const seen = new Set<string>();
+    for (const delivery of query.data ?? []) seen.add(delivery.delivery_date);
+    return [...seen].sort();
+  }, [query.data]);
 }

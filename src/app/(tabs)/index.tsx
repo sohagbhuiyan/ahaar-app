@@ -75,7 +75,9 @@ export default function HomeScreen() {
     refetch: refetchSub,
   } = useCurrentSubscription();
 
-  const { delivery, isLoading: deliveryLoading } = useTodaysDelivery(
+  // Plural: a subscription covers every meal its plan serves, so "today" is up
+  // to three deliveries, in time-of-day order.
+  const { deliveries: todaysMeals, isLoading: deliveryLoading } = useTodaysDelivery(
     subscription?.id,
     today,
   );
@@ -148,7 +150,7 @@ export default function HomeScreen() {
         <View className="px-5">
           {signedIn && (subLoading || deliveryLoading) ? (
             <Skeleton className="h-32 w-full" />
-          ) : delivery ? (
+          ) : todaysMeals.length > 0 ? (
             <Card>
               <View className="p-5">
                 <View className="flex-row items-start justify-between gap-3">
@@ -157,24 +159,41 @@ export default function HomeScreen() {
                       Today
                     </Text>
                     <Text className="mt-0.5 text-base font-bold text-text-primary">
-                      {formatLongDate(delivery.delivery_date)}
+                      {formatLongDate(todaysMeals[0].delivery_date)}
                     </Text>
                   </View>
 
+                  {/* One badge for the day: what matters at a glance is whether
+                      anything can still be changed, not which meal it was. */}
                   <Badge
-                    label={delivery.before_cutoff ? 'Can still change' : 'Locked'}
-                    variant={delivery.before_cutoff ? 'success' : 'muted'}
+                    label={
+                      todaysMeals.some((m) => m.before_cutoff)
+                        ? 'Can still change'
+                        : 'Locked'
+                    }
+                    variant={
+                      todaysMeals.some((m) => m.before_cutoff) ? 'success' : 'muted'
+                    }
                   />
                 </View>
 
-                <View className="mt-3 gap-1.5">
-                  {(delivery.items ?? [])
-                    .filter((item) => !item.is_addon)
-                    .map((item) => (
-                      <Text key={item.id} className="text-sm text-text-secondary">
-                        • {item.menu_item?.name ?? `Item #${item.id}`}
+                {/* Every meal of the day, in time order — a full-board
+                    subscriber gets breakfast, lunch and dinner here. */}
+                <View className="mt-3 gap-3">
+                  {todaysMeals.map((meal) => (
+                    <View key={meal.id}>
+                      <Text className="text-xs font-semibold uppercase text-text-muted">
+                        {meal.slot?.name ?? 'Meal'}
                       </Text>
-                    ))}
+                      {(meal.items ?? [])
+                        .filter((item) => !item.is_addon)
+                        .map((item) => (
+                          <Text key={item.id} className="text-sm text-text-secondary">
+                            • {item.menu_item?.name ?? `Item #${item.id}`}
+                          </Text>
+                        ))}
+                    </View>
+                  ))}
                 </View>
 
                 <Button

@@ -9,8 +9,8 @@ import {
   AddressPicker,
   DayStrip,
   OfflineBanner,
+  PlanMealsIncluded,
   ScreenHeader,
-  SlotPicker,
 } from '@/components/shared';
 import {
   Button,
@@ -30,11 +30,7 @@ import {
   useIsSignedIn,
   usePlan,
 } from '@/lib/query/hooks';
-import {
-  planSlotAsDeliverySlot,
-  slotAvailabilityFor,
-  firstBookableSlotId,
-} from '@/lib/slots';
+import { planSlotAsDeliverySlot, slotAvailabilityFor } from '@/lib/slots';
 import { useAuthPromptStore, useCartStore, useCartIsStale } from '@/lib/store';
 import { formatLongDate, formatMoney, todayISO } from '@/lib/utils';
 
@@ -43,12 +39,14 @@ const LOOKAHEAD_DAYS = 14;
 /**
  * Subscription checkout.
  *
- * A subscription buys **one** meal slot for the plan's whole duration — not
- * every meal the plan defines. `CreateSubscriptionRequest` enforces that the
- * chosen `slot_id` is one the plan actually serves ("This plan does not serve
- * that meal"), so the picker is built from `plan.slots` rather than the whole
- * `/delivery-slots` catalogue. That is the difference between a validation
- * error the customer can't interpret and a choice that can't be wrong.
+ * A subscription buys **every meal the plan serves**, not one: the plan's flat
+ * price covers the whole board its weekly menu defines, so the covered meals are
+ * read off the plan server-side and there is nothing here to pick. What the page
+ * collects is where and from when.
+ *
+ * The start date is floored at the first day on which *every* covered meal is
+ * still open — the subscription delivers all of them from day one, so the
+ * strictest cutoff wins, not the loosest.
  *
  * Reads the draft from `useCartStore`; the store's `onSuccess` clears it. The
  * API creates the subscription `pending` with a payment attached, so this hands
@@ -61,10 +59,8 @@ export default function CheckoutScreen() {
   const promptLogin = useAuthPromptStore((s) => s.prompt);
 
   const plan = useCartStore((s) => s.plan);
-  const slotId = useCartStore((s) => s.slotId);
   const addressId = useCartStore((s) => s.addressId);
   const startDate = useCartStore((s) => s.startDate);
-  const setSlot = useCartStore((s) => s.setSlot);
   const setAddress = useCartStore((s) => s.setAddress);
   const setStartDate = useCartStore((s) => s.setStartDate);
 
@@ -91,22 +87,15 @@ export default function CheckoutScreen() {
    * `plan.slots` nests only what `PlanSchedule::slot()` emits, and its
    * `cutoff_hours` can be null; the `/delivery-slots` catalogue entry is
    * preferred where it exists because that is where a reliable cutoff lives.
-   * With no plan detail yet, fall back to the whole catalogue so the customer
-   * is never stuck with nothing to pick.
    */
   const planSlots = useMemo(() => {
     const byId = new Map((catalogue ?? []).map((s) => [s.id, s]));
-    if (!planDetail?.slots || planDetail.slots.length === 0) return catalogue ?? [];
+    if (!planDetail?.slots || planDetail.slots.length === 0) return [];
     return planDetail.slots.map((s) => byId.get(s.id) ?? planSlotAsDeliverySlot(s));
   }, [planDetail, catalogue]);
 
-  const slotOptions = useMemo(
-    () => (startDate ? slotAvailabilityFor(planSlots, startDate) : []),
-    [planSlots, startDate],
-  );
-
   /**
-   * A start date is only valid if the chosen meal is still open on it.
+   * A start date is only valid when **every** covered meal is still open on it.
    *
    * `useCallback`, not a `useMemo` returning a closure — the React Compiler
    * cannot preserve memoisation across the latter and bails out of optimising
@@ -115,16 +104,12 @@ export default function CheckoutScreen() {
   const isDayDisabled = useCallback(
     (date: string) => {
       if (planSlots.length === 0) return false;
-      const options = slotAvailabilityFor(planSlots, date);
-      // Before a meal is chosen, a day counts as open if *any* meal is.
-      if (slotId === null) return !options.some((o) => o.isBookable);
-      const chosen = options.find((o) => o.slot.id === slotId);
-      return chosen ? !chosen.isBookable : false;
+      return slotAvailabilityFor(planSlots, date).some((o) => !o.isBookable);
     },
-    [planSlots, slotId],
+    [planSlots],
   );
 
-  // Land on the earliest legal start; re-run when the meal choice narrows it.
+  // Land on the earliest legal start; re-run when the plan's meals load.
   useEffect(() => {
     if (startDate && startDate >= earliest && !isDayDisabled(startDate)) return;
 
@@ -140,14 +125,6 @@ export default function CheckoutScreen() {
     setStartDate(earliest);
   }, [earliest, startDate, isDayDisabled, setStartDate]);
 
-  // Default the meal to the first one still open on the chosen day.
-  useEffect(() => {
-    if (slotOptions.length === 0) return;
-    const current = slotOptions.find((o) => o.slot.id === slotId);
-    if (current?.isBookable) return;
-    setSlot(firstBookableSlotId(slotOptions));
-  }, [slotOptions, slotId, setSlot]);
-
   const effectiveAddressId =
     addressId ??
     addresses?.find((a) => a.is_default)?.id ??
@@ -159,11 +136,8 @@ export default function CheckoutScreen() {
    * subscription and a second payment.
    */
   const idempotencyKey = useMemo(
-    () =>
-      plan
-        ? `sub-${plan.id}-${startDate}-${slotId}-${plan.capturedAt}`
-        : undefined,
-    [plan, startDate, slotId],
+    () => (plan ? `sub-${plan.id}-${startDate}-${plan.capturedAt}` : undefined),
+    [plan, startDate],
   );
 
   const createSubscription = useCreateSubscription({
@@ -198,24 +172,21 @@ export default function CheckoutScreen() {
     );
   }
 
-  const hasBookableSlot = slotOptions.some((o) => o.isBookable);
+  const mealsKnown = planSlots.length > 0;
   const canSubmit =
-    slotId !== null &&
-    startDate !== null &&
-    hasBookableSlot &&
-    !createSubscription.isPending;
+    mealsKnown && startDate !== null && !createSubscription.isPending;
 
   const submit = () => {
-    if (!canSubmit || slotId === null || !startDate) return;
+    if (!canSubmit || !startDate) return;
     setSubmitError(null);
 
     createSubscription.mutate(
       {
         payload: {
           plan_id: plan.id,
-          slot_id: slotId,
           address_id: effectiveAddressId,
           start_date: startDate,
+          // No meal to send: the subscription covers every one the plan serves.
         },
         idempotencyKey,
       },
@@ -227,8 +198,6 @@ export default function CheckoutScreen() {
       },
     );
   };
-
-  const chosenSlot = slotOptions.find((o) => o.slot.id === slotId)?.slot;
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
@@ -259,7 +228,9 @@ export default function CheckoutScreen() {
             <View className="p-5">
               <Text className="text-lg font-bold text-text-primary">{plan.name}</Text>
               <Text className="mt-0.5 text-sm text-text-secondary">
-                One meal a day for {plan.duration_days} days
+                {planSlots.length > 1
+                  ? `${planSlots.length} meals a day for ${plan.duration_days} days`
+                  : `Every meal in this plan, daily for ${plan.duration_days} days`}
               </Text>
 
               <Separator className="my-4" />
@@ -268,7 +239,14 @@ export default function CheckoutScreen() {
                 label="Starts"
                 value={startDate ? formatLongDate(startDate) : 'Choosing…'}
               />
-              <Row label="Meal" value={chosenSlot?.name ?? 'Choosing…'} />
+              <Row
+                label="Meals"
+                value={
+                  mealsKnown
+                    ? planSlots.map((s) => s.name).join(' · ')
+                    : 'Loading…'
+                }
+              />
               <Row
                 label="Delivery to"
                 value={
@@ -292,19 +270,19 @@ export default function CheckoutScreen() {
           </Card>
         </View>
 
-        {/* Meal */}
+        {/* What's included */}
         <View className="mt-6 px-5">
           <Text className="mb-1 text-sm font-bold text-text-primary">
-            Which meal?
+            Meals included
           </Text>
           <Text className="mb-3 text-xs text-text-muted">
-            Your subscription delivers this meal every day of the plan.
+            Every one of these is delivered daily for the whole plan.
           </Text>
 
-          {slotOptions.length === 0 ? (
-            <Text className="text-sm text-text-secondary">Loading meals…</Text>
+          {planDetail ? (
+            <PlanMealsIncluded slots={planSlots} durationDays={plan.duration_days} />
           ) : (
-            <SlotPicker options={slotOptions} value={slotId} onChange={setSlot} />
+            <Text className="text-sm text-text-secondary">Loading meals…</Text>
           )}
         </View>
 
@@ -314,8 +292,8 @@ export default function CheckoutScreen() {
             Start date
           </Text>
           <Text className="mb-3 px-5 text-xs text-text-muted">
-            Deliveries begin on this day. Days whose cutoff has passed for your
-            chosen meal can&apos;t be used.
+            Deliveries begin on this day. A day is unavailable once any of your
+            meals has closed for it.
           </Text>
           <DayStrip
             value={startDate}

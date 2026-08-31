@@ -61,7 +61,7 @@ export default function PlansScreen() {
         <View className="px-5 pb-2 pt-6">
           <Text className="text-2xl font-bold text-text-primary">Meal Plans</Text>
           <Text className="mt-1 text-sm text-text-secondary">
-            Subscribe and save — one meal a day, delivered fresh
+            Subscribe and save — every meal in your plan, delivered fresh
           </Text>
         </View>
 

@@ -158,7 +158,7 @@ export default function OrderDetailScreen() {
                     <View className="flex-row items-start justify-between gap-3">
                       <View className="flex-1">
                         <Text className="text-sm font-semibold text-text-primary">
-                          {item.menu_item?.name ?? `Item #${item.menu_item_id}`}
+                          {item.name}
                         </Text>
                         <Text className="mt-0.5 text-xs text-text-muted">
                           {item.quantity} ×{' '}

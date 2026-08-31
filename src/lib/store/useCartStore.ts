@@ -42,16 +42,19 @@ export interface DraftAddon {
 /** A draft older than this is re-confirmed against the server before checkout. */
 const SNAPSHOT_MAX_AGE_MS = 1000 * 60 * 60 * 24;
 
+/**
+ * No `slotId`: a subscription covers every meal its plan serves, so there is no
+ * meal to choose and nothing to hold here. Instant orders still pick one — that
+ * lives in `useInstantOrderStore`, which is why the two stores are separate.
+ */
 interface CartState {
   plan: PlanSnapshot | null;
-  slotId: number | null;
   addressId: number | null;
   /** YYYY-MM-DD */
   startDate: string | null;
   addons: DraftAddon[];
 
   selectPlan: (plan: Omit<PlanSnapshot, 'capturedAt'>) => void;
-  setSlot: (slotId: number | null) => void;
   setAddress: (addressId: number | null) => void;
   setStartDate: (date: string | null) => void;
 
@@ -64,11 +67,10 @@ interface CartState {
 
 const EMPTY = {
   plan: null,
-  slotId: null,
   addressId: null,
   startDate: null,
   addons: [],
-} satisfies Pick<CartState, 'plan' | 'slotId' | 'addressId' | 'startDate' | 'addons'>;
+} satisfies Pick<CartState, 'plan' | 'addressId' | 'startDate' | 'addons'>;
 
 export const useCartStore = create<CartState>()(
   persist(
@@ -83,7 +85,6 @@ export const useCartStore = create<CartState>()(
           addons: state.plan?.id === plan.id ? state.addons : [],
         })),
 
-      setSlot: (slotId) => set({ slotId }),
       setAddress: (addressId) => set({ addressId }),
       setStartDate: (startDate) => set({ startDate }),
 
@@ -130,6 +131,16 @@ export const useCartStore = create<CartState>()(
     {
       name: 'ahaar.cart',
       storage: createJSONStorage(() => AsyncStorage),
+      // v1 dropped `slotId`. A draft persisted by an older build still carries
+      // it, and `persist` merges the stored object wholesale — so strip it here
+      // rather than leave a stray field the type no longer describes.
+      version: 1,
+      migrate: (persisted) => {
+        const { slotId: _dropped, ...rest } = (persisted ?? {}) as Record<string, unknown>;
+        // Only the persisted slice comes back here — zustand merges it over the
+        // freshly-built store, so the actions are already in place.
+        return rest as unknown as CartState;
+      },
     },
   ),
 );
@@ -156,9 +167,7 @@ export function useCartTotal(): number {
 
 /** Everything the checkout call needs is present. */
 export function useCartIsComplete(): boolean {
-  return useCartStore(
-    (s) => s.plan !== null && s.slotId !== null && s.startDate !== null,
-  );
+  return useCartStore((s) => s.plan !== null && s.startDate !== null);
 }
 
 /**

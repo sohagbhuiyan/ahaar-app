@@ -7,6 +7,8 @@
 export { FoodCard } from './FoodCard';
 export { PlanCard } from './PlanCard';
 export { MenuDayTabs } from './MenuDayTabs';
+export { MealSwapSheet } from './MealSwapSheet';
+export { PlanMealsIncluded } from './PlanMealsIncluded';
 export { DayStrip } from './DayStrip';
 export { SlotPicker } from './SlotPicker';
 export { AddressPicker, formatAddress } from './AddressPicker';

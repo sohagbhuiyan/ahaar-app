@@ -19,6 +19,7 @@ import {
   useAddonCatalogue,
   useCreateExtraOrder,
   useCreateGuestOrder,
+  usePackages,
 } from '@/lib/query/hooks';
 import { cn, formatMoney } from '@/lib/utils';
 
@@ -33,17 +34,22 @@ interface ExtraProps {
 }
 
 /**
- * Add paid extras to a day that is already scheduled.
+ * Add paid extras to a meal that is already scheduled.
  *
- * `POST /orders/extra` attaches items to an existing `DailyDelivery`, which is
- * why this is a sheet over the day rather than a screen of its own: the date,
+ * `POST /orders/extra` attaches lines to an existing `DailyDelivery`, which is
+ * why this is a sheet over the meal rather than a screen of its own: the date,
  * slot and address are all the delivery's already, and the only decision left
  * is what to add.
  *
- * The catalogue shown is `addons_only` — items the kitchen offers as extras.
- * The endpoint would accept any menu item, but offering the whole menu here
- * would blur the line with the instant-order flow, which is where a customer
- * goes to buy a full meal outside their plan.
+ * Two kinds of line go in the same basket. **Packages** are bundles at a flat
+ * price — "Rice + Egg + Dal, 50 SAR" — charged once and only exploded into
+ * their component dishes on the delivery the kitchen packs. **Single items**
+ * are the `addons_only` catalogue: the endpoint would accept any menu item, but
+ * offering the whole menu here would blur the line with the instant-order flow,
+ * which is where a customer goes to buy a full meal outside their plan.
+ *
+ * Neither counts against the subscription's weekly entitlement — extras are
+ * paid separately, which the copy says out loud so nobody assumes otherwise.
  */
 export function ExtraOrderSheet({
   open,
@@ -53,10 +59,13 @@ export function ExtraOrderSheet({
   onPlaced,
 }: ExtraProps) {
   const { data: addons, isLoading } = useAddonCatalogue();
+  const { data: packages, isLoading: packagesLoading } = usePackages();
   const createExtra = useCreateExtraOrder();
 
   /** menu_item_id → quantity. Only non-zero entries are sent. */
   const [picked, setPicked] = useState<Record<number, number>>({});
+  /** package_id → quantity. */
+  const [bundles, setBundles] = useState<Record<number, number>>({});
 
   /**
    * Clear on the way out rather than in an effect watching `open`.
@@ -70,6 +79,7 @@ export function ExtraOrderSheet({
    */
   const handleClose = () => {
     setPicked({});
+    setBundles({});
     createExtra.reset();
     onClose();
   };
@@ -82,34 +92,56 @@ export function ExtraOrderSheet({
     [picked],
   );
 
+  const packageLines = useMemo(
+    () =>
+      Object.entries(bundles)
+        .map(([id, quantity]) => ({ package_id: Number(id), quantity }))
+        .filter((l) => l.quantity > 0),
+    [bundles],
+  );
+
   const total = useMemo(() => {
-    const byId = new Map((addons ?? []).map((a) => [a.id, a.base_price]));
-    return lines.reduce(
-      (sum, l) => sum + (byId.get(l.menu_item_id) ?? 0) * l.quantity,
-      0,
+    const itemPrice = new Map((addons ?? []).map((a) => [a.id, a.base_price]));
+    const bundlePrice = new Map((packages ?? []).map((p) => [p.id, p.price]));
+
+    return (
+      lines.reduce((sum, l) => sum + (itemPrice.get(l.menu_item_id) ?? 0) * l.quantity, 0) +
+      packageLines.reduce((sum, l) => sum + (bundlePrice.get(l.package_id) ?? 0) * l.quantity, 0)
     );
-  }, [lines, addons]);
+  }, [lines, packageLines, addons, packages]);
+
+  const lineCount = lines.length + packageLines.length;
 
   /**
    * One key per (delivery, exact selection). A retry after a dropped response
    * hits the same key and cannot double-charge; changing the selection is
    * legitimately a different order.
    */
-  const idempotencyKey = `extra-${deliveryId}-${lines
-    .map((l) => `${l.menu_item_id}x${l.quantity}`)
+  const idempotencyKey = `extra-${deliveryId}-${[
+    ...lines.map((l) => `i${l.menu_item_id}x${l.quantity}`),
+    ...packageLines.map((l) => `p${l.package_id}x${l.quantity}`),
+  ]
     .sort()
     .join('.')}`;
 
   const submit = () => {
-    if (lines.length === 0 || !beforeCutoff) return;
+    if (lineCount === 0 || !beforeCutoff) return;
 
     createExtra.mutate(
-      { payload: { daily_delivery_id: deliveryId, items: lines }, idempotencyKey },
+      {
+        payload: {
+          daily_delivery_id: deliveryId,
+          items: lines,
+          packages: packageLines,
+        },
+        idempotencyKey,
+      },
       {
         onSuccess: async (order) => {
           setPicked({});
+          setBundles({});
           onClose();
-          toast.success('Extras added to your day');
+          toast.success('Extras added to your meal');
           if (isPayable(order.payment)) {
             await openCheckout(order.payment.checkout_url);
           }
@@ -126,17 +158,13 @@ export function ExtraOrderSheet({
       open={open}
       onClose={handleClose}
       title="Order something extra"
-      description="Added to this day's delivery and charged separately."
+      description="Added to this meal and charged separately — extras don't use up your plan."
       footer={
         <Button
-          label={
-            lines.length > 0
-              ? `Add · ${formatMoney(total)}`
-              : 'Add extras'
-          }
+          label={lineCount > 0 ? `Add · ${formatMoney(total)}` : 'Add extras'}
           size="lg"
           loading={createExtra.isPending}
-          disabled={lines.length === 0 || !beforeCutoff}
+          disabled={lineCount === 0 || !beforeCutoff}
           onPress={submit}
         />
       }
@@ -153,16 +181,98 @@ export function ExtraOrderSheet({
         <InlineError error={createExtra.error} className="mb-4" />
       ) : null}
 
-      {isLoading ? (
+      {isLoading || packagesLoading ? (
         <SkeletonText lines={6} />
-      ) : !addons || addons.length === 0 ? (
+      ) : (addons?.length ?? 0) === 0 && (packages?.length ?? 0) === 0 ? (
         <EmptyState
           title="No extras available"
           description="The kitchen isn't offering add-ons right now."
         />
       ) : (
-        <View className="gap-3 pb-2">
-          {addons.map((addon) => {
+        <View className="gap-5 pb-2">
+          {(packages?.length ?? 0) > 0 ? (
+            <View className="gap-3">
+              <Text className="text-sm font-bold text-text-primary">Packages</Text>
+
+              {packages!.map((pkg) => {
+                const quantity = bundles[pkg.id] ?? 0;
+                const saves =
+                  pkg.a_la_carte_price !== null && pkg.a_la_carte_price > pkg.price;
+
+                return (
+                  <View
+                    key={pkg.id}
+                    className={cn(
+                      'gap-2 rounded-2xl border p-3',
+                      quantity > 0 ? 'border-brand-500 bg-brand-50' : 'border-border',
+                    )}
+                  >
+                    <View className="flex-row items-start gap-3">
+                      <View className="flex-1">
+                        <Text numberOfLines={1} className="text-sm font-bold text-text-primary">
+                          {pkg.name}
+                        </Text>
+                        <Text numberOfLines={2} className="mt-0.5 text-xs text-text-muted">
+                          {pkg.items
+                            .map((i) => (i.quantity > 1 ? `${i.quantity} × ${i.name}` : i.name))
+                            .join(' · ')}
+                        </Text>
+                        <View className="mt-1 flex-row items-center gap-2">
+                          <Text className="text-xs font-semibold text-brand-500">
+                            {formatMoney(pkg.price)}
+                          </Text>
+                          {saves ? (
+                            <Badge
+                              label={`Save ${formatMoney(pkg.a_la_carte_price! - pkg.price)}`}
+                              variant="free"
+                            />
+                          ) : null}
+                        </View>
+                      </View>
+
+                      {quantity > 0 ? (
+                        <Stepper
+                          size="sm"
+                          value={quantity}
+                          min={1}
+                          label={`${pkg.name} quantity`}
+                          disabled={!beforeCutoff}
+                          onChange={(next) =>
+                            setBundles((prev) => {
+                              if (next <= 0) {
+                                const { [pkg.id]: _removed, ...rest } = prev;
+                                return rest;
+                              }
+                              return { ...prev, [pkg.id]: next };
+                            })
+                          }
+                        />
+                      ) : (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Add ${pkg.name}`}
+                          disabled={!beforeCutoff}
+                          onPress={() => setBundles((prev) => ({ ...prev, [pkg.id]: 1 }))}
+                          className={cn(
+                            'rounded-xl bg-surface-muted px-3 py-2 active:opacity-70',
+                            !beforeCutoff && 'opacity-40',
+                          )}
+                        >
+                          <Text className="text-xs font-bold text-text-primary">Add</Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
+
+          {(addons?.length ?? 0) > 0 ? (
+            <Text className="text-sm font-bold text-text-primary">Single items</Text>
+          ) : null}
+
+          {(addons ?? []).map((addon) => {
             const quantity = picked[addon.id] ?? 0;
 
             return (

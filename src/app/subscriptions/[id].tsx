@@ -21,7 +21,6 @@ import { isApiError } from '@/lib/api/types/common';
 import type { Delivery, SubscriptionStatus } from '@/lib/api/types/subscription';
 import { isPayable, openCheckout } from '@/lib/payments';
 import {
-  useDeliverySlotMap,
   usePauseSubscription,
   useQuota,
   useResumeSubscription,
@@ -69,7 +68,6 @@ export default function SubscriptionDetailScreen() {
   const { data: deliveries, isLoading: deliveriesLoading } = useSubscriptionDeliveries(
     subscription?.id,
   );
-  const { data: slotById } = useDeliverySlotMap();
 
   const pause = usePauseSubscription(subscription?.id ?? 0);
   const resume = useResumeSubscription(subscription?.id ?? 0);
@@ -102,10 +100,21 @@ export default function SubscriptionDetailScreen() {
     );
   }
 
-  const slot = slotById?.get(subscription.slot_id);
+  const meals = subscription.slots;
   const awaitingPayment = isPayable(subscription.payment);
   const currentWeek = weekForDate(subscription.start_date, today);
-  const upcoming = (deliveries ?? []).filter((d) => d.delivery_date >= today).slice(0, 10);
+
+  // Ten *days*, not ten deliveries: with three meals a day the raw slice would
+  // show barely three days of the run.
+  const upcomingDates = [
+    ...new Set(
+      (deliveries ?? [])
+        .filter((d) => d.delivery_date >= today)
+        .map((d) => d.delivery_date),
+    ),
+  ]
+    .sort()
+    .slice(0, 10);
 
   // `end_date` moves later each time a day is paused; `original_end_date` is
   // where it started. Showing both is the only way the extension is legible.
@@ -118,7 +127,7 @@ export default function SubscriptionDetailScreen() {
     <SafeAreaView className="flex-1 bg-surface">
       <ScreenHeader
         title={subscription.plan?.name ?? `Subscription #${subscription.id}`}
-        subtitle={`#${subscription.id}${slot ? ` · ${slot.name}` : ''}`}
+        subtitle={`#${subscription.id}${meals.length > 0 ? ` · ${meals.map((m) => m.name).join(', ')}` : ''}`}
       />
       <OfflineBanner />
 
@@ -160,7 +169,9 @@ export default function SubscriptionDetailScreen() {
                 </Text>
                 {subscription.plan ? (
                   <Text className="mt-0.5 text-xs text-text-muted">
-                    One meal a day for {subscription.plan.duration_days} days
+                    {meals.length > 1
+                      ? `${meals.length} meals a day for ${subscription.plan.duration_days} days`
+                      : `Every meal in this plan, daily for ${subscription.plan.duration_days} days`}
                   </Text>
                 ) : null}
               </View>
@@ -174,7 +185,17 @@ export default function SubscriptionDetailScreen() {
 
             <Separator className="my-4" />
 
-            <Row label="Meal" value={slot ? `${slot.name} · ${slotWindow(slot)}` : '—'} />
+            {meals.length === 0 ? (
+              <Row label="Meals" value="—" />
+            ) : (
+              meals.map((meal) => (
+                <Row
+                  key={meal.id}
+                  label={meal.name}
+                  value={slotWindow(meal)}
+                />
+              ))
+            )}
             <Row label="Starts" value={formatLongDate(subscription.start_date)} />
             <Row
               label="Ends"
@@ -267,7 +288,7 @@ export default function SubscriptionDetailScreen() {
 
           {deliveriesLoading ? (
             <SkeletonText lines={5} />
-          ) : upcoming.length === 0 ? (
+          ) : upcomingDates.length === 0 ? (
             <Card>
               <View className="p-5">
                 <Text className="text-sm text-text-secondary">
@@ -277,66 +298,83 @@ export default function SubscriptionDetailScreen() {
             </Card>
           ) : (
             <View className="gap-2">
-              {upcoming.map((delivery) => {
-                const paused = delivery.status === 'paused';
+              {upcomingDates.map((date) => {
+                // A day is every meal on it, in time order. Skipping is a
+                // decision about the day, not about one of its meals — the API
+                // pauses them together — so the row is the day.
+                const dayMeals = (deliveries ?? [])
+                  .filter((d) => d.delivery_date === date)
+                  .sort((a, b) =>
+                    (a.slot?.start_time ?? '99:99').localeCompare(
+                      b.slot?.start_time ?? '99:99',
+                    ),
+                  );
+
+                const paused = dayMeals.every((d) => d.status === 'paused');
+                const swapped = dayMeals.some((d) => d.is_customized);
+                // Pause needs every meal still open: the API refuses the whole
+                // day if any one of them has closed.
+                const canPause = dayMeals.every((d) => d.before_cutoff);
+                const anchor = dayMeals[0];
+                const busy = pendingPause?.delivery_date === date;
 
                 return (
                   <View
-                    key={delivery.id}
+                    key={date}
                     className="rounded-2xl border border-border bg-surface px-4 py-3"
                   >
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`Open ${formatShortDate(delivery.delivery_date)}`}
+                      accessibilityLabel={`Open ${formatShortDate(date)}`}
                       onPress={() => router.push('/deliveries')}
-                      className="flex-row items-center justify-between gap-3 active:opacity-80"
+                      className="flex-row items-start justify-between gap-3 active:opacity-80"
                     >
                       <View className="flex-1">
                         <Text className="text-sm font-semibold text-text-primary">
-                          {formatShortDate(delivery.delivery_date)}
+                          {formatShortDate(date)}
                         </Text>
-                        <Text
-                          numberOfLines={1}
-                          className="mt-0.5 text-xs text-text-muted"
-                        >
-                          {(delivery.items ?? [])
-                            .filter((i) => !i.is_addon)
-                            .map((i) => i.menu_item?.name)
-                            .filter(Boolean)
-                            .join(' · ') || 'Menu to be confirmed'}
-                        </Text>
+
+                        {dayMeals.map((meal) => (
+                          <Text
+                            key={meal.id}
+                            numberOfLines={1}
+                            className="mt-0.5 text-xs text-text-muted"
+                          >
+                            <Text className="font-semibold">
+                              {meal.slot?.name ?? 'Meal'}:{' '}
+                            </Text>
+                            {(meal.items ?? [])
+                              .filter((i) => !i.is_addon)
+                              .map((i) => i.menu_item?.name)
+                              .filter(Boolean)
+                              .join(' · ') || 'Menu to be confirmed'}
+                          </Text>
+                        ))}
                       </View>
 
                       {paused ? (
                         <Badge label="Skipped" variant="muted" />
-                      ) : delivery.is_customized ? (
+                      ) : swapped ? (
                         <Badge label="Swapped" variant="brand" />
-                      ) : delivery.status !== 'scheduled' ? (
-                        <Badge
-                          label={delivery.status}
-                          variant="muted"
-                          className="capitalize"
-                        />
                       ) : null}
                     </Pressable>
 
-                    {/* Only offered before the cutoff — the API refuses after,
-                        and a button that always 422s is worse than no button. */}
-                    {delivery.before_cutoff ? (
+                    {/* Only offered while every meal that day is still open —
+                        the API refuses otherwise, and a button that always
+                        422s is worse than no button. */}
+                    {paused || canPause ? (
                       <Button
                         label={paused ? 'Un-skip this day' : 'Skip this day'}
                         variant="ghost"
                         size="sm"
                         fullWidth={false}
                         className="mt-1 self-start"
-                        loading={
-                          (paused ? resume.isPending : pause.isPending) &&
-                          pendingPause?.id === delivery.id
-                        }
+                        loading={(paused ? resume.isPending : pause.isPending) && busy}
                         onPress={() => {
+                          if (!anchor) return;
                           if (paused) {
-                            setPendingPause(delivery);
-                            resume.mutate(delivery.delivery_date, {
+                            setPendingPause(anchor);
+                            resume.mutate(date, {
                               onSuccess: () => {
                                 setPendingPause(null);
                                 toast.success('Day restored');
@@ -351,7 +389,7 @@ export default function SubscriptionDetailScreen() {
                               },
                             });
                           } else {
-                            setPendingPause(delivery);
+                            setPendingPause(anchor);
                           }
                         }}
                       />

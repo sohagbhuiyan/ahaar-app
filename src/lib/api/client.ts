@@ -116,6 +116,7 @@ apiClient.interceptors.response.use(
 interface LaravelErrorBody {
   message?: string;
   errors?: Record<string, string[]>;
+  reason?: string;
 }
 
 function codeForStatus(status: number): ApiErrorCode {
@@ -158,7 +159,7 @@ export function normalizeError(error: AxiosError): ApiError {
       ? fallbackMessage(code)
       : body.message;
 
-  return { message, status, code, errors: body?.errors };
+  return { message, status, code, errors: body?.errors, reason: body?.reason };
 }
 
 function fallbackMessage(code: ApiErrorCode): string {

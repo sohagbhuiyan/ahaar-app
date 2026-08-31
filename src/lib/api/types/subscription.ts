@@ -4,8 +4,9 @@
  * Mirrors `SubscriptionResource`, `DailyDeliveryResource`,
  * `DailyDeliveryItemResource` and `SubscriptionQuotaResource`.
  */
-import type { Plan } from './catalog';
+import type { DeliverySlot, Plan } from './catalog';
 import type { Payment } from './order';
+import type { SwapBlockedReason } from './swap';
 
 export type SubscriptionStatus =
   | 'pending'
@@ -20,7 +21,16 @@ export interface Subscription {
   /** Only present when eager-loaded (show/store do; index does too). */
   plan?: Plan;
   address_id: number | null;
-  slot_id: number;
+  /**
+   * Every meal this subscription delivers each day, in time-of-day order.
+   *
+   * The plan's flat price buys the whole board its weekly menu defines, so this
+   * is a list, not a choice — and it is frozen at purchase, so a plan gaining a
+   * breakfast next month does not widen what an existing subscriber paid for.
+   * It is also what makes swapping possible: moving tonight's fish onto today's
+   * lunch needs both plates to belong to the same subscription.
+   */
+  slots: DeliverySlot[];
   status: SubscriptionStatus;
   /** YYYY-MM-DD */
   start_date: string;
@@ -48,19 +58,45 @@ export type DeliveryItemSource = 'plan' | 'customization' | 'extra' | 'guest';
 /** `App\Http\Resources\Customer\DailyDeliveryItemResource` */
 export interface DeliveryItem {
   id: number;
-  menu_item?: { id: number; name: string; slug: string };
+  menu_item_id: number | null;
+  menu_item?: { id: number; name: string; slug: string; image_url: string | null };
   category_id: number;
+  /** `is_swappable: false` categories are fixed parts of the meal. */
+  category?: { id: number; name: string; is_swappable: boolean };
   quantity: number;
   is_addon: boolean;
+  /** An add-on that came with the plan, as opposed to one bought as an extra. */
+  is_free_addon: boolean;
   is_default: boolean;
   source: DeliveryItemSource;
+  /** Set when this line was materialised from a bundle the customer bought. */
+  package?: { id: number; name: string } | null;
+
+  /**
+   * Swap state — all server-decided.
+   *
+   * A position gets exactly one exchange and is then settled for good, which is
+   * what `swap_locked` records. `can_swap` already folds in the cutoff, the lock
+   * and whether the category is swappable at all, so the UI must never re-derive
+   * it from dates or flags of its own.
+   */
+  swap_locked: boolean;
+  swap_locked_at: string | null;
+  was_swapped: boolean;
+  /** What the plan originally scheduled here, once it has been swapped away. */
+  swapped_from: string | null;
+  can_swap: boolean;
+  swap_blocked_reason: SwapBlockedReason | null;
+  swap_blocked_message: string | null;
 }
 
 /**
  * `App\Http\Resources\Customer\DailyDeliveryResource`
  *
- * One row per calendar day of the subscription. `delivery_date` is the real
- * date; the weekday menu it was built from is that date's ISO weekday.
+ * One row per **meal** per calendar day. A subscription covering breakfast,
+ * lunch and dinner has three of these per date — which is what makes moving
+ * tonight's fish onto today's lunch a move between two plates the customer
+ * already owns.
  */
 export interface Delivery {
   id: number;
@@ -68,6 +104,8 @@ export interface Delivery {
   /** YYYY-MM-DD */
   delivery_date: string;
   slot_id: number;
+  /** Eager-loaded on every customer read, so the meal can be named. */
+  slot?: DeliverySlot;
   status: DeliveryStatus;
   is_customized: boolean;
   /** ISO-8601 timestamp after which nothing on this delivery may change. */
@@ -83,6 +121,10 @@ export interface Delivery {
  * The customer's *entitlement* quota — how many times they may receive a given
  * item in a given week of their subscription. Distinct from kitchen capacity
  * (per item, per calendar date), which the API does not expose yet.
+ *
+ * A meal swap never moves these numbers: both ends of an exchange sit in the
+ * same week, so the week still contains the same dishes the same number of
+ * times. Only pauses, extras and the plan's own defaults touch them.
  */
 export interface SubscriptionQuota {
   menu_item_id: number;
@@ -94,10 +136,14 @@ export interface SubscriptionQuota {
   remaining: number;
 }
 
-/** POST /subscriptions */
+/**
+ * POST /subscriptions
+ *
+ * There is no meal to choose: the subscription covers every one its plan
+ * serves, read from the plan's weekly menu server-side.
+ */
 export interface CreateSubscriptionPayload {
   plan_id: number;
-  slot_id: number;
   address_id?: number | null;
   /** YYYY-MM-DD — must be tomorrow or later. */
   start_date: string;
@@ -118,6 +164,7 @@ export interface DeliveryFilters {
   from?: string;
   /** YYYY-MM-DD */
   to?: string;
+  slot_id?: number;
   status?: DeliveryStatus;
   page?: number;
 }

@@ -9,6 +9,7 @@
  *
  * Mirrors `OrderResource`, `OrderItemResource` and `PaymentResource`.
  */
+import type { PackageLineInput } from './package';
 
 export type OrderType = 'extra' | 'guest' | 'instant';
 
@@ -34,11 +35,23 @@ export interface Payment {
   created_at: string;
 }
 
-/** `App\Http\Resources\Customer\OrderItemResource` */
+/**
+ * `App\Http\Resources\Customer\OrderItemResource`
+ *
+ * A line is either a dish or a bundle, never both — `kind` says which, so no
+ * caller has to null-check two ids to print one label. A bundle stays whole
+ * here so its price is charged once; it is only exploded into component dishes
+ * on the delivery the kitchen packs.
+ */
 export interface OrderItem {
   id: number;
-  menu_item_id: number;
-  menu_item?: { id: number; name: string; slug: string };
+  kind: 'item' | 'package';
+  /** What to print on the line, whichever kind it is. */
+  name: string;
+  menu_item_id: number | null;
+  menu_item?: { id: number; name: string; slug: string; image_url: string | null };
+  package_id: number | null;
+  package?: { id: number; name: string; slug: string; image_url: string | null };
   quantity: number;
   unit_price: number;
   /** VAT percentage, e.g. 9.00. */
@@ -78,10 +91,17 @@ export interface OrderLineInput {
   quantity: number;
 }
 
-/** POST /orders/extra — attaches to an existing delivery, before its cutoff. */
+/**
+ * POST /orders/extra — attaches to an existing delivery, before its cutoff.
+ *
+ * A basket holds two kinds of line and needs at least one of either: single
+ * dishes (`items`) and bundles (`packages`). Neither is required on its own,
+ * which is why both are optional here and the API rejects an empty basket.
+ */
 export interface CreateExtraOrderPayload {
   daily_delivery_id: number;
-  items: OrderLineInput[];
+  items?: OrderLineInput[];
+  packages?: PackageLineInput[];
   gateway?: 'test' | 'mollie' | 'stripe';
 }
 
@@ -92,13 +112,17 @@ export interface CreateGuestOrderPayload {
   gateway?: 'test' | 'mollie' | 'stripe';
 }
 
-/** POST /orders/instant — standalone; its own date, slot and address. */
+/**
+ * POST /orders/instant — standalone; its own date, slot and address.
+ * Takes dishes, bundles, or both; at least one line of either kind.
+ */
 export interface CreateInstantOrderPayload {
   /** YYYY-MM-DD */
   delivery_date: string;
   slot_id: number;
   address_id?: number | null;
-  items: OrderLineInput[];
+  items?: OrderLineInput[];
+  packages?: PackageLineInput[];
   gateway?: 'test' | 'mollie' | 'stripe';
 }
 

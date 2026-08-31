@@ -17,6 +17,10 @@ const WEEKDAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 /**
  * Day selector across a subscription's deliveries.
  *
+ * Keyed by **date**, not by delivery. A subscription covers every meal its plan
+ * serves, so one Monday can be three deliveries — breakfast, lunch and dinner —
+ * and mapping the raw list would render Monday three times.
+ *
  * Ordered by real calendar date, starting at the subscriber's own `start_date`
  * — NOT at Monday. A subscription beginning on a Thursday shows Thu, Fri, Sat…
  * because the backend anchors day 1 to `start_date` and maps each date to that
@@ -27,21 +31,27 @@ const WEEKDAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
  */
 export function MenuDayTabs({ deliveries, value, onChange, className }: Props) {
   const items = useMemo<TabItem<string>[]>(() => {
-    return [...deliveries]
-      .sort((a, b) => a.delivery_date.localeCompare(b.delivery_date))
-      .map((delivery) => {
-        const date = new Date(`${delivery.delivery_date}T00:00:00Z`);
-        const weekdayIndex = date.getUTCDay() === 0 ? 6 : date.getUTCDay() - 1;
+    const byDate = new Map<string, Delivery[]>();
+    for (const delivery of deliveries) {
+      const forDate = byDate.get(delivery.delivery_date);
+      if (forDate) forDate.push(delivery);
+      else byDate.set(delivery.delivery_date, [delivery]);
+    }
+
+    return [...byDate.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, meals]) => {
+        const parsed = new Date(`${date}T00:00:00Z`);
+        const weekdayIndex = parsed.getUTCDay() === 0 ? 6 : parsed.getUTCDay() - 1;
 
         return {
-          value: delivery.delivery_date,
-          label: isToday(delivery.delivery_date)
-            ? 'Today'
-            : WEEKDAY_SHORT[weekdayIndex],
-          sublabel: String(date.getUTCDate()),
-          // Skipped and cancelled days are shown but not selectable: hiding
-          // them would silently renumber the week and confuse a paused plan.
-          disabled: delivery.status === 'skipped',
+          value: date,
+          label: isToday(date) ? 'Today' : WEEKDAY_SHORT[weekdayIndex],
+          sublabel: String(parsed.getUTCDate()),
+          // A day is only unselectable when *every* meal on it was skipped.
+          // Hiding it instead would silently renumber the week and confuse a
+          // paused plan.
+          disabled: meals.every((m) => m.status === 'skipped'),
         };
       });
   }, [deliveries]);

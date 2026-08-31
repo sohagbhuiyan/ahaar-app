@@ -41,6 +41,13 @@ export interface ApiError {
   code: ApiErrorCode;
   /** Laravel 422 field errors, when present. */
   errors?: Record<string, string[]>;
+  /**
+   * A domain reason code some 422s carry alongside the sentence, when the
+   * refusal is a business rule rather than a field validation. The swap
+   * endpoint emits these (`already_swapped`, `past_cutoff`, …) so the UI can
+   * branch on the rule instead of matching on prose.
+   */
+  reason?: string;
 }
 
 export type ApiErrorCode =

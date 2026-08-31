@@ -72,11 +72,35 @@ export const queryKeys = {
       ['quota', 'subscription', String(subscriptionId)] as const,
   },
 
-  /** Swap options for one delivery. */
+  /**
+   * Meal swapping.
+   *
+   * A swap is a transposition between two plates that may sit on different days
+   * and different meals, so anything it can touch is invalidated together —
+   * refreshing only the delivery the customer was looking at would leave the
+   * other end of the exchange stale.
+   */
   swap: {
     all: () => ['swap'] as const,
     options: (deliveryId: string | number) =>
       ['swap', 'options', String(deliveryId)] as const,
+    targets: (itemId: string | number) => ['swap', 'targets', String(itemId)] as const,
+    history: (subscriptionId: string | number) =>
+      ['swap', 'history', String(subscriptionId)] as const,
+  },
+
+  /** The whole plan, day by day and meal by meal. */
+  schedule: {
+    all: () => ['schedule'] as const,
+    bySubscription: (subscriptionId: string | number, week?: number) =>
+      ['schedule', String(subscriptionId), week ?? 'all'] as const,
+  },
+
+  /** Bundles sold outside the subscription. A public catalogue read. */
+  packages: {
+    all: () => ['packages'] as const,
+    list: () => ['packages', 'list'] as const,
+    detail: (id: string | number) => ['packages', 'detail', String(id)] as const,
   },
 
   orders: {
@@ -128,6 +152,8 @@ export const PRIVATE_QUERY_ROOTS: readonly (readonly string[])[] = [
   queryKeys.menu.all(),
   queryKeys.quota.all(),
   queryKeys.swap.all(),
+  // The schedule is one customer's own run of deliveries, not a catalogue.
+  queryKeys.schedule.all(),
   queryKeys.orders.all(),
   queryKeys.payments.all(),
   queryKeys.addons.all(),

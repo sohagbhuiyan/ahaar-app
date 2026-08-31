@@ -91,6 +91,9 @@ export default function PlanDetailScreen() {
   }
 
   const perDay = plan.duration_days > 0 ? plan.price / plan.duration_days : 0;
+  // `slots` is `whenLoaded` on the resource: absent means the API wasn't asked,
+  // which is not the same as "this plan serves no meals".
+  const mealCount = plan.slots?.length ?? 0;
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
@@ -146,8 +149,20 @@ export default function PlanDetailScreen() {
 
           <View className="mt-4 rounded-2xl bg-surface-muted px-4 py-3">
             <Text className="text-xs text-text-secondary">
-              A subscription covers <Text className="font-bold">one meal</Text> a
-              day for {plan.duration_days} days. You choose which meal at checkout.
+              {mealCount > 1 ? (
+                <>
+                  One price covers{' '}
+                  <Text className="font-bold">all {mealCount} meals</Text> a day,
+                  every day for {plan.duration_days} days — and you can trade
+                  dishes between them once it starts.
+                </>
+              ) : (
+                <>
+                  A subscription covers{' '}
+                  <Text className="font-bold">every meal this plan serves</Text>,
+                  every day for {plan.duration_days} days.
+                </>
+              )}
             </Text>
           </View>
         </View>

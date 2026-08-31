@@ -1,168 +1,132 @@
 /**
- * Day swap — exchanging a day's item for another in the plan's menu set.
+ * Meal swapping — exchanging one scheduled dish for another the customer
+ * already owns.
  *
- * The mutation is optimistic because a swap is a direct manipulation: the user
- * taps a dish and expects the card to change under their finger, not after a
- * round-trip. Every server rule is still authoritative — the optimistic write
- * is reverted on any error and the truth is re-fetched on settle.
+ * Deliberately **not** optimistic, unlike the substitution flow it replaces.
+ * A swap moves two plates at once, and the second one is usually off-screen —
+ * on another day, or another meal. Painting a guess for a plate the customer
+ * cannot see, then rolling it back on a 422, is worse than a brief spinner on
+ * the one they are looking at. The server hands back both updated deliveries,
+ * so the truth arrives in the same round-trip anyway.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import * as swapApi from '../../api/endpoints/swap';
-import type { Delivery } from '../../api/types/subscription';
-import type { SwapInput, SwapOptions } from '../../api/types/swap';
+import { isApiError } from '../../api/types/common';
+import type { ApplySwapPayload, SwapBlockedReason } from '../../api/types/swap';
 import { queryKeys } from '../keys';
+import { useIsSignedIn } from './useIsSignedIn';
 
 /**
- * What may be swapped on this delivery.
+ * The whole plan, day by day and meal by meal. Pass a week to fetch just that
+ * one — a week is also the horizon a swap may reach.
+ */
+export function useSubscriptionSchedule(
+  subscriptionId: string | number | undefined,
+  week?: number,
+) {
+  const signedIn = useIsSignedIn();
+
+  return useQuery({
+    queryKey: queryKeys.schedule.bySubscription(subscriptionId ?? '', week),
+    queryFn: () => swapApi.getSubscriptionSchedule(subscriptionId!, week),
+    enabled: signedIn && subscriptionId !== undefined && subscriptionId !== '',
+    staleTime: 30 * 1000,
+  });
+}
+
+/**
+ * What may be swapped on this meal, and where each dish could go.
  *
- * `refetchOnMount: 'always'` for the same reason as the delivery itself:
- * `before_cutoff` and each option's remaining quota both go stale with the
- * clock, and offering an option the server will reject is worse than a brief
- * spinner.
+ * `refetchOnMount: 'always'` because the answer goes stale with the clock:
+ * `before_cutoff` on either end can lapse between screens, and offering a
+ * target the server will refuse is worse than a brief spinner.
  */
 export function useSwapOptions(deliveryId: string | number | undefined) {
+  const signedIn = useIsSignedIn();
+
   return useQuery({
     queryKey: queryKeys.swap.options(deliveryId ?? ''),
     queryFn: () => swapApi.getSwapOptions(deliveryId!),
-    enabled: deliveryId !== undefined && deliveryId !== '',
+    enabled: signedIn && deliveryId !== undefined && deliveryId !== '',
     staleTime: 15 * 1000,
     refetchOnMount: 'always',
   });
 }
 
-interface SwapContext {
-  previousDelivery?: Delivery;
-  previousOptions?: SwapOptions;
+/** One dish's targets, when the UI drills into a single line. */
+export function useSwapTargets(itemId: number | undefined) {
+  const signedIn = useIsSignedIn();
+
+  return useQuery({
+    queryKey: queryKeys.swap.targets(itemId ?? ''),
+    queryFn: () => swapApi.getSwapTargets(itemId!),
+    enabled: signedIn && itemId !== undefined,
+    staleTime: 15 * 1000,
+  });
+}
+
+/** The customer's own exchange history for a subscription. */
+export function useSwapHistory(subscriptionId: string | number | undefined) {
+  const signedIn = useIsSignedIn();
+
+  return useQuery({
+    queryKey: queryKeys.swap.history(subscriptionId ?? ''),
+    queryFn: () => swapApi.getSwapHistory(subscriptionId!),
+    enabled: signedIn && subscriptionId !== undefined && subscriptionId !== '',
+    staleTime: 60 * 1000,
+  });
 }
 
 /**
- * Apply swaps to one delivery.
+ * Exchange two plates.
  *
- * On success the quota, the delivery and the swap options are all invalidated:
- * a swap releases one item's weekly slot and consumes another's, so the meters
- * elsewhere in the app are wrong until they refetch.
+ * Both settle afterwards — neither can be swapped again — so everything that
+ * could be showing either of them is refreshed. The response carries both
+ * deliveries, so each is seeded straight into its own cache entry before the
+ * broader invalidation lands; the screen the customer is on updates without
+ * waiting for a refetch.
+ *
+ * Quota is deliberately *not* invalidated: both ends of an exchange sit in the
+ * same week, so the week still contains the same dishes the same number of
+ * times and the meters cannot have moved.
  */
-export function useApplySwaps(deliveryId: number, subscriptionId?: number) {
+export function useApplyMealSwap(subscriptionId: number | undefined) {
   const queryClient = useQueryClient();
-  const deliveryKey = queryKeys.menu.detail(deliveryId);
-  const optionsKey = queryKeys.swap.options(deliveryId);
 
   return useMutation({
-    mutationFn: (swaps: SwapInput[]) =>
-      swapApi.applySwaps(deliveryId, { swaps }),
+    mutationFn: (payload: ApplySwapPayload) =>
+      swapApi.applyMealSwap(subscriptionId!, payload),
 
-    onMutate: async (swaps): Promise<SwapContext> => {
-      // Stop any in-flight refetch from landing on top of the optimistic write.
-      await queryClient.cancelQueries({ queryKey: deliveryKey });
-      await queryClient.cancelQueries({ queryKey: optionsKey });
-
-      const previousDelivery = queryClient.getQueryData<Delivery>(deliveryKey);
-      const previousOptions = queryClient.getQueryData<SwapOptions>(optionsKey);
-
-      // Show the new item in place immediately.
-      if (previousDelivery?.items) {
-        const byCategory = new Map(swaps.map((s) => [s.category_id, s.to_menu_item_id]));
-        const nameFor = (menuItemId: number) =>
-          previousOptions?.categories
-            .flatMap((c) => c.options)
-            .find((o) => o.menu_item_id === menuItemId)?.name;
-
-        queryClient.setQueryData<Delivery>(deliveryKey, {
-          ...previousDelivery,
-          is_customized: true,
-          items: previousDelivery.items.map((item) => {
-            // Only non-addon items participate in a category swap.
-            const target = item.is_addon ? undefined : byCategory.get(item.category_id);
-            if (target === undefined) return item;
-
-            return {
-              ...item,
-              is_default: false,
-              source: 'customization' as const,
-              menu_item: {
-                id: target,
-                name: nameFor(target) ?? item.menu_item?.name ?? '',
-                slug: item.menu_item?.slug ?? '',
-              },
-            };
-          }),
-        });
-      }
-
-      // Move the selection highlight in the options list too.
-      if (previousOptions) {
-        const byCategory = new Map(swaps.map((s) => [s.category_id, s.to_menu_item_id]));
-
-        queryClient.setQueryData<SwapOptions>(optionsKey, {
-          ...previousOptions,
-          categories: previousOptions.categories.map((category) => {
-            const target = byCategory.get(category.category_id);
-            if (target === undefined) return category;
-
-            return {
-              ...category,
-              current_item_id: target,
-              options: category.options.map((option) => ({
-                ...option,
-                is_current: option.menu_item_id === target,
-              })),
-            };
-          }),
-        });
-      }
-
-      return { previousDelivery, previousOptions };
-    },
-
-    onError: (_error, _swaps, context) => {
-      // A 422 here is a real conflict — exhausted quota, or the cutoff passed
-      // mid-interaction. Put the previous state back rather than leaving the
-      // UI showing a swap that never happened.
-      if (context?.previousDelivery) {
-        queryClient.setQueryData(deliveryKey, context.previousDelivery);
-      }
-      if (context?.previousOptions) {
-        queryClient.setQueryData(optionsKey, context.previousOptions);
+    onSuccess: ({ deliveries }) => {
+      for (const delivery of deliveries) {
+        queryClient.setQueryData(queryKeys.menu.detail(delivery.id), delivery);
       }
     },
 
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: deliveryKey });
-      queryClient.invalidateQueries({ queryKey: optionsKey });
-      // The whole day list shows each day's items.
       queryClient.invalidateQueries({ queryKey: queryKeys.menu.all() });
-
-      if (subscriptionId !== undefined) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.quota.bySubscription(subscriptionId),
-        });
-      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.swap.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.schedule.all() });
     },
   });
 }
 
-/** Restore the plan's defaults for a day. Paid extras on it are kept. */
-export function useRevertSwaps(deliveryId: number, subscriptionId?: number) {
-  const queryClient = useQueryClient();
+/**
+ * The server's refusal, as something renderable.
+ *
+ * A 422 from the swap endpoint carries both a sentence and a stable `reason`
+ * code. Anything else is a transport failure and gets a generic line rather
+ * than leaking an axios message into the UI.
+ */
+export function swapError(error: unknown): {
+  message: string;
+  reason: SwapBlockedReason | null;
+} {
+  if (isApiError(error)) {
+    const reason = (error as { reason?: SwapBlockedReason }).reason ?? null;
+    return { message: error.message, reason };
+  }
 
-  return useMutation({
-    mutationFn: () => swapApi.revertSwaps(deliveryId),
-
-    onSuccess: (delivery) => {
-      // The response is the updated delivery — seed it rather than refetch.
-      queryClient.setQueryData(queryKeys.menu.detail(deliveryId), delivery);
-    },
-
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.swap.options(deliveryId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.menu.all() });
-
-      if (subscriptionId !== undefined) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.quota.bySubscription(subscriptionId),
-        });
-      }
-    },
-  });
+  return { message: 'We could not swap those meals. Please try again.', reason: null };
 }

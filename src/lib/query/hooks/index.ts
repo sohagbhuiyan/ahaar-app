@@ -17,9 +17,24 @@ export {
 } from './useFoods';
 export { useIsSignedIn } from './useIsSignedIn';
 export { useHomeContent, useHomeLayout, FALLBACK_HOME_LAYOUT, type HomeLayout } from './useHome';
-export { useDeliveries, useDelivery, useSubscriptionDeliveries, useTodaysDelivery } from './useMenu';
+export {
+  useDeliveries,
+  useDelivery,
+  useSubscriptionDeliveries,
+  useDeliveriesOnDate,
+  useDeliveryDates,
+  useTodaysDelivery,
+} from './useMenu';
 export { useQuota, useQuotaForDate, remainingFor } from './useQuota';
-export { useSwapOptions, useApplySwaps, useRevertSwaps } from './useSwap';
+export {
+  useSubscriptionSchedule,
+  useSwapOptions,
+  useSwapTargets,
+  useSwapHistory,
+  useApplyMealSwap,
+  swapError,
+} from './useSwap';
+export { usePackages, usePackage } from './usePackages';
 export {
   useSubscriptions,
   useSubscription,
