@@ -79,6 +79,7 @@ function RootLayout() {
               <Stack.Screen name="subscriptions" />
               <Stack.Screen name="subscriptions/[id]" />
               <Stack.Screen name="deliveries" />
+              <Stack.Screen name="schedule" />
               <Stack.Screen name="payments" />
               <Stack.Screen name="profile" />
               {/* `orders.tsx` + `orders/[id].tsx` rather than an `orders/`

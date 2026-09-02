@@ -18,8 +18,8 @@ import {
 import { useFood } from '@/lib/query/hooks';
 import { useInstantOrderStore } from '@/lib/store';
 import { formatMoney } from '@/lib/utils';
+import { FOOD_BLURHASH } from '@/lib/constants/images';
 
-const BLURHASH = 'L4O|b2~qRj%M?bofofj[00WBt7WB';
 
 /**
  * A single catalogue item.
@@ -86,7 +86,7 @@ export default function FoodDetailScreen() {
           {item.image_url ? (
             <Image
               source={{ uri: item.image_url }}
-              placeholder={{ blurhash: BLURHASH }}
+              placeholder={{ blurhash: FOOD_BLURHASH }}
               contentFit="cover"
               transition={200}
               cachePolicy="memory-disk"

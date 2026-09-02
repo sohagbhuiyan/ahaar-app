@@ -5,6 +5,7 @@ import { Text, View } from 'react-native';
 import { Badge, Button, Card } from '@/components/ui';
 import type { Plan } from '@/lib/api/types/catalog';
 import { cn, formatMoney } from '@/lib/utils';
+import { FOOD_BLURHASH } from '@/lib/constants/images';
 
 interface Props {
   plan: Plan;
@@ -16,7 +17,6 @@ interface Props {
   className?: string;
 }
 
-const BLURHASH = 'L4O|b2~qRj%M?bofofj[00WBt7WB';
 
 /**
  * Marketing label for a duration. Unknown lengths fall back to a day count —
@@ -53,7 +53,7 @@ function PlanCardComponent({
       {plan.image_url ? (
         <Image
           source={{ uri: plan.image_url }}
-          placeholder={{ blurhash: BLURHASH }}
+          placeholder={{ blurhash: FOOD_BLURHASH }}
           contentFit="cover"
           transition={200}
           cachePolicy="memory-disk"

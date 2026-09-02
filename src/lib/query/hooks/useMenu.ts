@@ -7,40 +7,40 @@
  * and a stale copy would offer actions the server will reject.
  */
 import { useMemo } from 'react';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import * as menuApi from '../../api/endpoints/menu';
-import type { Paginated } from '../../api/types/common';
 import type { Delivery, DeliveryFilters } from '../../api/types/subscription';
 import { queryKeys } from '../keys';
 import { useIsSignedIn } from './useIsSignedIn';
 
 const DELIVERY_STALE_MS = 30 * 1000;
 
-function nextPage(last: Paginated<Delivery>): number | undefined {
-  const { current_page, last_page } = last.meta;
-  return current_page < last_page ? current_page + 1 : undefined;
-}
-
-/** Paged deliveries, flattened and sorted by date. */
-export function useDeliveries(filters: DeliveryFilters = {}) {
+/**
+ * Every delivery the customer has, sorted by date.
+ *
+ * Complete on purpose. This was an `useInfiniteQuery` that nothing ever paged:
+ * no screen called `fetchNextPage`, so the app only ever held page 1 — 50 rows
+ * shared across every subscription the customer owns. A 30-day full-board plan
+ * spends three rows a day, so a customer with a second plan still running saw
+ * their new one render as **six days**. Every consumer below (the day tabs,
+ * "coming up", the schedule) needs the whole run to be correct, so the paging
+ * is resolved in `getAllDeliveries` and this is a plain query again.
+ */
+export function useDeliveries(filters: Omit<DeliveryFilters, 'page'> = {}) {
   const signedIn = useIsSignedIn();
 
-  return useInfiniteQuery({
+  return useQuery({
     queryKey: queryKeys.menu.deliveries(filters),
-    queryFn: ({ pageParam }) => menuApi.getDeliveries({ ...filters, page: pageParam }),
+    queryFn: () => menuApi.getAllDeliveries(filters),
     // `/deliveries` is behind auth:sanctum — a signed-out visitor browsing the
     // Menu tab would otherwise fire a request that can only 401.
     enabled: signedIn,
-    initialPageParam: 1,
-    getNextPageParam: nextPage,
     staleTime: DELIVERY_STALE_MS,
-    select: (data) => {
-      const items = data.pages.flatMap((page) => page.data);
-      // Ascending by date — the day tabs and the schedule both read
-      // chronologically, whatever order the API paged them in.
-      return items.sort((a, b) => a.delivery_date.localeCompare(b.delivery_date));
-    },
+    // Ascending by date — the day tabs and the schedule both read
+    // chronologically, whatever order the API paged them in.
+    select: (items: Delivery[]) =>
+      [...items].sort((a, b) => a.delivery_date.localeCompare(b.delivery_date)),
   });
 }
 

@@ -7,6 +7,7 @@
 export { FoodCard } from './FoodCard';
 export { PlanCard } from './PlanCard';
 export { MenuDayTabs } from './MenuDayTabs';
+export { ScheduleDayCard } from './ScheduleDayCard';
 export { MealSwapSheet } from './MealSwapSheet';
 export { PlanMealsIncluded } from './PlanMealsIncluded';
 export { DayStrip } from './DayStrip';
@@ -22,3 +23,4 @@ export { AddonPicker, type AddonSelection } from './AddonPicker';
 export { SubscriptionSummaryCard } from './SubscriptionSummaryCard';
 export { OfflineBanner } from './OfflineBanner';
 export { PromoCarousel } from './PromoCarousel';
+export { HomeSections } from './HomeSections';

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui';
 import type { MenuItem } from '@/lib/api/types/catalog';
 import { shadows } from '@/lib/theme';
 import { cn, formatMoney } from '@/lib/utils';
+import { FOOD_BLURHASH } from '@/lib/constants/images';
 
 interface Props {
   item: MenuItem;
@@ -19,7 +20,6 @@ interface Props {
 }
 
 /** Neutral grey placeholder — no flash of brand colour behind every image. */
-const BLURHASH = 'L4O|b2~qRj%M?bofofj[00WBt7WB';
 
 /**
  * Menu-item card, in a full-width row or a grid tile.
@@ -52,7 +52,7 @@ function FoodCardComponent({
         {item.image_url ? (
           <Image
             source={{ uri: item.image_url }}
-            placeholder={{ blurhash: BLURHASH }}
+            placeholder={{ blurhash: FOOD_BLURHASH }}
             contentFit="cover"
             transition={200}
             // Both caches: survives scroll-away and app restart.

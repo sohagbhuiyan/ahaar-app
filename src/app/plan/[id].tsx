@@ -19,8 +19,8 @@ import { usePlan } from '@/lib/query/hooks';
 import { slotWindow } from '@/lib/slots';
 import { useCartStore } from '@/lib/store';
 import { cn, formatMoney, isoWeekdayForDate, todayISO } from '@/lib/utils';
+import { FOOD_BLURHASH } from '@/lib/constants/images';
 
-const BLURHASH = 'L4O|b2~qRj%M?bofofj[00WBt7WB';
 
 /**
  * Plan detail — the whole repeating week, before committing to it.
@@ -108,7 +108,7 @@ export default function PlanDetailScreen() {
         {plan.image_url ? (
           <Image
             source={{ uri: plan.image_url }}
-            placeholder={{ blurhash: BLURHASH }}
+            placeholder={{ blurhash: FOOD_BLURHASH }}
             contentFit="cover"
             transition={200}
             cachePolicy="memory-disk"
@@ -125,6 +125,19 @@ export default function PlanDetailScreen() {
             <Text className="mb-1 text-sm text-text-muted">
               {formatMoney(perDay)}/day
             </Text>
+          </View>
+
+          <View className="mt-4 flex-row rounded-2xl border border-border">
+            <GlanceStat value={String(plan.duration_days)} label="days" />
+            <GlanceStat
+              value={mealCount > 0 ? String(mealCount) : '—'}
+              label={mealCount === 1 ? 'meal a day' : 'meals a day'}
+            />
+            <GlanceStat
+              value={formatMoney(perDay).replace('SAR ', '')}
+              label="per day"
+              last
+            />
           </View>
 
           {plan.description ? (
@@ -336,6 +349,29 @@ function ScheduleLine({
       ) : item.is_addon ? (
         <Badge label="Add-on" variant="brand" />
       ) : null}
+    </View>
+  );
+}
+
+/** One cell of the plan's at-a-glance strip. */
+function GlanceStat({
+  value,
+  label,
+  last = false,
+}: {
+  value: string;
+  label: string;
+  last?: boolean;
+}) {
+  return (
+    <View
+      className={cn(
+        'flex-1 items-center py-3',
+        !last && 'border-r border-border',
+      )}
+    >
+      <Text className="text-lg font-bold text-text-primary">{value}</Text>
+      <Text className="mt-0.5 text-[11px] text-text-muted">{label}</Text>
     </View>
   );
 }

@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import BannerIllustration from '@/components/illustrations/BannerIllustration';
 import {
   FoodCard,
+  HomeSections,
   OfflineBanner,
   PlanCard,
   PromoCarousel,
@@ -196,13 +197,24 @@ export default function HomeScreen() {
                   ))}
                 </View>
 
-                <Button
-                  label="View my menu"
-                  variant="secondary"
-                  size="sm"
-                  className="mt-4"
-                  onPress={() => router.push('/deliveries')}
-                />
+                <View className="mt-4 flex-row gap-2">
+                  <Button
+                    label="Today's meals"
+                    variant="secondary"
+                    size="sm"
+                    fullWidth={false}
+                    className="flex-1"
+                    onPress={() => router.push('/deliveries')}
+                  />
+                  <Button
+                    label="Full schedule"
+                    variant="outline"
+                    size="sm"
+                    fullWidth={false}
+                    className="flex-1"
+                    onPress={() => router.push('/schedule')}
+                  />
+                </View>
               </View>
             </Card>
           ) : subscription ? (
@@ -216,7 +228,7 @@ export default function HomeScreen() {
                   variant="secondary"
                   size="sm"
                   className="mt-3"
-                  onPress={() => router.push('/deliveries')}
+                  onPress={() => router.push('/schedule')}
                 />
               </View>
             </Card>
@@ -254,12 +266,23 @@ export default function HomeScreen() {
               Your subscription
             </Text>
             <SubscriptionSummaryCard subscription={subscription}>
-              <Button
-                label="Manage"
-                variant="outline"
-                size="sm"
-                onPress={() => router.push('/subscriptions')}
-              />
+              <View className="flex-row gap-2">
+                <Button
+                  label="Full schedule"
+                  size="sm"
+                  fullWidth={false}
+                  className="flex-1"
+                  onPress={() => router.push('/schedule')}
+                />
+                <Button
+                  label="Manage"
+                  variant="outline"
+                  size="sm"
+                  fullWidth={false}
+                  className="flex-1"
+                  onPress={() => router.push('/subscriptions')}
+                />
+              </View>
             </SubscriptionSummaryCard>
           </View>
         ) : null}
@@ -357,6 +380,12 @@ export default function HomeScreen() {
             </Card>
           </View>
         ) : null}
+        {/* The evergreen half of the page: how it works, why Ahaar, what
+            people say, coverage and the FAQ. Static, so it renders offline and
+            on a cold start — and it is what gives a signed-out visitor a reason
+            to keep scrolling. Below the catalogue on purpose: a subscriber
+            should never scroll past the pitch to reach their own food. */}
+        <HomeSections onBrowsePlans={() => router.push('/(tabs)/plans')} />
       </ScrollView>
     </SafeAreaView>
   );

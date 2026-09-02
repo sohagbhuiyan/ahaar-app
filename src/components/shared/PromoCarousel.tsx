@@ -15,8 +15,8 @@ import {
 import { openCmsLink, resolveCmsLink } from '@/lib/cms';
 import { shadows } from '@/lib/theme';
 import type { HomeBanner } from '@/lib/api/types/home';
+import { BANNER_BLURHASH } from '@/lib/constants/images';
 
-const BLURHASH = 'L3B|WA00~q00~q00~q00~q00';
 
 interface Props {
   banners: HomeBanner[];
@@ -121,7 +121,7 @@ function PromoCard({
       {banner.image_url ? (
         <Image
           source={{ uri: banner.image_url }}
-          placeholder={{ blurhash: BLURHASH }}
+          placeholder={{ blurhash: BANNER_BLURHASH }}
           contentFit="cover"
           transition={200}
           cachePolicy="memory-disk"

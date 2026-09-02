@@ -41,6 +41,42 @@ export async function getDeliveries(
   return normalizePaginated(data, normalizeDelivery);
 }
 
+/**
+ * Every delivery the customer has, across all pages.
+ *
+ * `GET /deliveries` pages at 50 rows and scopes to *all* of the caller's
+ * subscriptions at once. A subscriber on a full-board plan spends three rows a
+ * day, so one page is barely a fortnight — and a customer with a previous plan
+ * still running spends the page's budget on that one first. Page 1 alone left
+ * a 30-day plan rendering as six days, which is not a schedule.
+ *
+ * The whole run is small and bounded (a 30-day full-board plan is 90 rows, two
+ * pages), it is the only shape the day tabs and the schedule can be built from,
+ * and no caller ever wanted a page — so the paging is resolved here rather than
+ * leaking `fetchNextPage` into every screen that needs a complete answer.
+ */
+export async function getAllDeliveries(
+  filters: Omit<DeliveryFilters, 'subscription_id' | 'page'> = {},
+): Promise<Delivery[]> {
+  const first = await getDeliveries(filters);
+  const all = [...first.data];
+
+  // A guard, not an expectation: `last_page` is the server's own count, and a
+  // malformed one must not turn a list into an unbounded request loop.
+  const lastPage = Math.min(first.meta.last_page ?? 1, MAX_DELIVERY_PAGES);
+
+  for (let page = 2; page <= lastPage; page++) {
+    const next = await getDeliveries({ ...filters, page });
+    all.push(...next.data);
+    if (next.data.length === 0) break;
+  }
+
+  return all;
+}
+
+/** 20 pages × 50 rows — far past any real plan, and a hard stop if paging breaks. */
+const MAX_DELIVERY_PAGES = 20;
+
 /** GET /deliveries/{id} — includes `items` and the `before_cutoff` gate. */
 export async function getDelivery(id: number | string): Promise<Delivery> {
   const { data } = await apiClient.get<ApiEnvelope<Raw>>(`/deliveries/${id}`);

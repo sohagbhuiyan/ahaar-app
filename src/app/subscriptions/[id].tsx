@@ -102,7 +102,12 @@ export default function SubscriptionDetailScreen() {
 
   const meals = subscription.slots;
   const awaitingPayment = isPayable(subscription.payment);
-  const currentWeek = weekForDate(subscription.start_date, today);
+  // `weekForDate` mirrors the backend's `QuotaService::weekFor()`, which counts
+  // forward from the start date and so returns 0 or less for a plan that hasn't
+  // begun — a subscription bought today starts tomorrow at the earliest. Week 1
+  // is the honest answer there: it is the allowance the customer will get first.
+  const currentWeek = Math.max(1, weekForDate(subscription.start_date, today));
+  const hasStarted = today >= subscription.start_date;
 
   // Ten *days*, not ten deliveries: with three meals a day the raw slice would
   // show barely three days of the run.
@@ -115,6 +120,10 @@ export default function SubscriptionDetailScreen() {
   ]
     .sort()
     .slice(0, 10);
+
+  // Every date the plan covers, so the preview above can be honest about how
+  // much of it it is actually showing.
+  const totalDays = new Set((deliveries ?? []).map((d) => d.delivery_date)).size;
 
   // `end_date` moves later each time a day is paused; `original_end_date` is
   // where it started. Showing both is the only way the extension is legible.
@@ -253,11 +262,12 @@ export default function SubscriptionDetailScreen() {
         {/* ── This week's allowance ───────────────────────────────────────── */}
         <View className="mt-6">
           <Text className="mb-1 text-lg font-bold text-text-primary">
-            This week&apos;s allowance
+            {hasStarted ? "This week's allowance" : "Your first week's allowance"}
           </Text>
           <Text className="mb-3 text-xs text-text-muted">
-            Week {currentWeek} of your plan — how many times you can still have
-            each dish.
+            {hasStarted
+              ? `Week ${currentWeek} of your plan — how many times you can still have each dish.`
+              : `Your plan starts on ${formatLongDate(subscription.start_date)}. This is week 1's allowance.`}
           </Text>
 
           {quotaLoading ? (
@@ -283,7 +293,9 @@ export default function SubscriptionDetailScreen() {
         <View className="mt-6">
           <Text className="mb-1 text-lg font-bold text-text-primary">Coming up</Text>
           <Text className="mb-3 text-xs text-text-muted">
-            Skipping a day frees its allowance and extends your plan by a day.
+            {upcomingDates.length > 0
+              ? `The next ${upcomingDates.length} ${upcomingDates.length === 1 ? 'day' : 'days'} of ${totalDays} — open the full schedule for the rest. Skipping a day frees its allowance and extends your plan by a day.`
+              : 'Skipping a day frees its allowance and extends your plan by a day.'}
           </Text>
 
           {deliveriesLoading ? (
@@ -401,12 +413,22 @@ export default function SubscriptionDetailScreen() {
           )}
         </View>
 
-        <Button
-          label="View full schedule"
-          variant="outline"
-          className="mt-6"
-          onPress={() => router.push('/deliveries')}
-        />
+        <View className="mt-6 gap-2">
+          <Button
+            label="View full schedule"
+            onPress={() =>
+              router.push({
+                pathname: '/schedule',
+                params: { subscription: String(subscription.id) },
+              })
+            }
+          />
+          <Button
+            label="Change a meal"
+            variant="outline"
+            onPress={() => router.push('/deliveries')}
+          />
+        </View>
       </ScrollView>
 
       <AlertDialog

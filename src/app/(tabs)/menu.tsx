@@ -173,17 +173,33 @@ export default function AccountScreen() {
           <View className="mt-6 px-5">
             <SectionTitle>Current plan</SectionTitle>
             <SubscriptionSummaryCard subscription={subscription}>
-              <Button
-                label="Manage"
-                variant="outline"
-                size="sm"
-                onPress={() =>
-                  router.push({
-                    pathname: '/subscriptions/[id]',
-                    params: { id: String(subscription.id) },
-                  })
-                }
-              />
+              <View className="flex-row gap-2">
+                <Button
+                  label="Full schedule"
+                  size="sm"
+                  fullWidth={false}
+                  className="flex-1"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/schedule',
+                      params: { subscription: String(subscription.id) },
+                    })
+                  }
+                />
+                <Button
+                  label="Manage"
+                  variant="outline"
+                  size="sm"
+                  fullWidth={false}
+                  className="flex-1"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/subscriptions/[id]',
+                      params: { id: String(subscription.id) },
+                    })
+                  }
+                />
+              </View>
             </SubscriptionSummaryCard>
           </View>
         ) : null}
@@ -210,8 +226,15 @@ export default function AccountScreen() {
             />
 
             <SectionRow
+              label="My Plan"
+              hint="The complete schedule, every day of your plan"
+              count={subscription ? subscription.plan?.duration_days : undefined}
+              onPress={() => router.push('/schedule')}
+            />
+
+            <SectionRow
               label="Deliveries"
-              hint="Your day-by-day menu, swaps and extras"
+              hint="Change a meal — swaps, extras and skipped days"
               onPress={() => router.push('/deliveries')}
             />
 

@@ -121,7 +121,23 @@ export default function DeliveriesScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
-      <ScreenHeader title="Deliveries" />
+      <ScreenHeader
+        title="Deliveries"
+        right={
+          <Button
+            label="Full plan"
+            variant="ghost"
+            size="sm"
+            fullWidth={false}
+            onPress={() =>
+              router.push({
+                pathname: '/schedule',
+                params: { subscription: String(subscription.id) },
+              })
+            }
+          />
+        }
+      />
       <OfflineBanner />
 
       <View className="px-5 pb-3 pt-4">

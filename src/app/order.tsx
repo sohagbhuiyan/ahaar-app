@@ -9,6 +9,7 @@ import {
   AddressFormSheet,
   AddressPicker,
   DayStrip,
+  formatAddress,
   OfflineBanner,
   ScreenHeader,
   SlotPicker,
@@ -281,9 +282,7 @@ export default function InstantOrderScreen() {
 
         {/* Day */}
         <View className="mt-6">
-          <Text className="mb-3 px-5 text-sm font-bold text-text-primary">
-            Delivery day
-          </Text>
+          <StepLabel n={1} label="Delivery day" className="px-5" />
           <DayStrip
             value={deliveryDate}
             onChange={setDeliveryDate}
@@ -295,7 +294,7 @@ export default function InstantOrderScreen() {
 
         {/* Slot */}
         <View className="mt-6 px-5">
-          <Text className="mb-3 text-sm font-bold text-text-primary">Meal time</Text>
+          <StepLabel n={2} label="Meal time" />
 
           {slotOptions.length === 0 ? (
             <Text className="text-sm text-text-secondary">Loading meal times…</Text>
@@ -313,9 +312,7 @@ export default function InstantOrderScreen() {
 
         {/* Address */}
         <View className="mt-6 px-5">
-          <Text className="mb-3 text-sm font-bold text-text-primary">
-            Delivery address
-          </Text>
+          <StepLabel n={3} label="Delivery address" />
           <AddressPicker
             addresses={addresses ?? []}
             value={effectiveAddressId}
@@ -336,7 +333,37 @@ export default function InstantOrderScreen() {
                   {formatMoney(total)}
                 </Text>
               </View>
-              <Text className="mt-1 text-xs text-text-muted">
+              <Separator className="my-3" />
+
+              <View className="gap-1">
+                <SummaryRow
+                  label="Arriving"
+                  value={
+                    deliveryDate
+                      ? formatLongDate(deliveryDate)
+                      : 'Pick a day above'
+                  }
+                />
+                <SummaryRow
+                  label="Meal time"
+                  value={
+                    slotOptions.find((o) => o.slot.id === slotId)?.slot.name ??
+                    'Pick a meal time'
+                  }
+                />
+                <SummaryRow
+                  label="Delivering to"
+                  value={
+                    addresses?.find((a) => a.id === effectiveAddressId)
+                      ? formatAddress(
+                          addresses.find((a) => a.id === effectiveAddressId)!,
+                        )
+                      : 'Your default address'
+                  }
+                />
+              </View>
+
+              <Text className="mt-3 text-xs text-text-muted">
                 Prices include tax. The final amount is confirmed by the server
                 when the order is created.
               </Text>
@@ -383,5 +410,40 @@ export default function InstantOrderScreen() {
         onSaved={(saved) => setAddress(saved.id)}
       />
     </SafeAreaView>
+  );
+}
+
+/** A numbered step heading — the screen is a sequence, so it should look like one. */
+function StepLabel({
+  n,
+  label,
+  className,
+}: {
+  n: number;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <View className={`mb-3 flex-row items-center gap-2 ${className ?? ''}`}>
+      <View className="h-5 w-5 items-center justify-center rounded-full bg-brand-50">
+        <Text className="text-[10px] font-bold text-brand-700">{n}</Text>
+      </View>
+      <Text className="text-sm font-bold text-text-primary">{label}</Text>
+    </View>
+  );
+}
+
+/** One line of the pre-payment recap. */
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="flex-row items-start justify-between gap-3">
+      <Text className="text-xs text-text-secondary">{label}</Text>
+      <Text
+        numberOfLines={1}
+        className="flex-1 text-right text-xs font-semibold text-text-primary"
+      >
+        {value}
+      </Text>
+    </View>
   );
 }

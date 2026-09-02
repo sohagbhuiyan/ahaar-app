@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useEffect, useRef } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 export interface TabItem<T extends string | number> {
   value: T;
@@ -56,18 +56,20 @@ export function Tabs<T extends string | number>({
         accessibilityState={{ selected: active, disabled: item.disabled }}
         disabled={item.disabled}
         onPress={() => onChange(item.value)}
-        onLayout={(e) => offsets.current.set(item.value, e.nativeEvent.layout.x)}
+        onLayout={(e) =>
+          offsets.current.set(item.value, e.nativeEvent.layout.x)
+        }
         className={cn(
-          'items-center justify-center rounded-2xl px-4 py-2.5',
-          scrollable ? 'min-w-[76px]' : 'flex-1',
-          active ? 'bg-brand-500' : 'bg-surface-muted',
-          item.disabled && 'opacity-40',
+          "items-center justify-center rounded-2xl px-4 py-2.5",
+          scrollable ? "min-w-[76px]" : "flex-1",
+          active ? "bg-brand-500" : "bg-surface-muted",
+          item.disabled && "opacity-40",
         )}
       >
         <Text
           className={cn(
-            'text-sm font-bold',
-            active ? 'text-text-inverse' : 'text-text-secondary',
+            "text-sm font-bold",
+            active ? "text-text-inverse" : "text-text-secondary",
           )}
         >
           {item.label}
@@ -76,8 +78,8 @@ export function Tabs<T extends string | number>({
         {item.sublabel ? (
           <Text
             className={cn(
-              'mt-0.5 text-[11px]',
-              active ? 'text-brand-100' : 'text-text-muted',
+              "mt-0.5 text-[11px]",
+              active ? "text-brand-100" : "text-text-muted",
             )}
           >
             {item.sublabel}
@@ -89,7 +91,9 @@ export function Tabs<T extends string | number>({
 
   if (!scrollable) {
     return (
-      <View className={cn('flex-row gap-2', className)}>{items.map(renderTab)}</View>
+      <View className={cn("flex-row gap-2", className)}>
+        {items.map(renderTab)}
+      </View>
     );
   }
 

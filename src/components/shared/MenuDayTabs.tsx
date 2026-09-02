@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
-import { Tabs, type TabItem } from '@/components/ui';
-import type { Delivery } from '@/lib/api/types/subscription';
-import { isToday } from '@/lib/utils';
+import { Tabs, type TabItem } from "@/components/ui";
+import type { Delivery } from "@/lib/api/types/subscription";
+import { isToday } from "@/lib/utils";
 
 interface Props {
   deliveries: Delivery[];
@@ -12,7 +12,7 @@ interface Props {
   className?: string;
 }
 
-const WEEKDAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const WEEKDAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 /**
  * Day selector across a subscription's deliveries.
@@ -42,21 +42,29 @@ export function MenuDayTabs({ deliveries, value, onChange, className }: Props) {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, meals]) => {
         const parsed = new Date(`${date}T00:00:00Z`);
-        const weekdayIndex = parsed.getUTCDay() === 0 ? 6 : parsed.getUTCDay() - 1;
+        const weekdayIndex =
+          parsed.getUTCDay() === 0 ? 6 : parsed.getUTCDay() - 1;
+        const monthShort = new Intl.DateTimeFormat(undefined, {
+          month: "short",
+          timeZone: "UTC",
+        }).format(parsed);
 
         return {
           value: date,
-          label: isToday(date) ? 'Today' : WEEKDAY_SHORT[weekdayIndex],
-          sublabel: String(parsed.getUTCDate()),
-          // A day is only unselectable when *every* meal on it was skipped.
-          // Hiding it instead would silently renumber the week and confuse a
-          // paused plan.
-          disabled: meals.every((m) => m.status === 'skipped'),
+          label: isToday(date) ? "Today" : WEEKDAY_SHORT[weekdayIndex],
+          sublabel: `${parsed.getUTCDate()}, ${monthShort}`, 
+          disabled: meals.every((m) => m.status === "skipped"),
         };
       });
   }, [deliveries]);
 
   return (
-    <Tabs items={items} value={value} onChange={onChange} scrollable className={className} />
+    <Tabs
+      items={items}
+      value={value}
+      onChange={onChange}
+      scrollable
+      className={className}
+    />
   );
 }
