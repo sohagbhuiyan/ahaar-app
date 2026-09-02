@@ -90,6 +90,8 @@ function RootLayout() {
               <Stack.Screen name="orders/[id]" />
               <Stack.Screen name="plan/[id]" />
               <Stack.Screen name="food/[id]" />
+              <Stack.Screen name="packages" />
+              <Stack.Screen name="package/[id]" />
             </Stack>
           </AuthGate>
 

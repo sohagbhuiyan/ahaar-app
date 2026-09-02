@@ -6,6 +6,8 @@
  */
 export { FoodCard } from './FoodCard';
 export { PlanCard } from './PlanCard';
+export { PackageCard } from './PackageCard';
+export { CategoryRail } from './CategoryRail';
 export { MenuDayTabs } from './MenuDayTabs';
 export { ScheduleDayCard } from './ScheduleDayCard';
 export { MealSwapSheet } from './MealSwapSheet';

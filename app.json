@@ -4,7 +4,7 @@
     "slug": "ahaar-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/images/ahaar2-adaptive.png",
     "scheme": "ahaarapp",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -35,7 +35,8 @@
       ],
       "expo-secure-store",
       "expo-image",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,

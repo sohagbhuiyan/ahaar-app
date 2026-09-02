@@ -12,6 +12,26 @@ allowBuilds:
   '@sentry/cli': true
   unrs-resolver: false
 
+minimumReleaseAgeExclude:
+  - '@expo/cli@57.0.21'
+  - '@expo/fingerprint@0.20.12'
+  - '@expo/metro-runtime@57.0.15'
+  - '@expo/router-server@57.0.9'
+  - babel-preset-expo@57.0.10
+  - expo-asset@57.0.16
+  - expo-constants@57.0.17
+  - expo-font@57.0.3
+  - expo-modules-core@57.0.15
+  - expo-modules-jsi@57.0.7
+  - expo@57.0.19
+  - '@expo/ui@57.0.15'
+  - expo-eas-client@57.0.3
+  - expo-image@57.0.4
+  - expo-linking@57.0.9
+  - expo-router@57.0.18
+  - expo-secure-store@57.0.3
+  - expo-updates@57.0.21
+
 # Metro and Gradle autolinking resolve modules by real path, so pnpm's default
 # symlinked node_modules breaks the release JS bundle (`expo-router/entry` fails
 # to resolve), which is what fails the "Run gradlew" phase on EAS Build.

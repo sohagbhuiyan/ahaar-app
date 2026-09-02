@@ -108,6 +108,54 @@ export function useFoodCategories() {
   return categories;
 }
 
+/** A category as the "Explore by category" tiles render it. */
+export interface CategoryTile {
+  slug: string;
+  name: string;
+  /** Dishes currently visible in this category. */
+  itemCount: number;
+  /** Borrowed from a dish — categories carry no image of their own. */
+  imageUrl: string | null;
+}
+
+/**
+ * Categories with the two things a tile needs beyond a name: how many dishes
+ * are in one, and a picture.
+ *
+ * Derived from the catalogue rather than fetched, for the same reason
+ * `useFoodCategories` is: the API exposes no public `/categories` endpoint, so
+ * the menu itself is the only source for the admin's taxonomy. Mirrors the
+ * website's `getCategoryTilesServer` so both storefronts show the same tiles.
+ */
+export function useCategoryTiles(): CategoryTile[] {
+  const { data } = useFoods();
+
+  return useMemo(() => {
+    const tiles = new Map<string, CategoryTile>();
+
+    for (const item of data?.items ?? []) {
+      if (!item.category) continue;
+      const existing = tiles.get(item.category.slug);
+
+      if (!existing) {
+        tiles.set(item.category.slug, {
+          slug: item.category.slug,
+          name: item.category.name,
+          itemCount: 1,
+          imageUrl: item.image_url ?? null,
+        });
+        continue;
+      }
+
+      existing.itemCount += 1;
+      // First dish with a picture wins — later ones must not overwrite it.
+      existing.imageUrl ??= item.image_url ?? null;
+    }
+
+    return [...tiles.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [data]);
+}
+
 export function useFood(id: string | number | undefined) {
   return useQuery({
     queryKey: queryKeys.foods.detail(id ?? ''),

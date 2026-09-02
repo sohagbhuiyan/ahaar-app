@@ -4,9 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BannerIllustration from '@/components/illustrations/BannerIllustration';
 import {
+  CategoryRail,
   FoodCard,
   HomeSections,
   OfflineBanner,
+  PackageCard,
   PlanCard,
   PromoCarousel,
   SubscriptionSummaryCard,
@@ -22,16 +24,18 @@ import {
 } from '@/components/ui';
 import {
   FALLBACK_HOME_LAYOUT,
+  useCategoryTiles,
   useCurrentSubscription,
   useFeaturedPlanId,
   useFoods,
   useHomeLayout,
   useIsSignedIn,
+  usePackages,
   usePlans,
   useProfile,
   useTodaysDelivery,
 } from '@/lib/query/hooks';
-import { useAuthPromptStore, useCurrentUser } from '@/lib/store';
+import { useAuthPromptStore, useCurrentUser, useFilterStore } from '@/lib/store';
 import { cmsText, openCmsLink, resolveCmsLink } from '@/lib/cms';
 import { formatLongDate, todayISO } from '@/lib/utils';
 
@@ -84,6 +88,9 @@ export default function HomeScreen() {
   );
 
   const { data: plans, isLoading: plansLoading, refetch: refetchPlans } = usePlans();
+  const { data: packages, refetch: refetchPackages } = usePackages();
+  const categories = useCategoryTiles();
+  const setCategory = useFilterStore((s) => s.setCategory);
   const { data: featuredId } = useFeaturedPlanId();
   const { data: foods, refetch: refetchFoods } = useFoods();
 
@@ -98,6 +105,22 @@ export default function HomeScreen() {
     refetchPlans();
     refetchFoods();
     refetchHome();
+    refetchPackages();
+  };
+
+  /**
+   * Open the Foods tab already filtered to a category.
+   *
+   * The filter store is the same one the Foods screen's chip row drives, so the
+   * chip for this category is highlighted on arrival and clearing it there
+   * behaves exactly as it would if the customer had tapped it themselves.
+   * `setCategory` toggles, so an already-selected category is cleared first —
+   * otherwise tapping the tile for the category you are already in would
+   * silently clear the filter instead of honouring the tap.
+   */
+  const openCategory = (slug: string) => {
+    if (useFilterStore.getState().categorySlug !== slug) setCategory(slug);
+    router.push('/(tabs)/foods');
   };
 
   const popularFoods = (foods?.items ?? []).slice(
@@ -287,6 +310,22 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
+        {/* Explore by category — the admin's own categories from
+            /admin/catalog/categories, each opening the Foods tab filtered to
+            it. Above the dish rail because it is the coarser choice: pick a
+            craving, then pick a dish. */}
+        {categories.length > 0 ? (
+          <View className="mt-6">
+            <SectionHeader
+              title="Explore by category"
+              subtitle="Something for every craving"
+              actionLabel="See all"
+              onAction={() => router.push('/(tabs)/foods')}
+            />
+            <CategoryRail categories={categories} onSelect={openCategory} />
+          </View>
+        ) : null}
+
         {/* Popular dishes — the fastest route to an order. Headings fall back to
             the built-in copy whenever the admin leaves a field empty. */}
         {layout.featuredMenu.enabled && popularFoods.length > 0 ? (
@@ -311,6 +350,41 @@ export default function HomeScreen() {
                   layout="grid"
                   className="w-44"
                   onPress={() => router.push(`/food/${item.id}`)}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
+        {/* Meal boxes — bundles from /admin/catalog/packages. Bought outright
+            rather than subscribed to, so they sit between the single dishes and
+            the plans, which is the same order the website uses. */}
+        {packages && packages.length > 0 ? (
+          <View className="mt-6">
+            <SectionHeader
+              title="Meal boxes"
+              subtitle="Complete meals at one price"
+              actionLabel="See all"
+              onAction={() => router.push('/packages')}
+            />
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }}
+              style={{ flexGrow: 0 }}
+            >
+              {packages.map((pkg) => (
+                <PackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  className="w-64"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/package/[id]',
+                      params: { id: String(pkg.id) },
+                    })
+                  }
                 />
               ))}
             </ScrollView>

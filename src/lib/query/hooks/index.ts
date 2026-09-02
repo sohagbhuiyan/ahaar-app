@@ -12,6 +12,8 @@ export {
   useFoods,
   useFilteredFoods,
   useFoodCategories,
+  useCategoryTiles,
+  type CategoryTile,
   useFood,
   useAddonCatalogue,
 } from './useFoods';

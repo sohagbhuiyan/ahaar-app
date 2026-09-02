@@ -27,10 +27,13 @@ export { useAuthPromptStore } from './useAuthPromptStore';
 export { useFilterStore, useHasActiveFilters } from './useFilterStore';
 
 export {
+  MAX_LINE_QUANTITY,
   useInstantOrderStore,
   useInstantOrderCount,
+  useInstantOrderIsEmpty,
   useInstantOrderTotal,
   type InstantOrderLine,
+  type InstantOrderPackageLine,
 } from './useInstantOrderStore';
 
 export { useNetworkStore, useIsOffline } from './useNetworkStore';

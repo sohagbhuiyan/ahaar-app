@@ -15,6 +15,7 @@ import {
   SlotPicker,
 } from '@/components/shared';
 import {
+  Badge,
   Button,
   Card,
   EmptyState,
@@ -61,6 +62,8 @@ export default function InstantOrderScreen() {
 
   const lines = useInstantOrderStore((s) => s.lines);
   const setQuantity = useInstantOrderStore((s) => s.setQuantity);
+  const packageLines = useInstantOrderStore((s) => s.packageLines);
+  const setPackageQuantity = useInstantOrderStore((s) => s.setPackageQuantity);
   const deliveryDate = useInstantOrderStore((s) => s.deliveryDate);
   const setDeliveryDate = useInstantOrderStore((s) => s.setDeliveryDate);
   const slotId = useInstantOrderStore((s) => s.slotId);
@@ -138,7 +141,13 @@ export default function InstantOrderScreen() {
     addresses?.[0]?.id ??
     null;
 
-  const total = lines.reduce((sum, l) => sum + l.unit_price * l.quantity, 0);
+  const total =
+    lines.reduce((sum, l) => sum + l.unit_price * l.quantity, 0) +
+    packageLines.reduce((sum, l) => sum + l.unit_price * l.quantity, 0);
+
+  // A basket of nothing but boxes is a valid basket — the API needs at least
+  // one line across `items` and `packages`, not specifically a dish.
+  const isEmpty = lines.length === 0 && packageLines.length === 0;
 
   /**
    * Stable for a given basket + delivery, so a retry after a dropped response
@@ -146,12 +155,18 @@ export default function InstantOrderScreen() {
    * the order legitimately makes it a different order.
    */
   const idempotencyKey = useMemo(() => {
-    const signature = lines
-      .map((l) => `${l.menu_item_id}x${l.quantity}`)
+    // Both kinds of line go into the signature. With only dishes in it, a
+    // basket of "one Beef Curry" and one of "one Beef Curry + a meal box"
+    // produced the same key, and the second order would be swallowed as a
+    // retry of the first.
+    const signature = [
+      ...lines.map((l) => `i${l.menu_item_id}x${l.quantity}`),
+      ...packageLines.map((l) => `p${l.package_id}x${l.quantity}`),
+    ]
       .sort()
       .join('.');
     return `instant-${deliveryDate}-${slotId}-${effectiveAddressId ?? 'default'}-${signature}`;
-  }, [lines, deliveryDate, slotId, effectiveAddressId]);
+  }, [lines, packageLines, deliveryDate, slotId, effectiveAddressId]);
 
   const createOrder = useCreateInstantOrder();
 
@@ -159,7 +174,7 @@ export default function InstantOrderScreen() {
     router.replace({ pathname: '/orders/[id]', params: { id: String(order.id) } });
 
   const submit = () => {
-    if (!deliveryDate || slotId === null || lines.length === 0) return;
+    if (!deliveryDate || slotId === null || isEmpty) return;
     setSubmitError(null);
 
     createOrder.mutate(
@@ -170,6 +185,10 @@ export default function InstantOrderScreen() {
           address_id: effectiveAddressId,
           items: lines.map((l) => ({
             menu_item_id: l.menu_item_id,
+            quantity: l.quantity,
+          })),
+          packages: packageLines.map((l) => ({
+            package_id: l.package_id,
             quantity: l.quantity,
           })),
         },
@@ -198,13 +217,13 @@ export default function InstantOrderScreen() {
   };
 
   const canSubmit =
-    lines.length > 0 &&
+    !isEmpty &&
     deliveryDate !== null &&
     slotId !== null &&
     hasBookableSlot &&
     !createOrder.isPending;
 
-  if (lines.length === 0) {
+  if (isEmpty) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
         <ScreenHeader title="Your order" variant="close" />
@@ -235,6 +254,7 @@ export default function InstantOrderScreen() {
         ) : null}
 
         {/* Items */}
+        {lines.length > 0 ? (
         <View className="px-5">
           <Card>
             <View className="p-4">
@@ -279,6 +299,59 @@ export default function InstantOrderScreen() {
             </View>
           </Card>
         </View>
+        ) : null}
+
+        {/* Meal boxes */}
+        {packageLines.length > 0 ? (
+          <View className="mt-4 px-5">
+            <Card>
+              <View className="p-4">
+                {packageLines.map((line, index) => (
+                  <View key={line.package_id}>
+                    {index > 0 ? <Separator className="my-3" /> : null}
+
+                    <View className="flex-row items-center gap-3">
+                      <View className="h-14 w-14 overflow-hidden rounded-2xl bg-surface-muted">
+                        {line.image_url ? (
+                          <Image
+                            source={{ uri: line.image_url }}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                            style={{ width: '100%', height: '100%' }}
+                          />
+                        ) : null}
+                      </View>
+
+                      <View className="flex-1">
+                        <View className="flex-row items-center gap-2">
+                          <Text
+                            numberOfLines={1}
+                            className="flex-1 text-sm font-bold text-text-primary"
+                          >
+                            {line.name}
+                          </Text>
+                          <Badge label="Box" variant="brand" />
+                        </View>
+                        <Text className="mt-0.5 text-xs text-text-muted">
+                          {formatMoney(line.unit_price)} ·{' '}
+                          {line.item_count} {line.item_count === 1 ? 'item' : 'items'}
+                        </Text>
+                      </View>
+
+                      <Stepper
+                        size="sm"
+                        value={line.quantity}
+                        min={1}
+                        label={`${line.name} quantity`}
+                        onChange={(next) => setPackageQuantity(line.package_id, next)}
+                      />
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </Card>
+          </View>
+        ) : null}
 
         {/* Day */}
         <View className="mt-6">
@@ -397,7 +470,7 @@ export default function InstantOrderScreen() {
           }
           size="lg"
           loading={createOrder.isPending}
-          disabled={signedIn ? !canSubmit : lines.length === 0}
+          disabled={signedIn ? !canSubmit : isEmpty}
           onPress={
             signedIn ? submit : () => promptLogin('to place this order')
           }

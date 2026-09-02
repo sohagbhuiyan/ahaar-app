@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import {
@@ -14,8 +13,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FoodCard, OfflineBanner } from '@/components/shared';
 import { Button, EmptyState, ErrorState, Input, SkeletonCard, Stepper } from '@/components/ui';
 import type { MenuItem } from '@/lib/api/types/catalog';
-import { useFilteredFoods, useFoodCategories } from '@/lib/query/hooks';
-import { useFilterStore, useHasActiveFilters, useInstantOrderStore } from '@/lib/store';
+import { useFilteredFoods, useFoodCategories, usePackages } from '@/lib/query/hooks';
+import {
+  useFilterStore,
+  useHasActiveFilters,
+  useInstantOrderCount,
+  useInstantOrderStore,
+  useInstantOrderTotal,
+} from '@/lib/store';
 import { colors } from '@/lib/theme';
 import { cn, formatMoney } from '@/lib/utils';
 
@@ -66,6 +71,7 @@ export default function FoodsScreen() {
   // Derived from the unfiltered catalogue, so picking one category never hides
   // the others — see `useFoodCategories`.
   const categories = useFoodCategories();
+  const { data: packages } = usePackages();
 
   const quantityFor = (menuItemId: number) =>
     lines.find((l) => l.menu_item_id === menuItemId)?.quantity ?? 0;
@@ -123,6 +129,27 @@ export default function FoodsScreen() {
           onPress={() => setAddonsOnly(!addonsOnly)}
         />
       </ScrollView>
+
+      {/* Meal boxes are a different product from a dish — a fixed bundle at one
+          price — so they get a route out rather than a chip that would imply
+          they filter this same list. */}
+      {packages && packages.length > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Browse ${packages.length} meal boxes`}
+          onPress={() => router.push('/packages')}
+          className="mb-3 flex-row items-center gap-3 rounded-2xl border border-border bg-surface-secondary px-4 py-3 active:opacity-80"
+        >
+          <Text className="text-2xl">🍱</Text>
+          <View className="flex-1">
+            <Text className="text-sm font-bold text-text-primary">Meal boxes</Text>
+            <Text className="text-xs text-text-muted">
+              {packages.length} complete {packages.length === 1 ? 'meal' : 'meals'} at one price
+            </Text>
+          </View>
+          <Text className="text-lg text-text-muted">›</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 
@@ -230,15 +257,12 @@ export default function FoodsScreen() {
  * catalogue is uncluttered until there is an order to complete.
  */
 function BasketBar({ onPress }: { onPress: () => void }) {
-  const lines = useInstantOrderStore((s) => s.lines);
-
-  const { count, total } = useMemo(
-    () => ({
-      count: lines.reduce((sum, l) => sum + l.quantity, 0),
-      total: lines.reduce((sum, l) => sum + l.unit_price * l.quantity, 0),
-    }),
-    [lines],
-  );
+  // Both kinds of line. The shared selectors own this sum so the bar, the tab
+  // badge and the order screen's total can never disagree — counting only
+  // `lines` here hid a basket that held nothing but meal boxes, and the
+  // customer had no route to the order screen at all.
+  const count = useInstantOrderCount();
+  const total = useInstantOrderTotal();
 
   if (count === 0) return null;
 
