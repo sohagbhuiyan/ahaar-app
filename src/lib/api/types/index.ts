@@ -7,3 +7,4 @@ export * from './order';
 export * from './swap';
 export * from './addons';
 export * from './package';
+export * from './media';

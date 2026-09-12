@@ -46,6 +46,29 @@ export interface MenuItem {
    * See `./addons.ts`.
    */
   is_free?: boolean;
+  /**
+   * Every picture of the dish, cover first. Detail endpoint only, and absent —
+   * never `[]` — when the item has no picture at all.
+   */
+  gallery?: MediaImage[];
+  /** Detail endpoint only; absent when no video was uploaded. */
+  video?: CatalogVideo;
+}
+
+/** One picture in a menu item's or package's gallery. */
+export interface MediaImage {
+  url: string;
+  alt: string | null;
+}
+
+/** The optional video on a menu item or package detail. */
+export interface CatalogVideo {
+  url: string;
+  mime_type: string | null;
+  /** `null` when the admin uploaded none — show the cover instead. */
+  poster_url: string | null;
+  /** `null` when the length is unknown. */
+  duration_seconds: number | null;
 }
 
 /**

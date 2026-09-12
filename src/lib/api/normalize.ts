@@ -13,8 +13,10 @@
  */
 import type {
   Address,
+  CatalogVideo,
   Category,
   DeliverySlot,
+  MediaImage,
   MenuItem,
   Plan,
   PlanMenuEntryType,
@@ -50,6 +52,7 @@ import type {
   SwapTarget,
 } from './types/swap';
 import type { FoodPackage } from './types/package';
+import type { MediaComment, MediaVideo } from './types/media';
 import type { Paginated, PaginationMeta } from './types/common';
 
 /**
@@ -210,9 +213,48 @@ export function normalizePlan(raw: Raw): Plan {
   };
 }
 
+/**
+ * `gallery` is only sent when there is at least one picture, so an absent or
+ * empty list stays `undefined` — the detail screen then renders exactly what it
+ * did before galleries existed. An entry without a usable URL is dropped
+ * rather than rendered as a blank slide.
+ */
+export function normalizeGallery(raw: unknown): MediaImage[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+
+  const images = (raw as (Raw | null)[])
+    .filter((entry): entry is Raw => typeof entry?.url === 'string' && entry.url.length > 0)
+    .map((entry) => ({ url: entry.url as string, alt: nullableText(entry.alt) }));
+
+  return images.length > 0 ? images : undefined;
+}
+
+/** The same rule for the video: no URL, no video — never an empty player. */
+export function normalizeCatalogVideo(raw: unknown): CatalogVideo | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+
+  const video = raw as Raw;
+  if (typeof video.url !== 'string' || video.url.length === 0) return undefined;
+
+  return {
+    url: video.url,
+    mime_type: nullableText(video.mime_type),
+    poster_url: nullableText(video.poster_url),
+    duration_seconds: toSeconds(video.duration_seconds),
+  };
+}
+
+/** A length the UI can print, or `null` — 0 and garbage both mean "unknown". */
+function toSeconds(value: unknown): number | null {
+  const seconds = toNumber(value);
+  return seconds > 0 ? Math.round(seconds) : null;
+}
+
 export function normalizeMenuItem(raw: Raw): MenuItem {
   const category = raw.category as Raw | undefined;
   return {
+    gallery: normalizeGallery(raw.gallery),
+    video: normalizeCatalogVideo(raw.video),
     id: raw.id as number,
     name: raw.name as string,
     slug: raw.slug as string,
@@ -628,6 +670,8 @@ export function normalizePackage(raw: Raw): FoodPackage {
       raw.a_la_carte_price === undefined || raw.a_la_carte_price === null
         ? null
         : toNumber(raw.a_la_carte_price),
+    gallery: normalizeGallery(raw.gallery),
+    video: normalizeCatalogVideo(raw.video),
     items: (items ?? []).map((item) => ({
       menu_item_id: item.menu_item_id as number,
       name: (item.name as string | null) ?? null,
@@ -732,5 +776,37 @@ export function normalizeHomeContent(raw: Raw): HomeContent {
       // The API already sorts; Home's layout depends on this order, so it is
       // cheap insurance rather than trust.
       .sort((a, b) => a.sort_order - b.sort_order),
+  };
+}
+
+// ── Media ────────────────────────────────────────────────────────────────────
+
+export function normalizeMediaVideo(raw: Raw): MediaVideo {
+  return {
+    id: raw.id as number,
+    title: (raw.title as string) ?? '',
+    description: nullableText(raw.description),
+    video_url: (raw.video_url as string) ?? '',
+    mime_type: nullableText(raw.mime_type),
+    // Both are omitted from the payload when unknown, not sent as null.
+    poster_url: nullableText(raw.poster_url),
+    duration_seconds: toSeconds(raw.duration_seconds),
+    comments_count: Math.max(0, Math.trunc(toNumber(raw.comments_count))),
+    published_at: nullableText(raw.published_at),
+  };
+}
+
+export function normalizeMediaComment(raw: Raw): MediaComment {
+  const author = (raw.author as Raw | null | undefined) ?? {};
+  return {
+    id: raw.id as number,
+    body: (raw.body as string) ?? '',
+    created_at: (raw.created_at as string) ?? '',
+    author: {
+      id: (author.id as number | null) ?? null,
+      name: nullableText(author.name) ?? 'Ahaar customer',
+    },
+    // Only an explicit `true` — a missing flag must never offer "Delete".
+    is_mine: raw.is_mine === true,
   };
 }

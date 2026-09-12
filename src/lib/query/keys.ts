@@ -103,6 +103,23 @@ export const queryKeys = {
     detail: (id: string | number) => ['packages', 'detail', String(id)] as const,
   },
 
+  /**
+   * Kitchen videos and their comments. Public reads, so not private — but a
+   * comments page carries `is_mine`, which depends on who asked, so its key
+   * includes the viewer. Signing in or out reads a fresh page rather than
+   * showing somebody else's Delete buttons.
+   */
+  media: {
+    all: () => ['media'] as const,
+    list: () => ['media', 'list'] as const,
+    detail: (id: string | number) => ['media', 'detail', String(id)] as const,
+    /** Every viewer's copy of one video's comments. */
+    comments: (videoId: string | number) =>
+      ['media', 'comments', String(videoId)] as const,
+    commentsFor: (videoId: string | number, viewerId: number | null) =>
+      ['media', 'comments', String(videoId), viewerId ?? 'guest'] as const,
+  },
+
   orders: {
     all: () => ['orders'] as const,
     /**

@@ -8,6 +8,7 @@
  *
  * Mirrors `App\Http\Resources\Customer\PackageResource`.
  */
+import type { CatalogVideo, MediaImage } from './catalog';
 
 export interface PackageContent {
   menu_item_id: number;
@@ -33,6 +34,10 @@ export interface FoodPackage {
    */
   a_la_carte_price: number | null;
   items: PackageContent[];
+  /** Cover first, then the extra pictures. Detail only; absent when none. */
+  gallery?: MediaImage[];
+  /** Detail only; absent when no video was uploaded. */
+  video?: CatalogVideo;
 }
 
 /** A bundle line on an order payload. */

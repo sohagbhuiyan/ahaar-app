@@ -8,6 +8,7 @@ import * as addons from './addons';
 import * as auth from './auth';
 import * as foods from './foods';
 import * as home from './home';
+import * as media from './media';
 import * as menu from './menu';
 import * as orders from './orders';
 import * as packages from './packages';
@@ -22,6 +23,7 @@ export const api = {
   auth,
   foods,
   home,
+  media,
   menu,
   orders,
   packages,
@@ -37,6 +39,7 @@ export {
   auth,
   foods,
   home,
+  media,
   menu,
   orders,
   packages,

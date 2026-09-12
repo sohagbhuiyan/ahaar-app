@@ -4,7 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
-import { ScreenHeader } from '@/components/shared';
+import { MediaGallery, ScreenHeader } from '@/components/shared';
 import {
   Badge,
   Button,
@@ -82,19 +82,29 @@ export default function FoodDetailScreen() {
         contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="h-56 w-full overflow-hidden rounded-3xl bg-surface-muted">
-          {item.image_url ? (
-            <Image
-              source={{ uri: item.image_url }}
-              placeholder={{ blurhash: FOOD_BLURHASH }}
-              contentFit="cover"
-              transition={200}
-              cachePolicy="memory-disk"
-              style={{ width: '100%', height: '100%' }}
-              accessibilityLabel={item.name}
-            />
-          ) : null}
-        </View>
+        {/* Pictures and video when the admin added them; otherwise the single
+            cover exactly as before. */}
+        <MediaGallery
+          images={item.gallery}
+          video={item.video}
+          label={item.name}
+          className="h-56 rounded-3xl"
+          fallback={
+            <View className="h-56 w-full overflow-hidden rounded-3xl bg-surface-muted">
+              {item.image_url ? (
+                <Image
+                  source={{ uri: item.image_url }}
+                  placeholder={{ blurhash: FOOD_BLURHASH }}
+                  contentFit="cover"
+                  transition={200}
+                  cachePolicy="memory-disk"
+                  style={{ width: '100%', height: '100%' }}
+                  accessibilityLabel={item.name}
+                />
+              ) : null}
+            </View>
+          }
+        />
 
         <View className="mt-4 flex-row items-start justify-between gap-3">
           <View className="flex-1">

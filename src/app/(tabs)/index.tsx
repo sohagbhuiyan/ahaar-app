@@ -7,6 +7,7 @@ import {
   CategoryRail,
   FoodCard,
   HomeSections,
+  MediaVideoCard,
   OfflineBanner,
   PackageCard,
   PlanCard,
@@ -30,6 +31,7 @@ import {
   useFoods,
   useHomeLayout,
   useIsSignedIn,
+  useMediaVideos,
   usePackages,
   usePlans,
   useProfile,
@@ -93,6 +95,7 @@ export default function HomeScreen() {
   const setCategory = useFilterStore((s) => s.setCategory);
   const { data: featuredId } = useFeaturedPlanId();
   const { data: foods, refetch: refetchFoods } = useFoods();
+  const { data: kitchenVideos, refetch: refetchVideos } = useMediaVideos();
 
   const { data: cmsLayout, refetch: refetchHome } = useHomeLayout();
   const layout = cmsLayout ?? FALLBACK_HOME_LAYOUT;
@@ -106,6 +109,7 @@ export default function HomeScreen() {
     refetchFoods();
     refetchHome();
     refetchPackages();
+    refetchVideos();
   };
 
   /**
@@ -158,7 +162,7 @@ export default function HomeScreen() {
             onPress={() =>
               signedIn
                 ? router.push('/profile')
-                : promptLogin('to see your account')
+                : promptLogin('to see your profile')
             }
             className="active:opacity-70"
           >
@@ -383,6 +387,40 @@ export default function HomeScreen() {
                     router.push({
                       pathname: '/package/[id]',
                       params: { id: String(pkg.id) },
+                    })
+                  }
+                />
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
+        {/* Kitchen videos — only once the kitchen has posted one, so there is
+            never an empty rail (or a dead link while the feed is unavailable). */}
+        {kitchenVideos && kitchenVideos.length > 0 ? (
+          <View className="mt-6">
+            <SectionHeader
+              title="From our kitchen"
+              subtitle="See how your meals are made"
+              actionLabel="See all"
+              onAction={() => router.push('/media')}
+            />
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }}
+              style={{ flexGrow: 0 }}
+            >
+              {kitchenVideos.slice(0, 5).map((video) => (
+                <MediaVideoCard
+                  key={video.id}
+                  video={video}
+                  className="w-72"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/media/[id]',
+                      params: { id: String(video.id) },
                     })
                   }
                 />

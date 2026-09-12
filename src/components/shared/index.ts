@@ -26,3 +26,7 @@ export { SubscriptionSummaryCard } from './SubscriptionSummaryCard';
 export { OfflineBanner } from './OfflineBanner';
 export { PromoCarousel } from './PromoCarousel';
 export { HomeSections } from './HomeSections';
+export { MediaGallery } from './MediaGallery';
+export { TapToPlayVideo, PlayBadge, formatDuration } from './VideoPlayer';
+export { MediaVideoCard, commentCountLabel } from './MediaVideoCard';
+export { MediaCommentItem, MediaCommentComposer } from './MediaComments';

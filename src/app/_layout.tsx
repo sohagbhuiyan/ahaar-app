@@ -1,3 +1,4 @@
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Stack, useNavigationContainerRef } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useCallback, useEffect } from "react";
@@ -64,43 +65,53 @@ function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ErrorBoundary>
         <QueryProvider onUnauthorized={handleUnauthorized}>
-          <AuthGate>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen
-                name="checkout"
-                options={{ presentation: "modal", headerShown: false }}
-              />
-              <Stack.Screen
-                name="order"
-                options={{ presentation: "modal", headerShown: false }}
-              />
-              <Stack.Screen name="subscriptions" />
-              <Stack.Screen name="subscriptions/[id]" />
-              <Stack.Screen name="deliveries" />
-              <Stack.Screen name="schedule" />
-              <Stack.Screen name="payments" />
-              <Stack.Screen name="profile" />
-              {/* `orders.tsx` + `orders/[id].tsx` rather than an `orders/`
-                  folder with an `index`: the flat file keeps the generated
-                  route literal a stable `/orders`, which the folder form
-                  flip-flops to `/orders/index` on incremental type generation. */}
-              <Stack.Screen name="orders" />
-              <Stack.Screen name="orders/[id]" />
-              <Stack.Screen name="plan/[id]" />
-              <Stack.Screen name="food/[id]" />
-              <Stack.Screen name="packages" />
-              <Stack.Screen name="package/[id]" />
-            </Stack>
-          </AuthGate>
+          {/* Hosts every bottom sheet. Inside the query provider so sheet
+              content can read server state, and around the stack so a sheet
+              draws above whichever screen opened it. */}
+          <BottomSheetModalProvider>
+            <AuthGate>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen
+                  name="checkout"
+                  options={{ presentation: "modal", headerShown: false }}
+                />
+                <Stack.Screen
+                  name="order"
+                  options={{ presentation: "modal", headerShown: false }}
+                />
+                <Stack.Screen name="subscriptions" />
+                <Stack.Screen name="subscriptions/[id]" />
+                <Stack.Screen name="deliveries" />
+                <Stack.Screen name="schedule" />
+                <Stack.Screen name="payments" />
+                <Stack.Screen name="profile" />
+                {/* `orders.tsx` + `orders/[id].tsx` rather than an `orders/`
+                    folder with an `index`: the flat file keeps the generated
+                    route literal a stable `/orders`, which the folder form
+                    flip-flops to `/orders/index` on incremental type generation. */}
+                <Stack.Screen name="orders" />
+                <Stack.Screen name="orders/[id]" />
+                <Stack.Screen name="plan/[id]" />
+                <Stack.Screen name="food/[id]" />
+                <Stack.Screen name="packages" />
+                <Stack.Screen name="package/[id]" />
+                {/* Kitchen videos — flat for the same reason as `orders`. */}
+                <Stack.Screen name="media" />
+                <Stack.Screen name="media/[id]" />
+              </Stack>
+            </AuthGate>
 
-          {/* Sign-in happens in a sheet over whatever the customer was doing,
-              so a gated tap never costs them their place. */}
-          <LoginPrompt />
+            {/* Sign-in happens in a sheet over whatever the customer was doing,
+                so a gated tap never costs them their place. */}
+            <LoginPrompt />
+          </BottomSheetModalProvider>
 
           {/* Global mutation feedback. Matches the web app's `sonner` usage so
-              success/error copy reads the same on both platforms. */}
+              success/error copy reads the same on both platforms. After the
+              sheet host, so a toast fired from inside a sheet is not drawn
+              under its backdrop. */}
           <Toaster
             position="top-center"
             offset={60}

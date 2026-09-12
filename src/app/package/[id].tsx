@@ -5,7 +5,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
-import { OfflineBanner, ScreenHeader } from '@/components/shared';
+import { MediaGallery, OfflineBanner, ScreenHeader } from '@/components/shared';
 import {
   Badge,
   Button,
@@ -87,23 +87,34 @@ export default function PackageDetailScreen() {
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="h-48 w-full bg-surface-muted">
-          {pkg.image_url ? (
-            <Image
-              source={{ uri: pkg.image_url }}
-              placeholder={{ blurhash: FOOD_BLURHASH }}
-              contentFit="cover"
-              transition={200}
-              cachePolicy="memory-disk"
-              style={{ width: '100%', height: '100%' }}
-              accessibilityLabel={pkg.name}
-            />
-          ) : (
-            <View className="h-full w-full items-center justify-center bg-brand-50">
-              <Text className="text-5xl">🍱</Text>
+        {/* Edge to edge like the cover it replaces; a real gallery gets a
+            little more height, since the pictures are the point of it. */}
+        <MediaGallery
+          images={pkg.gallery}
+          video={pkg.video}
+          label={pkg.name}
+          className="h-56"
+          thumbnailsInset={20}
+          fallback={
+            <View className="h-48 w-full bg-surface-muted">
+              {pkg.image_url ? (
+                <Image
+                  source={{ uri: pkg.image_url }}
+                  placeholder={{ blurhash: FOOD_BLURHASH }}
+                  contentFit="cover"
+                  transition={200}
+                  cachePolicy="memory-disk"
+                  style={{ width: '100%', height: '100%' }}
+                  accessibilityLabel={pkg.name}
+                />
+              ) : (
+                <View className="h-full w-full items-center justify-center bg-brand-50">
+                  <Text className="text-5xl">🍱</Text>
+                </View>
+              )}
             </View>
-          )}
-        </View>
+          }
+        />
 
         <View className="px-5 pt-5">
           <View className="flex-row items-end gap-2">

@@ -1,17 +1,11 @@
 import { useRouter } from 'expo-router';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
+import MenuIcon from '@/components/icons/MenuIcon';
 import { OfflineBanner, SubscriptionSummaryCard } from '@/components/shared';
-import {
-  Avatar,
-  Badge,
-  Button,
-  Card,
-  EmptyState,
-  Separator,
-  Skeleton,
-} from '@/components/ui';
+import { Avatar, Badge, Button, Card, Separator, Skeleton } from '@/components/ui';
 import {
   useCurrentSubscription,
   useFilteredOrders,
@@ -21,6 +15,7 @@ import {
   useSubscriptions,
 } from '@/lib/query/hooks';
 import { useAuthPromptStore } from '@/lib/store';
+import { colors, shadows } from '@/lib/theme';
 import { formatMoney } from '@/lib/utils';
 
 /**
@@ -38,7 +33,6 @@ import { formatMoney } from '@/lib/utils';
 export default function AccountScreen() {
   const router = useRouter();
   const signedIn = useIsSignedIn();
-  const promptLogin = useAuthPromptStore((s) => s.prompt);
 
   const {
     data: user,
@@ -60,22 +54,7 @@ export default function AccountScreen() {
     refetchOrders();
   };
 
-  if (!signedIn) {
-    return (
-      <SafeAreaView className="flex-1 bg-surface" edges={['top', 'left', 'right']}>
-        <View className="px-5 pb-2 pt-6">
-          <Text className="text-2xl font-bold text-text-primary">My Account</Text>
-        </View>
-        <EmptyState
-          title="Sign in to your account"
-          description="Your orders, subscription, deliveries, payments and profile all live here."
-          actionLabel="Sign in"
-          onAction={() => promptLogin('to open your account')}
-          className="flex-1 justify-center"
-        />
-      </SafeAreaView>
-    );
-  }
+  if (!signedIn) return <SignedOutAccount />;
 
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={['top', 'left', 'right']}>
@@ -254,10 +233,124 @@ export default function AccountScreen() {
               hint="Details, addresses and dietary preferences"
               onPress={() => router.push('/profile')}
             />
+
+            <SectionRow
+              label="Kitchen videos"
+              hint="See how your meals are made, and join the conversation"
+              onPress={() => router.push('/media')}
+            />
           </View>
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/** What an account is for — the same destinations the signed-in hub lists. */
+const ACCOUNT_BENEFITS = [
+  { title: 'Orders & deliveries', detail: 'Track every order and swap a meal before the cutoff' },
+  { title: 'Your meal plan', detail: 'The full schedule and your subscription in one place' },
+  { title: 'Payments', detail: 'Every charge and refund, with its receipt' },
+  { title: 'Saved details', detail: 'Addresses and dietary preferences, ready at checkout' },
+] as const;
+
+/**
+ * The Account tab before sign-in.
+ *
+ * Signing in is the one thing to do here, so it is the primary action — full
+ * width, in the brand colour — with registration under it for a first visit
+ * and a short list of what the account is for below that. Signing in itself
+ * happens in the `LoginPrompt` sheet, as it does everywhere else in the app.
+ */
+function SignedOutAccount() {
+  const router = useRouter();
+  const promptLogin = useAuthPromptStore((s) => s.prompt);
+
+  return (
+    <SafeAreaView className="flex-1 bg-surface" edges={['top', 'left', 'right']}>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
+        <View className="px-5 pb-4 pt-6">
+          <Text className="text-2xl font-bold text-text-primary">My Account</Text>
+          <Text className="mt-1 text-sm text-text-secondary">
+            Your orders, plan and payments, in one place
+          </Text>
+        </View>
+
+        <View className="px-5">
+          <View className="items-center rounded-3xl border border-brand-100 bg-brand-50 px-6 pb-6 pt-8">
+            <View
+              className="h-16 w-16 items-center justify-center rounded-full bg-surface"
+              style={shadows.card}
+            >
+              <MenuIcon color={colors.brand[500]} size={30} />
+            </View>
+
+            <Text className="mt-4 text-center text-xl font-bold text-text-primary">
+              Sign in to your account
+            </Text>
+            <Text className="mt-1.5 text-center text-sm leading-5 text-text-secondary">
+              Pick up your orders, deliveries and subscription right where you left them.
+            </Text>
+
+            <Button
+              label="Sign in"
+              size="lg"
+              className="mt-6"
+              onPress={() => promptLogin('to see your orders, plan and payments')}
+            />
+            <Button
+              label="Create an account"
+              variant="outline"
+              size="lg"
+              className="mt-3 bg-surface"
+              onPress={() => router.push('/(auth)/register')}
+            />
+          </View>
+        </View>
+
+        <View className="mt-8 px-5">
+          <SectionTitle>With an account</SectionTitle>
+
+          <View className="gap-4">
+            {ACCOUNT_BENEFITS.map((benefit) => (
+              <View key={benefit.title} className="flex-row items-start gap-3">
+                <View className="h-8 w-8 items-center justify-center rounded-full bg-brand-50">
+                  <CheckIcon color={colors.brand[500]} />
+                </View>
+                <View className="flex-1 pt-0.5">
+                  <Text className="text-sm font-bold text-text-primary">{benefit.title}</Text>
+                  <Text className="mt-0.5 text-xs leading-4 text-text-secondary">
+                    {benefit.detail}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <Text className="mt-8 px-8 text-center text-xs text-text-muted">
+          Browsing plans and dishes never needs an account.
+        </Text>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function CheckIcon({ color }: { color: string }) {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M20 6 9 17l-5-5"
+        stroke={color}
+        strokeWidth={2.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
   );
 }
 

@@ -1,8 +1,16 @@
-import { forwardRef } from 'react';
+import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
+import { cssInterop } from 'nativewind';
+import { forwardRef, useRef } from 'react';
 import { Text, TextInput, View, type TextInputProps } from 'react-native';
 
 import { colors } from '@/lib/theme';
 import { cn } from '@/lib/utils';
+
+import { useSheet } from './sheetContext';
+
+// NativeWind maps `className` on React Native's own components only; a
+// third-party input has to be registered, or every class on it is dropped.
+cssInterop(BottomSheetTextInput, { className: 'style' });
 
 interface Props extends TextInputProps {
   label?: string;
@@ -31,14 +39,33 @@ export const Input = forwardRef<TextInput, Props>(function Input(
     containerClassName,
     className,
     editable = true,
+    onFocus,
+    onBlur,
     ...rest
   },
   ref,
 ) {
   const hasError = Boolean(error);
+  const sheet = useSheet();
+  const containerRef = useRef<View>(null);
+  // Inside a `Sheet` the field must be the sheet library's own input: that is
+  // how the sheet learns a field is focused and keeps it above the keyboard.
+  // It wraps `TextInput` and takes the same props and ref, so it is typed as one.
+  const Field = (sheet ? BottomSheetTextInput : TextInput) as typeof TextInput;
+
+  // A sheet is also told which block has focus — label and message included —
+  // so it can scroll the whole thing into view when the keyboard crowds it.
+  const handleFocus: NonNullable<TextInputProps['onFocus']> = (event) => {
+    if (sheet && containerRef.current) sheet.onFieldFocus(containerRef.current);
+    onFocus?.(event);
+  };
+  const handleBlur: NonNullable<TextInputProps['onBlur']> = (event) => {
+    if (sheet && containerRef.current) sheet.onFieldBlur(containerRef.current);
+    onBlur?.(event);
+  };
 
   return (
-    <View className={cn('gap-1.5', containerClassName)}>
+    <View ref={containerRef} className={cn('gap-1.5', containerClassName)}>
       {label ? (
         <Text className="text-sm font-semibold text-text-primary">{label}</Text>
       ) : null}
@@ -52,7 +79,7 @@ export const Input = forwardRef<TextInput, Props>(function Input(
       >
         {left}
 
-        <TextInput
+        <Field
           ref={ref}
           editable={editable}
           placeholderTextColor={colors.text.muted}
@@ -64,6 +91,8 @@ export const Input = forwardRef<TextInput, Props>(function Input(
             className,
           )}
           {...rest}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
 
         {right}

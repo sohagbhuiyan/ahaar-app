@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
+import { useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View, type TextInput } from 'react-native';
 import { toast } from 'sonner-native';
 import { z } from 'zod';
 
@@ -25,10 +26,15 @@ type FormValues = z.infer<typeof schema>;
  * one thing that does navigate: it needs more room than a sheet, and a brand
  * new account has no pending order worth preserving.
  *
+ * There is no keyboard handling in this file on purpose: `Sheet` lifts itself
+ * and its footer above the keyboard, so the fields and "Sign in" stay visible
+ * while typing.
+ *
  * Mounted once, from the root layout.
  */
 export function LoginPrompt() {
   const router = useRouter();
+  const passwordRef = useRef<TextInput>(null);
 
   const open = useAuthPromptStore((s) => s.open);
   const reason = useAuthPromptStore((s) => s.reason);
@@ -100,52 +106,54 @@ export function LoginPrompt() {
         </View>
       }
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        {login.isError ? <InlineError error={login.error} className="mb-4" /> : null}
+      {login.isError ? <InlineError error={login.error} className="mb-4" /> : null}
 
-        <View className="gap-4 pb-2">
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { onChange, onBlur, value }, fieldState }) => (
-              <Input
-                label="Email"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                error={fieldState.error?.message}
-                autoCapitalize="none"
-                autoComplete="email"
-                keyboardType="email-address"
-                textContentType="emailAddress"
-                placeholder="you@example.com"
-              />
-            )}
-          />
+      <View className="gap-4 pb-2">
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, onBlur, value }, fieldState }) => (
+            <Input
+              label="Email"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={fieldState.error?.message}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              placeholder="you@example.com"
+              // "Next" moves to the password without dropping the keyboard,
+              // so the sheet doesn't bounce down and back up between fields.
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+            />
+          )}
+        />
 
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { onChange, onBlur, value }, fieldState }) => (
-              <Input
-                label="Password"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                error={fieldState.error?.message}
-                secureTextEntry
-                autoComplete="current-password"
-                textContentType="password"
-                placeholder="••••••••"
-                onSubmitEditing={handleSubmit(onSubmit)}
-                returnKeyType="go"
-              />
-            )}
-          />
-        </View>
-      </KeyboardAvoidingView>
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, onBlur, value }, fieldState }) => (
+            <Input
+              ref={passwordRef}
+              label="Password"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={fieldState.error?.message}
+              secureTextEntry
+              autoComplete="current-password"
+              textContentType="password"
+              placeholder="••••••••"
+              onSubmitEditing={handleSubmit(onSubmit)}
+              returnKeyType="go"
+            />
+          )}
+        />
+      </View>
     </Sheet>
   );
 }

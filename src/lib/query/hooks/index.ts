@@ -38,6 +38,13 @@ export {
 } from './useSwap';
 export { usePackages, usePackage } from './usePackages';
 export {
+  useMediaVideos,
+  useMediaVideo,
+  useMediaComments,
+  useCreateMediaComment,
+  useDeleteMediaComment,
+} from './useMedia';
+export {
   useSubscriptions,
   useSubscription,
   useCurrentSubscription,
