@@ -4,7 +4,12 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
-import { OfflineBanner, QuotaMeterList, ScreenHeader } from '@/components/shared';
+import {
+  DeliveryAddressBlock,
+  OfflineBanner,
+  QuotaMeterList,
+  ScreenHeader,
+} from '@/components/shared';
 import {
   AlertDialog,
   Badge,
@@ -226,6 +231,11 @@ export default function SubscriptionDetailScreen() {
                 value={formatLongDate(subscription.activated_at.slice(0, 10))}
               />
             ) : null}
+
+            <DeliveryAddressBlock
+              address={subscription.delivery_address}
+              className="mt-3"
+            />
 
             <Separator className="my-4" />
 

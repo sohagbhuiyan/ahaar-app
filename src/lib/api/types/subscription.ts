@@ -4,7 +4,7 @@
  * Mirrors `SubscriptionResource`, `DailyDeliveryResource`,
  * `DailyDeliveryItemResource` and `SubscriptionQuotaResource`.
  */
-import type { DeliverySlot, Plan } from './catalog';
+import type { DeliveryAddress, DeliverySlot, Plan } from './catalog';
 import type { Payment } from './order';
 import type { SwapBlockedReason } from './swap';
 
@@ -21,6 +21,8 @@ export interface Subscription {
   /** Only present when eager-loaded (show/store do; index does too). */
   plan?: Plan;
   address_id: number | null;
+  /** Where it is delivered, frozen at purchase. Null on older subscriptions. */
+  delivery_address: DeliveryAddress | null;
   /**
    * Every meal this subscription delivers each day, in time-of-day order.
    *
@@ -106,6 +108,8 @@ export interface Delivery {
   slot_id: number;
   /** Eager-loaded on every customer read, so the meal can be named. */
   slot?: DeliverySlot;
+  /** Copied from the subscription when the day was generated. */
+  delivery_address: DeliveryAddress | null;
   status: DeliveryStatus;
   is_customized: boolean;
   /** ISO-8601 timestamp after which nothing on this delivery may change. */

@@ -1,23 +1,23 @@
 import { useState } from 'react';
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
-import { MediaGallery, OfflineBanner, ScreenHeader } from '@/components/shared';
+import { FoodImage, MediaGallery, OfflineBanner, ScreenHeader } from '@/components/shared';
 import {
   Badge,
   Button,
   Card,
+  EmptyState,
   ErrorState,
   Separator,
   Skeleton,
   SkeletonText,
   Stepper,
 } from '@/components/ui';
+import { isNotFound } from '@/lib/api/types/common';
 import { usePackage } from '@/lib/query/hooks';
-import { FOOD_BLURHASH } from '@/lib/constants/images';
 import { MAX_LINE_QUANTITY, useInstantOrderStore } from '@/lib/store';
 import { formatMoney } from '@/lib/utils';
 
@@ -53,7 +53,19 @@ export default function PackageDetailScreen() {
     return (
       <SafeAreaView className="flex-1 bg-surface">
         <ScreenHeader title="Meal box" />
-        <ErrorState error={error} onRetry={refetch} className="flex-1 justify-center" />
+        {isNotFound(error) ? (
+          // Unpublished, or one of its dishes was — either way it is off the
+          // shelf, which is not something "try again" can fix.
+          <EmptyState
+            title="This meal box is no longer available"
+            description="It has been taken off the menu. Have a look at the boxes on offer now."
+            actionLabel="Browse meal boxes"
+            onAction={() => router.replace('/packages')}
+            className="flex-1 justify-center"
+          />
+        ) : (
+          <ErrorState error={error} onRetry={refetch} className="flex-1 justify-center" />
+        )}
       </SafeAreaView>
     );
   }
@@ -96,23 +108,13 @@ export default function PackageDetailScreen() {
           className="h-56"
           thumbnailsInset={20}
           fallback={
-            <View className="h-48 w-full bg-surface-muted">
-              {pkg.image_url ? (
-                <Image
-                  source={{ uri: pkg.image_url }}
-                  placeholder={{ blurhash: FOOD_BLURHASH }}
-                  contentFit="cover"
-                  transition={200}
-                  cachePolicy="memory-disk"
-                  style={{ width: '100%', height: '100%' }}
-                  accessibilityLabel={pkg.name}
-                />
-              ) : (
-                <View className="h-full w-full items-center justify-center bg-brand-50">
-                  <Text className="text-5xl">🍱</Text>
-                </View>
-              )}
-            </View>
+            <FoodImage
+              uri={pkg.image_url}
+              label={pkg.name}
+              glyph="🍱"
+              glyphSize="lg"
+              className="h-48 w-full"
+            />
           }
         />
 
@@ -151,16 +153,11 @@ export default function PackageDetailScreen() {
                   <View key={item.menu_item_id}>
                     {index > 0 ? <Separator className="my-3" /> : null}
                     <View className="flex-row items-center gap-3">
-                      <View className="h-10 w-10 overflow-hidden rounded-xl bg-surface-muted">
-                        {item.image_url ? (
-                          <Image
-                            source={{ uri: item.image_url }}
-                            contentFit="cover"
-                            cachePolicy="memory-disk"
-                            style={{ width: '100%', height: '100%' }}
-                          />
-                        ) : null}
-                      </View>
+                      <FoodImage
+                        uri={item.image_url}
+                        glyphSize="sm"
+                        className="h-12 w-12 rounded-xl"
+                      />
                       <Text className="flex-1 text-sm text-text-primary">{item.name}</Text>
                       {item.quantity > 1 ? (
                         <Text className="text-sm font-bold text-brand-500">

@@ -7,6 +7,8 @@
  * already parsed to `number`, so components never call `parseFloat`.
  */
 
+import type { LocationSource } from './geo';
+
 /** Nested category, as embedded by `MenuItemResource`. */
 export interface MenuItemCategory {
   id: number;
@@ -181,19 +183,67 @@ export interface DeliverySlot {
   cutoff_hours: number;
 }
 
-/** `App\Http\Resources\Customer\AddressResource` */
+/**
+ * `App\Http\Resources\Customer\AddressResource`
+ *
+ * The customer's default address *is* their current delivery location — there
+ * is no second, app-only notion of "where I am". Switching location means
+ * `POST /addresses/{id}/set-default`, so the website, checkout and the Home
+ * header all read the same answer.
+ */
 export interface Address {
   id: number;
   label: string | null;
   line1: string;
   line2: string | null;
+  /** District / neighbourhood — "Al Olaya". Optional. */
+  area: string | null;
+  /** Optional: GPS lookups often come back without one. */
   postal_code: string | null;
   city: string | null;
   country: string | null;
+  /** Saudi National Address building number — four digits, also leading `line1`. */
+  building_number: string | null;
+  /** Saudi National Address additional number — four digits. */
+  additional_number: string | null;
+  /** Saudi National Address short address — "RRRD2929". */
+  short_address: string | null;
+  /** Province / division — "Riyadh Province", "Dhaka Division". */
+  region: string | null;
+  /** How the customer chose it: GPS, the map, a search result, or typed. */
+  location_source: LocationSource | null;
+  /** Present when the address was pinned from the device's location. */
   lat: number | null;
   lng: number | null;
   instructions: string | null;
   is_default: boolean;
+  /** Server-composed one-liner, e.g. "8228 King Fahd Rd, Al Olaya, Riyadh 12211-2121". */
+  formatted: string;
+}
+
+/**
+ * The address an order, subscription or delivery was placed for, frozen at the
+ * moment it was created. Editing or deleting the saved address later — or the
+ * customer moving house — never rewrites it.
+ */
+export interface DeliveryAddress {
+  address_id: number | null;
+  label: string | null;
+  line1: string;
+  line2: string | null;
+  area: string | null;
+  city: string | null;
+  postal_code: string | null;
+  country: string | null;
+  building_number: string | null;
+  additional_number: string | null;
+  short_address: string | null;
+  region: string | null;
+  location_source: LocationSource | null;
+  lat: number | null;
+  lng: number | null;
+  instructions: string | null;
+  formatted: string;
 }
 
 /** Query params for `GET /menu-items`. */

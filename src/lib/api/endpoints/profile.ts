@@ -54,7 +54,9 @@ export async function getAddresses(): Promise<Address[]> {
   return normalizeList(unwrap(data), normalizeAddress);
 }
 
-export type AddressInput = Omit<Address, 'id' | 'is_default'> & {
+/** `formatted` is composed server-side, so it is never sent. */
+export type AddressInput = Omit<Address, 'id' | 'is_default' | 'formatted'> & {
+  /** `true` also makes it the current delivery location. */
   is_default?: boolean;
 };
 

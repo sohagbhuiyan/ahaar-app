@@ -39,6 +39,8 @@ export const queryKeys = {
   /** Public catalogue — menu items, behind the Foods tab. */
   foods: {
     all: () => ['foods'] as const,
+    /** Every filter combination's list at once, for invalidation. */
+    lists: () => ['foods', 'list'] as const,
     list: (filters?: MenuItemFilters) => ['foods', 'list', filters ?? {}] as const,
     detail: (id: string | number) => ['foods', 'detail', String(id)] as const,
     addons: () => ['foods', 'addons'] as const,

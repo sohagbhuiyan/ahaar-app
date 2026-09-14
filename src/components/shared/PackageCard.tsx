@@ -1,11 +1,11 @@
 import { memo } from 'react';
-import { Image } from 'expo-image';
 import { Text, View } from 'react-native';
 
 import { Badge, Button, Card } from '@/components/ui';
 import type { FoodPackage } from '@/lib/api/types/package';
-import { FOOD_BLURHASH } from '@/lib/constants/images';
 import { cn, formatMoney } from '@/lib/utils';
+
+import { FoodImage } from './FoodImage';
 
 interface Props {
   pkg: FoodPackage;
@@ -32,23 +32,13 @@ function PackageCardComponent({ pkg, onPress, onAdd, className }: Props) {
 
   return (
     <Card onPress={onPress ? () => onPress(pkg) : undefined} className={cn(className)}>
-      <View className="h-32 w-full bg-surface-muted">
-        {pkg.image_url ? (
-          <Image
-            source={{ uri: pkg.image_url }}
-            placeholder={{ blurhash: FOOD_BLURHASH }}
-            contentFit="cover"
-            transition={200}
-            cachePolicy="memory-disk"
-            style={{ width: '100%', height: '100%' }}
-            accessibilityLabel={pkg.name}
-          />
-        ) : (
-          <View className="h-full w-full items-center justify-center bg-brand-50">
-            <Text className="text-3xl">🍱</Text>
-          </View>
-        )}
-      </View>
+      <FoodImage
+        uri={pkg.image_url}
+        label={pkg.name}
+        glyph="🍱"
+        glyphSize="lg"
+        className="h-32 w-full"
+      />
 
       <View className="p-4">
         <View className="flex-row items-start justify-between gap-2">

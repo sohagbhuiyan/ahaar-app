@@ -1,24 +1,24 @@
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
-import { MediaGallery, ScreenHeader } from '@/components/shared';
+import { FoodImage, MediaGallery, ScreenHeader } from '@/components/shared';
 import {
   Badge,
   Button,
   Card,
+  EmptyState,
   ErrorState,
   Separator,
   Skeleton,
   SkeletonText,
   Stepper,
 } from '@/components/ui';
+import { isNotFound } from '@/lib/api/types/common';
 import { useFood } from '@/lib/query/hooks';
 import { useInstantOrderStore } from '@/lib/store';
 import { formatMoney } from '@/lib/utils';
-import { FOOD_BLURHASH } from '@/lib/constants/images';
 
 
 /**
@@ -68,7 +68,17 @@ export default function FoodDetailScreen() {
     return (
       <SafeAreaView className="flex-1 bg-surface">
         <ScreenHeader />
-        <ErrorState error={error} onRetry={refetch} className="flex-1 justify-center" />
+        {isNotFound(error) ? (
+          <EmptyState
+            title="This dish is no longer on the menu"
+            description="It has been taken off the menu for now. Have a look at what the kitchen is serving."
+            actionLabel="Browse the menu"
+            onAction={() => router.replace('/(tabs)/foods')}
+            className="flex-1 justify-center"
+          />
+        ) : (
+          <ErrorState error={error} onRetry={refetch} className="flex-1 justify-center" />
+        )}
       </SafeAreaView>
     );
   }
@@ -90,19 +100,12 @@ export default function FoodDetailScreen() {
           label={item.name}
           className="h-56 rounded-3xl"
           fallback={
-            <View className="h-56 w-full overflow-hidden rounded-3xl bg-surface-muted">
-              {item.image_url ? (
-                <Image
-                  source={{ uri: item.image_url }}
-                  placeholder={{ blurhash: FOOD_BLURHASH }}
-                  contentFit="cover"
-                  transition={200}
-                  cachePolicy="memory-disk"
-                  style={{ width: '100%', height: '100%' }}
-                  accessibilityLabel={item.name}
-                />
-              ) : null}
-            </View>
+            <FoodImage
+              uri={item.image_url}
+              label={item.name}
+              glyphSize="lg"
+              className="h-56 w-full rounded-3xl"
+            />
           }
         />
 

@@ -2,6 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Badge, Button } from '@/components/ui';
 import type { Address } from '@/lib/api/types/catalog';
+import { composeAddress } from '@/lib/location/address';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -15,9 +16,7 @@ interface Props {
 
 /** One-line summary — enough to tell two saved addresses apart. */
 export function formatAddress(address: Address): string {
-  return [address.line1, address.line2, address.postal_code, address.city]
-    .filter(Boolean)
-    .join(', ');
+  return address.formatted || composeAddress(address);
 }
 
 /**

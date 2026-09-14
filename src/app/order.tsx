@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Image } from 'expo-image';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -9,6 +8,7 @@ import {
   AddressFormSheet,
   AddressPicker,
   DayStrip,
+  FoodImage,
   formatAddress,
   OfflineBanner,
   ScreenHeader,
@@ -263,16 +263,10 @@ export default function InstantOrderScreen() {
                   {index > 0 ? <Separator className="my-3" /> : null}
 
                   <View className="flex-row items-center gap-3">
-                    <View className="h-14 w-14 overflow-hidden rounded-2xl bg-surface-muted">
-                      {line.image_url ? (
-                        <Image
-                          source={{ uri: line.image_url }}
-                          contentFit="cover"
-                          cachePolicy="memory-disk"
-                          style={{ width: '100%', height: '100%' }}
-                        />
-                      ) : null}
-                    </View>
+                    <FoodImage
+                      uri={line.image_url}
+                      className="h-14 w-14 rounded-2xl"
+                    />
 
                     <View className="flex-1">
                       <Text
@@ -311,16 +305,11 @@ export default function InstantOrderScreen() {
                     {index > 0 ? <Separator className="my-3" /> : null}
 
                     <View className="flex-row items-center gap-3">
-                      <View className="h-14 w-14 overflow-hidden rounded-2xl bg-surface-muted">
-                        {line.image_url ? (
-                          <Image
-                            source={{ uri: line.image_url }}
-                            contentFit="cover"
-                            cachePolicy="memory-disk"
-                            style={{ width: '100%', height: '100%' }}
-                          />
-                        ) : null}
-                      </View>
+                      <FoodImage
+                        uri={line.image_url}
+                        glyph="🍱"
+                        className="h-14 w-14 rounded-2xl"
+                      />
 
                       <View className="flex-1">
                         <View className="flex-row items-center gap-2">

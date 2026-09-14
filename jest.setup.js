@@ -38,6 +38,9 @@ jest.mock('expo-secure-store', () => ({
 jest.mock('@gorhom/bottom-sheet', () => require('./jest/bottom-sheet-mock'));
 jest.mock('expo-image', () => require('./jest/expo-image-mock'));
 jest.mock('expo-video', () => require('./jest/expo-video-mock'));
+jest.mock('expo-location', () => require('./jest/expo-location-mock'));
+
+jest.mock('react-native-maps', () => require('./jest/react-native-maps-mock'));
 
 // FlashList measures natively before it renders a row; FlatList renders its
 // first rows straight away, which is what a test needs.

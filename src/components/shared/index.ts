@@ -4,6 +4,7 @@
  * These are the pieces reused across Home / Plans / Foods / Menu, mirroring how
  * the web app reuses `FoodCard` and `PlanCard` across its pages.
  */
+export { FoodImage } from './FoodImage';
 export { FoodCard } from './FoodCard';
 export { PlanCard } from './PlanCard';
 export { PackageCard } from './PackageCard';
@@ -16,6 +17,10 @@ export { DayStrip } from './DayStrip';
 export { SlotPicker } from './SlotPicker';
 export { AddressPicker, formatAddress } from './AddressPicker';
 export { AddressFormSheet } from './AddressFormSheet';
+export { DeliveryAddressBlock } from './DeliveryAddressBlock';
+export { LocationPill } from './LocationPill';
+export { LocationSheet } from './LocationSheet';
+export { LocationSync } from './LocationSync';
 export { LoginPrompt } from './LoginPrompt';
 export { ScreenHeader } from './ScreenHeader';
 export { OrderCard } from './OrderCard';

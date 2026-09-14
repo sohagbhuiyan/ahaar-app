@@ -5,6 +5,8 @@ import type { MenuItem } from '@/lib/api/types/catalog';
 import type { DeliveryItem } from '@/lib/api/types/subscription';
 import { cn, formatMoney } from '@/lib/utils';
 
+import { FoodImage } from './FoodImage';
+
 export interface AddonSelection {
   menu_item_id: number;
   quantity: number;
@@ -61,6 +63,7 @@ export function AddonPicker({
           <SectionLabel title="Included" caption="Your plan's meal for this day" />
           {defaultMeals.map((item) => (
             <RowShell key={item.id}>
+              <Thumb uri={item.menu_item?.image_url} />
               <Text className="flex-1 text-sm font-semibold text-text-primary">
                 {item.menu_item?.name ?? `Item #${item.id}`}
               </Text>
@@ -83,6 +86,7 @@ export function AddonPicker({
           />
           {defaultAddons.map((item) => (
             <RowShell key={item.id}>
+              <Thumb uri={item.menu_item?.image_url} />
               <Text className="flex-1 text-sm font-semibold text-text-primary">
                 {item.menu_item?.name ?? `Item #${item.id}`}
               </Text>
@@ -118,6 +122,7 @@ export function AddonPicker({
                 {index > 0 ? <Separator className="my-1" /> : null}
 
                 <RowShell>
+                  <Thumb uri={item.image_url} />
                   <View className="flex-1">
                     <Text className="text-sm font-semibold text-text-primary">
                       {item.name}
@@ -172,8 +177,13 @@ function SectionLabel({ title, caption }: { title: string; caption: string }) {
 
 function RowShell({ children }: { children: React.ReactNode }) {
   return (
-    <View className="flex-row items-center gap-3 rounded-2xl bg-surface-muted px-4 py-3">
+    <View className="flex-row items-center gap-3 rounded-2xl bg-surface-muted py-2 pl-2 pr-4">
       {children}
     </View>
   );
+}
+
+/** The dish's picture at row size — the same one it has on the menu. */
+function Thumb({ uri }: { uri: string | null | undefined }) {
+  return <FoodImage uri={uri} glyphSize="sm" className="h-10 w-10 rounded-xl" />;
 }

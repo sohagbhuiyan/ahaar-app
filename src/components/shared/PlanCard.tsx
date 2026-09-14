@@ -1,11 +1,11 @@
 import { memo } from 'react';
-import { Image } from 'expo-image';
 import { Text, View } from 'react-native';
 
 import { Badge, Button, Card } from '@/components/ui';
 import type { Plan } from '@/lib/api/types/catalog';
 import { cn, formatMoney } from '@/lib/utils';
-import { FOOD_BLURHASH } from '@/lib/constants/images';
+
+import { FoodImage } from './FoodImage';
 
 interface Props {
   plan: Plan;
@@ -50,17 +50,9 @@ function PlanCardComponent({
       onPress={onPress ? () => onPress(plan) : undefined}
       className={cn(selected && 'border-brand-500', className)}
     >
-      {plan.image_url ? (
-        <Image
-          source={{ uri: plan.image_url }}
-          placeholder={{ blurhash: FOOD_BLURHASH }}
-          contentFit="cover"
-          transition={200}
-          cachePolicy="memory-disk"
-          style={{ width: '100%', height: 128 }}
-          accessibilityLabel={plan.name}
-        />
-      ) : null}
+      {/* Always drawn — a plan without a photo gets the food glyph, so the
+          cards in the list keep one height and none looks half-loaded. */}
+      <FoodImage uri={plan.image_url} label={plan.name} glyphSize="lg" className="h-32 w-full" />
 
       <View className="p-5">
         <View className="flex-row items-start justify-between gap-3">

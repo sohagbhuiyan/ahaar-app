@@ -4,7 +4,12 @@ import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
-import { OfflineBanner, ScreenHeader } from '@/components/shared';
+import {
+  DeliveryAddressBlock,
+  FoodImage,
+  OfflineBanner,
+  ScreenHeader,
+} from '@/components/shared';
 import {
   AlertDialog,
   Badge,
@@ -142,6 +147,8 @@ export default function OrderDetailScreen() {
                 </Text>
               </View>
             ) : null}
+
+            <DeliveryAddressBlock address={order.delivery_address} className="mt-3" />
           </View>
         </Card>
 
@@ -155,7 +162,17 @@ export default function OrderDetailScreen() {
                 {order.items.map((item, index) => (
                   <View key={item.id}>
                     {index > 0 ? <Separator className="my-3" /> : null}
-                    <View className="flex-row items-start justify-between gap-3">
+                    <View className="flex-row items-center justify-between gap-3">
+                      <FoodImage
+                        uri={
+                          item.kind === 'package'
+                            ? item.package?.image_url
+                            : item.menu_item?.image_url
+                        }
+                        glyph={item.kind === 'package' ? '🍱' : undefined}
+                        glyphSize="sm"
+                        className="h-12 w-12 rounded-xl"
+                      />
                       <View className="flex-1">
                         <Text className="text-sm font-semibold text-text-primary">
                           {item.name}

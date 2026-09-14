@@ -11,8 +11,10 @@
  * web app additionally carries legacy `*_sar` duplicates; those are not
  * reproduced here.)
  */
+import { composeAddress } from '../location/address';
 import type {
   Address,
+  DeliveryAddress,
   CatalogVideo,
   Category,
   DeliverySlot,
@@ -298,19 +300,50 @@ export function normalizeDeliverySlot(raw: Raw): DeliverySlot {
   };
 }
 
-export function normalizeAddress(raw: Raw): Address {
-  return {
-    id: raw.id as number,
+/** The fields a saved address and a frozen order address share. */
+function addressFields(raw: Raw) {
+  const fields = {
     label: (raw.label as string | null) ?? null,
-    line1: raw.line1 as string,
+    line1: (raw.line1 as string | null) ?? '',
     line2: (raw.line2 as string | null) ?? null,
+    area: (raw.area as string | null) ?? null,
     postal_code: (raw.postal_code as string | null) ?? null,
     city: (raw.city as string | null) ?? null,
     country: (raw.country as string | null) ?? null,
+    // Saudi National Address codes — absent from an API that predates them.
+    building_number: (raw.building_number as string | null) ?? null,
+    additional_number: (raw.additional_number as string | null) ?? null,
+    short_address: (raw.short_address as string | null) ?? null,
+    region: (raw.region as string | null) ?? null,
+    location_source: (raw.location_source as Address['location_source']) ?? null,
     lat: toNullableNumber(raw.lat),
     lng: toNullableNumber(raw.lng),
     instructions: (raw.instructions as string | null) ?? null,
+  };
+
+  return {
+    ...fields,
+    // Composed locally when an older backend doesn't send it, so every screen
+    // can print `formatted` without a fallback of its own.
+    formatted: (raw.formatted as string | null) || composeAddress(fields),
+  };
+}
+
+export function normalizeAddress(raw: Raw): Address {
+  return {
+    id: raw.id as number,
+    ...addressFields(raw),
     is_default: Boolean(raw.is_default),
+  };
+}
+
+/** `delivery_address` on an order, subscription or delivery — null when absent. */
+export function normalizeDeliveryAddress(raw: unknown): DeliveryAddress | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const value = raw as Raw;
+  return {
+    address_id: (value.address_id as number | null) ?? null,
+    ...addressFields(value),
   };
 }
 
@@ -382,6 +415,7 @@ export function normalizeOrder(raw: Raw): Order {
     delivery_date: raw.delivery_date as string,
     slot_id: raw.slot_id as number,
     address_id: (raw.address_id as number | null) ?? null,
+    delivery_address: normalizeDeliveryAddress(raw.delivery_address),
     subtotal: toNumber(raw.subtotal),
     tax_amount: toNumber(raw.tax_amount),
     total_amount: toNumber(raw.total_amount),
@@ -407,6 +441,7 @@ export function normalizeSubscription(raw: Raw): Subscription {
     id: raw.id as number,
     plan: plan ? normalizePlan(plan) : undefined,
     address_id: (raw.address_id as number | null) ?? null,
+    delivery_address: normalizeDeliveryAddress(raw.delivery_address),
     // Every meal the plan serves, not one. Defaults to [] rather than staying
     // undefined: a subscription always covers at least one meal, so an empty
     // list means "the API didn't send them", which reads the same to the UI as
@@ -479,6 +514,7 @@ export function normalizeDelivery(raw: Raw): Delivery {
     delivery_date: (raw.delivery_date as string) ?? '',
     slot_id: raw.slot_id as number,
     slot: slot ? normalizeDeliverySlot(slot) : undefined,
+    delivery_address: normalizeDeliveryAddress(raw.delivery_address),
     status: raw.status as Delivery['status'],
     is_customized: Boolean(raw.is_customized),
     cutoff_at: (raw.cutoff_at as string) ?? '',

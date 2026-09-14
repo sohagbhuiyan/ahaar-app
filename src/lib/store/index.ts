@@ -36,6 +36,8 @@ export {
   type InstantOrderPackageLine,
 } from './useInstantOrderStore';
 
+export { useLocationStore } from './useLocationStore';
+
 export { useNetworkStore, useIsOffline } from './useNetworkStore';
 
 export { useUIStore, useIsSheetOpen, type SheetId } from './useUIStore';

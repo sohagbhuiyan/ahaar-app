@@ -7,6 +7,7 @@ import { Toaster } from "sonner-native";
 
 import { AuthGate } from "@/components/shared/AuthGate";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { LocationSync } from "@/components/shared/LocationSync";
 import { LoginPrompt } from "@/components/shared/LoginPrompt";
 import {
   initSentry,
@@ -100,12 +101,22 @@ function RootLayout() {
                 {/* Kitchen videos — flat for the same reason as `orders`. */}
                 <Stack.Screen name="media" />
                 <Stack.Screen name="media/[id]" />
+                {/* Choosing where food goes — full screen, because a map in a
+                    sheet fights the sheet's own drag gesture. */}
+                <Stack.Screen
+                  name="location-picker"
+                  options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
+                />
               </Stack>
             </AuthGate>
 
             {/* Sign-in happens in a sheet over whatever the customer was doing,
                 so a gated tap never costs them their place. */}
             <LoginPrompt />
+
+            {/* A location set while signed out is saved to the account as
+                soon as there is one. */}
+            <LocationSync />
           </BottomSheetModalProvider>
 
           {/* Global mutation feedback. Matches the web app's `sonner` usage so

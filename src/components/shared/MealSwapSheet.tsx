@@ -18,6 +18,8 @@ import {
 import type { SwapPosition, SwapTarget } from '@/lib/api/types/swap';
 import { cn, formatShortDate } from '@/lib/utils';
 
+import { FoodImage } from './FoodImage';
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -187,17 +189,24 @@ function PositionRow({
               disabled={busy}
               onPress={() => onPick(target)}
               className={cn(
-                'rounded-xl border border-border px-3 py-2.5 active:opacity-70',
+                'flex-row items-center gap-3 rounded-xl border border-border py-2 pl-2 pr-3 active:opacity-70',
                 busy && 'opacity-50',
               )}
             >
-              <Text className="text-sm font-semibold text-text-primary">
-                {target.quantity > 1 ? `${target.quantity} × ` : ''}
-                {target.name}
-              </Text>
-              <Text className="mt-0.5 text-xs text-text-muted">
-                {formatShortDate(target.delivery_date)} · {target.slot_name}
-              </Text>
+              <FoodImage
+                uri={target.image_url}
+                glyphSize="sm"
+                className="h-10 w-10 rounded-lg"
+              />
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-text-primary">
+                  {target.quantity > 1 ? `${target.quantity} × ` : ''}
+                  {target.name}
+                </Text>
+                <Text className="mt-0.5 text-xs text-text-muted">
+                  {formatShortDate(target.delivery_date)} · {target.slot_name}
+                </Text>
+              </View>
             </Pressable>
           ))}
 

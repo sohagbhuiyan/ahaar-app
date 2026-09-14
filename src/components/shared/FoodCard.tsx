@@ -1,12 +1,12 @@
 import { memo } from 'react';
-import { Image } from 'expo-image';
 import { Pressable, Text, View } from 'react-native';
 
 import { Badge } from '@/components/ui';
 import type { MenuItem } from '@/lib/api/types/catalog';
 import { shadows } from '@/lib/theme';
 import { cn, formatMoney } from '@/lib/utils';
-import { FOOD_BLURHASH } from '@/lib/constants/images';
+
+import { FoodImage } from './FoodImage';
 
 interface Props {
   item: MenuItem;
@@ -43,25 +43,12 @@ function FoodCardComponent({
 
   const content = (
     <>
-      <View
-        className={cn(
-          'overflow-hidden bg-surface-muted',
-          isRow ? 'h-20 w-20 rounded-2xl' : 'h-32 w-full rounded-2xl',
-        )}
+      <FoodImage
+        uri={item.image_url}
+        label={item.name}
+        glyphSize={isRow ? 'md' : 'lg'}
+        className={isRow ? 'h-20 w-20 rounded-2xl' : 'h-32 w-full rounded-2xl'}
       >
-        {item.image_url ? (
-          <Image
-            source={{ uri: item.image_url }}
-            placeholder={{ blurhash: FOOD_BLURHASH }}
-            contentFit="cover"
-            transition={200}
-            // Both caches: survives scroll-away and app restart.
-            cachePolicy="memory-disk"
-            style={{ width: '100%', height: '100%' }}
-            accessibilityLabel={item.name}
-          />
-        ) : null}
-
         {soldOut ? (
           <View className="absolute inset-0 items-center justify-center bg-black/45">
             <Text className="text-[11px] font-bold uppercase text-text-inverse">
@@ -69,7 +56,7 @@ function FoodCardComponent({
             </Text>
           </View>
         ) : null}
-      </View>
+      </FoodImage>
 
       <View className={cn('flex-1', isRow ? 'ml-3' : 'mt-3')}>
         <View className="flex-row items-start justify-between gap-2">

@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Image } from 'expo-image';
 import { Pressable, Text, View } from 'react-native';
 import { toast } from 'sonner-native';
 
@@ -22,6 +21,8 @@ import {
   usePackages,
 } from '@/lib/query/hooks';
 import { cn, formatMoney } from '@/lib/utils';
+
+import { FoodImage } from './FoodImage';
 
 interface ExtraProps {
   open: boolean;
@@ -208,6 +209,12 @@ export function ExtraOrderSheet({
                     )}
                   >
                     <View className="flex-row items-start gap-3">
+                      <FoodImage
+                        uri={pkg.image_url}
+                        glyph="🍱"
+                        glyphSize="sm"
+                        className="h-12 w-12 rounded-xl"
+                      />
                       <View className="flex-1">
                         <Text numberOfLines={1} className="text-sm font-bold text-text-primary">
                           {pkg.name}
@@ -283,16 +290,11 @@ export function ExtraOrderSheet({
                   quantity > 0 ? 'border-brand-500 bg-brand-50' : 'border-border',
                 )}
               >
-                <View className="h-12 w-12 overflow-hidden rounded-xl bg-surface-muted">
-                  {addon.image_url ? (
-                    <Image
-                      source={{ uri: addon.image_url }}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      style={{ width: '100%', height: '100%' }}
-                    />
-                  ) : null}
-                </View>
+                <FoodImage
+                  uri={addon.image_url}
+                  glyphSize="sm"
+                  className="h-12 w-12 rounded-xl"
+                />
 
                 <View className="flex-1">
                   <Text numberOfLines={1} className="text-sm font-bold text-text-primary">

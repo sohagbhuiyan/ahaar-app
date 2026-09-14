@@ -1,25 +1,25 @@
 import { useMemo, useState } from 'react';
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { OfflineBanner, ScreenHeader } from '@/components/shared';
+import { FoodImage, OfflineBanner, ScreenHeader } from '@/components/shared';
 import {
   Badge,
   Button,
   Card,
+  EmptyState,
   ErrorState,
   Separator,
   Skeleton,
   SkeletonText,
 } from '@/components/ui';
 import type { PlanScheduleDay, PlanScheduleItem } from '@/lib/api/types/catalog';
+import { isNotFound } from '@/lib/api/types/common';
 import { usePlan } from '@/lib/query/hooks';
 import { slotWindow } from '@/lib/slots';
 import { useCartStore } from '@/lib/store';
 import { cn, formatMoney, isoWeekdayForDate, todayISO } from '@/lib/utils';
-import { FOOD_BLURHASH } from '@/lib/constants/images';
 
 
 /**
@@ -69,6 +69,9 @@ export default function PlanDetailScreen() {
     router.push('/checkout');
   };
 
+  const openDish = (menuItemId: number) =>
+    router.push({ pathname: '/food/[id]', params: { id: String(menuItemId) } });
+
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
@@ -85,7 +88,19 @@ export default function PlanDetailScreen() {
     return (
       <SafeAreaView className="flex-1 bg-surface">
         <ScreenHeader title="Plan" />
-        <ErrorState error={error} onRetry={refetch} className="flex-1 justify-center" />
+        {isNotFound(error) ? (
+          // Unpublished (or deleted) since it was listed — not a failure, so
+          // no "try again", just a way back to what is on offer.
+          <EmptyState
+            title="This plan is no longer available"
+            description="It has been taken off the menu. Have a look at the plans on offer now."
+            actionLabel="Browse plans"
+            onAction={() => router.replace('/(tabs)/plans')}
+            className="flex-1 justify-center"
+          />
+        ) : (
+          <ErrorState error={error} onRetry={refetch} className="flex-1 justify-center" />
+        )}
       </SafeAreaView>
     );
   }
@@ -105,17 +120,13 @@ export default function PlanDetailScreen() {
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {plan.image_url ? (
-          <Image
-            source={{ uri: plan.image_url }}
-            placeholder={{ blurhash: FOOD_BLURHASH }}
-            contentFit="cover"
-            transition={200}
-            cachePolicy="memory-disk"
-            style={{ width: '100%', height: 180 }}
-            accessibilityLabel={plan.name}
-          />
-        ) : null}
+        <FoodImage
+          uri={plan.image_url}
+          label={plan.name}
+          glyphSize="lg"
+          className="h-44 w-full"
+          testID="plan-hero"
+        />
 
         <View className="px-5 pt-5">
           <View className="flex-row items-end gap-2">
@@ -219,7 +230,7 @@ export default function PlanDetailScreen() {
               })}
             </ScrollView>
 
-            {activeDay ? <DaySchedule day={activeDay} /> : null}
+            {activeDay ? <DaySchedule day={activeDay} onOpenDish={openDish} /> : null}
           </View>
         ) : null}
 
@@ -269,7 +280,13 @@ export default function PlanDetailScreen() {
 }
 
 /** One weekday: each meal slot, what's included and what may be added. */
-function DaySchedule({ day }: { day: PlanScheduleDay }) {
+function DaySchedule({
+  day,
+  onOpenDish,
+}: {
+  day: PlanScheduleDay;
+  onOpenDish: (menuItemId: number) => void;
+}) {
   return (
     <View className="mt-4 gap-3 px-5">
       {day.slots.map((slot) => (
@@ -289,7 +306,7 @@ function DaySchedule({ day }: { day: PlanScheduleDay }) {
                 <Text className="text-sm text-text-muted">Nothing scheduled.</Text>
               ) : (
                 slot.items.map((item) => (
-                  <ScheduleLine key={item.id} item={item} />
+                  <ScheduleLine key={item.id} item={item} onOpen={onOpenDish} />
                 ))
               )}
             </View>
@@ -310,6 +327,7 @@ function DaySchedule({ day }: { day: PlanScheduleDay }) {
                       key={item.id}
                       item={item}
                       optional
+                      onOpen={onOpenDish}
                     />
                   ))}
                 </View>
@@ -322,23 +340,44 @@ function DaySchedule({ day }: { day: PlanScheduleDay }) {
   );
 }
 
+/**
+ * One dish in a meal, with its picture — the same `image_url` the dish carries
+ * on the menu, so a customer recognises it here and there. Tapping it opens the
+ * dish for its description, allergens and gallery.
+ */
 function ScheduleLine({
   item,
   optional = false,
+  onOpen,
 }: {
   item: PlanScheduleItem;
   optional?: boolean;
+  onOpen: (menuItemId: number) => void;
 }) {
+  const name = item.menu_item?.name ?? `Item #${item.menu_item_id}`;
+
   return (
-    <View className="flex-row items-center justify-between gap-3 rounded-2xl bg-surface-muted px-4 py-2.5">
-      <View className="flex-1 flex-row items-center gap-2">
-        <Text numberOfLines={1} className="flex-1 text-sm text-text-primary">
-          {item.menu_item?.name ?? `Item #${item.menu_item_id}`}
-          {item.quantity > 1 ? (
-            <Text className="font-bold"> ×{item.quantity}</Text>
-          ) : null}
-        </Text>
-      </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={item.quantity > 1 ? `${name} ×${item.quantity}` : name}
+      // Nothing to open without the dish itself behind the line.
+      disabled={!item.menu_item}
+      onPress={() => onOpen(item.menu_item_id)}
+      className="flex-row items-center gap-3 rounded-2xl bg-surface-muted py-2 pl-2 pr-4 active:opacity-80"
+    >
+      <FoodImage
+        uri={item.menu_item?.image_url}
+        glyphSize="sm"
+        className="h-12 w-12 rounded-xl"
+        testID={`plan-dish-image-${item.id}`}
+      />
+
+      <Text numberOfLines={2} className="flex-1 text-sm text-text-primary">
+        {name}
+        {item.quantity > 1 ? (
+          <Text className="font-bold"> ×{item.quantity}</Text>
+        ) : null}
+      </Text>
 
       {optional ? (
         <Text className="text-xs font-semibold text-brand-500">
@@ -349,7 +388,7 @@ function ScheduleLine({
       ) : item.is_addon ? (
         <Badge label="Add-on" variant="brand" />
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 

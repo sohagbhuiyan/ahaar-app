@@ -77,5 +77,15 @@ export {
   useDeleteAddress,
   useSetDefaultAddress,
 } from './useProfile';
+export {
+  useCurrentLocation,
+  useChangeLocation,
+  useGuestLocationSync,
+  useFirstLocationPrompt,
+  draftToPayload,
+  type CurrentLocation,
+  type LocationSource,
+  type SaveLocationResult,
+} from './useLocation';
 export { usePayments } from './usePayments';
 export { useLogin, useRegister, useLogout } from './useAuth';

@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,7 +7,10 @@ import BannerIllustration from '@/components/illustrations/BannerIllustration';
 import {
   CategoryRail,
   FoodCard,
+  FoodImage,
   HomeSections,
+  LocationPill,
+  LocationSheet,
   MediaVideoCard,
   OfflineBanner,
   PackageCard,
@@ -26,8 +30,10 @@ import {
 import {
   FALLBACK_HOME_LAYOUT,
   useCategoryTiles,
+  useCurrentLocation,
   useCurrentSubscription,
   useFeaturedPlanId,
+  useFirstLocationPrompt,
   useFoods,
   useHomeLayout,
   useIsSignedIn,
@@ -100,6 +106,13 @@ export default function HomeScreen() {
   const { data: cmsLayout, refetch: refetchHome } = useHomeLayout();
   const layout = cmsLayout ?? FALLBACK_HOME_LAYOUT;
 
+  // Where the food goes. Offered once on first use when nothing is set yet,
+  // and always one tap away at the top of the screen after that.
+  const location = useCurrentLocation();
+  const [locationSheetOpen, setLocationSheetOpen] = useState(false);
+  const openLocationSheet = useCallback(() => setLocationSheetOpen(true), []);
+  useFirstLocationPrompt(openLocationSheet);
+
   const displayName = profile?.name ?? sessionUser?.name ?? '';
   const firstName = displayName.split(' ')[0];
 
@@ -135,6 +148,15 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={['top', 'left', 'right']}>
+      {/* Delivery location — sticky: outside the ScrollView, flush under the
+          safe area, so where the food goes stays in view however far down the
+          customer scrolls. */}
+      <LocationPill
+        variant="bar"
+        location={location}
+        onPress={openLocationSheet}
+        className="border-b border-border"
+      />
       <OfflineBanner />
 
       <ScrollView
@@ -146,7 +168,7 @@ export default function HomeScreen() {
         }
       >
         {/* Greeting */}
-        <View className="flex-row items-center justify-between px-5 pb-4 pt-6">
+        <View className="flex-row items-center justify-between px-5 pb-4 pt-4">
           <View className="flex-1">
             <Text className="text-sm text-text-secondary">
               {firstName ? `Hello, ${firstName}` : 'Welcome to Ahaar'}
@@ -216,9 +238,16 @@ export default function HomeScreen() {
                       {(meal.items ?? [])
                         .filter((item) => !item.is_addon)
                         .map((item) => (
-                          <Text key={item.id} className="text-sm text-text-secondary">
-                            • {item.menu_item?.name ?? `Item #${item.id}`}
-                          </Text>
+                          <View key={item.id} className="mt-1.5 flex-row items-center gap-2.5">
+                            <FoodImage
+                              uri={item.menu_item?.image_url}
+                              glyphSize="sm"
+                              className="h-8 w-8 rounded-lg"
+                            />
+                            <Text numberOfLines={1} className="flex-1 text-sm text-text-secondary">
+                              {item.menu_item?.name ?? `Item #${item.id}`}
+                            </Text>
+                          </View>
                         ))}
                     </View>
                   ))}
@@ -499,6 +528,11 @@ export default function HomeScreen() {
             should never scroll past the pitch to reach their own food. */}
         <HomeSections onBrowsePlans={() => router.push('/(tabs)/plans')} />
       </ScrollView>
+
+      <LocationSheet
+        open={locationSheetOpen}
+        onClose={() => setLocationSheetOpen(false)}
+      />
     </SafeAreaView>
   );
 }

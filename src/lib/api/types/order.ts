@@ -9,6 +9,7 @@
  *
  * Mirrors `OrderResource`, `OrderItemResource` and `PaymentResource`.
  */
+import type { DeliveryAddress } from './catalog';
 import type { PackageLineInput } from './package';
 
 export type OrderType = 'extra' | 'guest' | 'instant';
@@ -69,6 +70,8 @@ export interface Order {
   delivery_date: string;
   slot_id: number;
   address_id: number | null;
+  /** Where it goes, frozen when the order was placed. Null on older orders. */
+  delivery_address: DeliveryAddress | null;
   subtotal: number;
   tax_amount: number;
   /** Prices are stored tax-inclusive; `tax_amount` is the extracted VAT. */

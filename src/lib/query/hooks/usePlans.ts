@@ -6,10 +6,11 @@
  * bytes back. A foreground refetch (via `focusManager`) still catches an
  * admin's price change within one app switch.
  */
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import * as plansApi from '../../api/endpoints/plans';
 import type { DeliverySlot, Plan } from '../../api/types/catalog';
+import { isNotFound } from '../../api/types/common';
 import { queryKeys } from '../keys';
 
 /** Ten minutes — catalogue data, not order state. */
@@ -23,10 +24,27 @@ export function usePlans() {
   });
 }
 
+/**
+ * One plan. A 404 means it was unpublished after the list was cached, so the
+ * list is refreshed too — otherwise its card lingers for the whole stale window
+ * and keeps leading back here. Only the list: invalidating this detail from
+ * inside its own fetch would restart the fetch forever.
+ */
 export function usePlan(id: string | number | undefined) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: queryKeys.plans.detail(id ?? ''),
-    queryFn: () => plansApi.getPlan(id!),
+    queryFn: async () => {
+      try {
+        return await plansApi.getPlan(id!);
+      } catch (error) {
+        if (isNotFound(error)) {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.plans.list() });
+        }
+        throw error;
+      }
+    },
     enabled: id !== undefined && id !== '',
     staleTime: CATALOGUE_STALE_MS,
   });

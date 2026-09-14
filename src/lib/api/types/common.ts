@@ -72,6 +72,14 @@ export function isApiError(value: unknown): value is ApiError {
   );
 }
 
+/**
+ * A 404. For a public catalogue read — a plan, dish or meal box — it means the
+ * admin unpublished or deleted it, not that something broke.
+ */
+export function isNotFound(value: unknown): boolean {
+  return isApiError(value) && value.code === 'not_found';
+}
+
 /** Cursor/page params accepted by the paginated list endpoints. */
 export interface PageParams {
   page?: number;

@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   ExtraOrderSheet,
+  FoodImage,
   GuestOrderSheet,
   MealSwapSheet,
   MenuDayTabs,
@@ -340,29 +341,37 @@ function MealCard({ delivery, onSwap, onOrderExtra, onOrderGuest }: MealCardProp
 
 function ItemRow({ item }: { item: DeliveryItem }) {
   return (
-    <View className="rounded-2xl bg-surface-muted px-4 py-3">
-      <View className="flex-row items-center justify-between gap-3">
-        <Text className="flex-1 text-sm font-semibold text-text-primary">
-          {item.quantity > 1 ? `${item.quantity} × ` : ''}
-          {item.menu_item?.name ?? `Item #${item.id}`}
-        </Text>
+    <View className="flex-row items-center gap-3 rounded-2xl bg-surface-muted py-2 pl-2 pr-4">
+      <FoodImage
+        uri={item.menu_item?.image_url}
+        glyphSize="sm"
+        className="h-12 w-12 rounded-xl"
+      />
 
-        {item.package ? (
-          <Badge label={item.package.name} variant="muted" />
-        ) : item.is_free_addon ? (
-          <Badge label="Free" variant="free" />
-        ) : item.source === 'extra' || item.source === 'guest' ? (
-          <Badge label="Paid" variant="paid" />
-        ) : item.swap_locked ? (
-          <Badge label="Settled" variant="muted" />
+      <View className="flex-1">
+        <View className="flex-row items-center justify-between gap-3">
+          <Text className="flex-1 text-sm font-semibold text-text-primary">
+            {item.quantity > 1 ? `${item.quantity} × ` : ''}
+            {item.menu_item?.name ?? `Item #${item.id}`}
+          </Text>
+
+          {item.package ? (
+            <Badge label={item.package.name} variant="muted" />
+          ) : item.is_free_addon ? (
+            <Badge label="Free" variant="free" />
+          ) : item.source === 'extra' || item.source === 'guest' ? (
+            <Badge label="Paid" variant="paid" />
+          ) : item.swap_locked ? (
+            <Badge label="Settled" variant="muted" />
+          ) : null}
+        </View>
+
+        {item.was_swapped && item.swapped_from ? (
+          <Text className="mt-1 text-[11px] text-brand-500">
+            swapped from {item.swapped_from}
+          </Text>
         ) : null}
       </View>
-
-      {item.was_swapped && item.swapped_from ? (
-        <Text className="mt-1 text-[11px] text-brand-500">
-          swapped from {item.swapped_from}
-        </Text>
-      ) : null}
     </View>
   );
 }

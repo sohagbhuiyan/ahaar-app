@@ -6,6 +6,8 @@ import type { ScheduleDay, ScheduleMeal, SchedulePlate } from '@/lib/api/types/s
 import { slotWindow } from '@/lib/slots';
 import { cn, formatLongDate, isToday, todayISO } from '@/lib/utils';
 
+import { FoodImage } from './FoodImage';
+
 interface Props {
   day: ScheduleDay;
   /** Opens the day in the actionable Deliveries screen. Omit for read-only. */
@@ -151,31 +153,34 @@ function statusPill(meal: ScheduleMeal): { label: string; variant: BadgeVariant 
 
 function DishLine({ dish }: { dish: SchedulePlate }) {
   return (
-    <View>
-      <View className="flex-row items-center gap-2">
-        <View className="h-1.5 w-1.5 rounded-full bg-brand-300" />
-        <Text numberOfLines={1} className="flex-1 text-sm text-text-primary">
-          {dish.name ?? `Item #${dish.menu_item_id}`}
-          {dish.quantity > 1 ? (
-            <Text className="font-bold"> ×{dish.quantity}</Text>
-          ) : null}
-        </Text>
+    <View className="flex-row items-center gap-2.5">
+      <FoodImage uri={dish.image_url} glyphSize="sm" className="h-9 w-9 rounded-lg" />
 
-        {dish.package ? (
-          <Badge label={dish.package.name} variant="muted" />
-        ) : dish.is_free_addon ? (
-          <Badge label="Free" variant="free" />
-        ) : dish.source === 'extra' || dish.source === 'guest' ? (
-          <Badge label="Paid" variant="paid" />
+      <View className="flex-1">
+        <View className="flex-row items-center gap-2">
+          <Text numberOfLines={1} className="flex-1 text-sm text-text-primary">
+            {dish.name ?? `Item #${dish.menu_item_id}`}
+            {dish.quantity > 1 ? (
+              <Text className="font-bold"> ×{dish.quantity}</Text>
+            ) : null}
+          </Text>
+
+          {dish.package ? (
+            <Badge label={dish.package.name} variant="muted" />
+          ) : dish.is_free_addon ? (
+            <Badge label="Free" variant="free" />
+          ) : dish.source === 'extra' || dish.source === 'guest' ? (
+            <Badge label="Paid" variant="paid" />
+          ) : null}
+        </View>
+
+        {/* Where the dish came from, when it isn't where the plan put it. */}
+        {dish.was_swapped && dish.original_name ? (
+          <Text className="mt-0.5 text-[11px] text-brand-500">
+            swapped in for {dish.original_name}
+          </Text>
         ) : null}
       </View>
-
-      {/* Where the dish came from, when it isn't where the plan put it. */}
-      {dish.was_swapped && dish.original_name ? (
-        <Text className="ml-3.5 mt-0.5 text-[11px] text-brand-500">
-          swapped in for {dish.original_name}
-        </Text>
-      ) : null}
     </View>
   );
 }

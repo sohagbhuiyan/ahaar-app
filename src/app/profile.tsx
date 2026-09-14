@@ -7,7 +7,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 import { z } from 'zod';
 
-import { AddressFormSheet, OfflineBanner, ScreenHeader } from '@/components/shared';
+import {
+  AddressFormSheet,
+  LocationPill,
+  LocationSheet,
+  OfflineBanner,
+  ScreenHeader,
+} from '@/components/shared';
 import {
   AlertDialog,
   Avatar,
@@ -27,15 +33,17 @@ import { ALLERGENS, DIETARY_TAGS, humanise, LOCALES } from '@/lib/constants/diet
 import { formatAddress } from '@/components/shared/AddressPicker';
 import {
   useAddresses,
+  useChangeLocation,
+  useCurrentLocation,
   useDeleteAddress,
   useDeliverySlots,
   useIsSignedIn,
   useLogout,
   useProfile,
-  useSetDefaultAddress,
   useUpdateDietaryPreferences,
   useUpdateProfile,
 } from '@/lib/query/hooks';
+import { locationPickerHref } from '@/lib/location/picker';
 import { slotWindow } from '@/lib/slots';
 import { useAuthPromptStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
@@ -77,7 +85,9 @@ export default function ProfileScreen() {
 
   const updateProfile = useUpdateProfile();
   const updateDietary = useUpdateDietaryPreferences();
-  const setDefaultAddress = useSetDefaultAddress();
+  // The default address is the delivery location shown on Home, so switching
+  // it here goes through the same path as the Home location sheet.
+  const { selectAddress, pendingAddressId } = useChangeLocation();
   const deleteAddress = useDeleteAddress();
 
   const logout = useLogout({ onSuccess: () => router.replace('/(tabs)') });
@@ -86,6 +96,8 @@ export default function ProfileScreen() {
     open: false,
   });
   const [pendingDelete, setPendingDelete] = useState<Address | null>(null);
+  const [locationSheetOpen, setLocationSheetOpen] = useState(false);
+  const location = useCurrentLocation();
 
   const { control, handleSubmit, reset, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -435,17 +447,35 @@ export default function ProfileScreen() {
             </Card>
           ) : null}
 
+          {/* Delivery location — the same pill and sheet as Home, so GPS,
+              saved addresses and typing one in all work from here too. */}
+          <Card className="mt-4">
+            <View className="p-5">
+              <Text className="text-sm font-bold text-text-primary">Delivery location</Text>
+              <Text className="mt-1 text-xs text-text-muted">
+                Where your orders and plan meals are delivered. Moved? Update it from
+                where you are now.
+              </Text>
+              <LocationPill
+                location={location}
+                onPress={() => setLocationSheetOpen(true)}
+                className="mt-3"
+              />
+            </View>
+          </Card>
+
           {/* Addresses */}
           <Card className="mt-4">
             <View className="p-5">
               <View className="flex-row items-center justify-between gap-3">
                 <Text className="text-sm font-bold text-text-primary">Addresses</Text>
+                {/* A new address starts on the map, so it always has an exact pin. */}
                 <Button
                   label="Add"
                   size="sm"
                   variant="secondary"
                   fullWidth={false}
-                  onPress={() => setAddressForm({ open: true })}
+                  onPress={() => router.push(locationPickerHref({ mode: 'add' }))}
                 />
               </View>
 
@@ -467,6 +497,11 @@ export default function ProfileScreen() {
                           <Text className="mt-0.5 text-xs text-text-muted">
                             {formatAddress(address)}
                           </Text>
+                          {address.short_address ? (
+                            <Text className="mt-1 text-xs text-text-secondary">
+                              Short address: {address.short_address}
+                            </Text>
+                          ) : null}
                           {address.instructions ? (
                             <Text className="mt-1 text-xs italic text-text-muted">
                               {address.instructions}
@@ -475,7 +510,7 @@ export default function ProfileScreen() {
                         </View>
 
                         {address.is_default ? (
-                          <Badge label="Default" variant="brand" />
+                          <Badge label="Delivery location" variant="brand" />
                         ) : null}
                       </View>
 
@@ -489,19 +524,19 @@ export default function ProfileScreen() {
                         />
                         {!address.is_default ? (
                           <Button
-                            label="Make default"
+                            label="Deliver here"
                             size="sm"
                             variant="ghost"
                             fullWidth={false}
-                            loading={setDefaultAddress.isPending}
+                            loading={pendingAddressId === address.id}
                             onPress={() =>
-                              setDefaultAddress.mutate(address.id, {
-                                onSuccess: () => toast.success('Default address set'),
-                                onError: (e) =>
+                              selectAddress(address.id)
+                                .then(() => toast.success('Delivery location updated'))
+                                .catch((e: unknown) =>
                                   toast.error(
                                     isApiError(e) ? e.message : 'Could not set that',
                                   ),
-                              })
+                                )
                             }
                           />
                         ) : null}
@@ -530,6 +565,11 @@ export default function ProfileScreen() {
           />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <LocationSheet
+        open={locationSheetOpen}
+        onClose={() => setLocationSheetOpen(false)}
+      />
 
       <AddressFormSheet
         open={addressForm.open}

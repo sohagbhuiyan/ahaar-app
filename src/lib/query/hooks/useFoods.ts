@@ -7,11 +7,11 @@
  * "back" to a previous filter is instant.
  */
 import { useMemo } from 'react';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import * as foodsApi from '../../api/endpoints/foods';
 import type { MenuItem, MenuItemFilters } from '../../api/types/catalog';
-import type { Paginated } from '../../api/types/common';
+import { isNotFound, type Paginated } from '../../api/types/common';
 import { useFilterStore } from '../../store/useFilterStore';
 import { queryKeys } from '../keys';
 
@@ -156,10 +156,27 @@ export function useCategoryTiles(): CategoryTile[] {
   }, [data]);
 }
 
+/**
+ * One dish. A 404 means it was taken off the menu, so every cached list that
+ * may still show it — each filter's, and the add-on catalogue — is refreshed.
+ * See `usePlan` for why the detail itself is not.
+ */
 export function useFood(id: string | number | undefined) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: queryKeys.foods.detail(id ?? ''),
-    queryFn: () => foodsApi.getFood(id!),
+    queryFn: async () => {
+      try {
+        return await foodsApi.getFood(id!);
+      } catch (error) {
+        if (isNotFound(error)) {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.foods.lists() });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.foods.addons() });
+        }
+        throw error;
+      }
+    },
     enabled: id !== undefined && id !== '',
     staleTime: CATALOGUE_STALE_MS,
   });
