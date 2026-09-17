@@ -6,9 +6,11 @@ import { Pressable, Text, View, type TextInput } from 'react-native';
 import { toast } from 'sonner-native';
 import { z } from 'zod';
 
-import { Button, InlineError, Input, Sheet } from '@/components/ui';
+import { Button, InlineError, Input, PasswordInput, Sheet } from '@/components/ui';
 import { useLogin } from '@/lib/query/hooks';
 import { useAuthPromptStore } from '@/lib/store';
+
+import { GoogleSignInButton } from './GoogleSignInButton';
 
 const schema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email'),
@@ -106,6 +108,17 @@ export function LoginPrompt() {
         </View>
       }
     >
+      {/* Resolves the prompt like the email form does, so the tap that opened
+          it still goes through after a Google sign-in. */}
+      <GoogleSignInButton
+        divider
+        onSuccess={() => {
+          reset();
+          login.reset();
+          resolve();
+        }}
+      />
+
       {login.isError ? <InlineError error={login.error} className="mb-4" /> : null}
 
       <View className="gap-4 pb-2">
@@ -137,14 +150,13 @@ export function LoginPrompt() {
           control={control}
           name="password"
           render={({ field: { onChange, onBlur, value }, fieldState }) => (
-            <Input
+            <PasswordInput
               ref={passwordRef}
               label="Password"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
               error={fieldState.error?.message}
-              secureTextEntry
               autoComplete="current-password"
               textContentType="password"
               placeholder="••••••••"

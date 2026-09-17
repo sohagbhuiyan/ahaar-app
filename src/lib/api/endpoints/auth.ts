@@ -26,6 +26,11 @@ export function normalizeUser(raw: Raw): User {
     phone: (raw.phone as string | null) ?? null,
     phone_verified: Boolean(raw.phone_verified),
     email_verified: Boolean(raw.email_verified),
+    avatar_url: (raw.avatar_url as string | null | undefined) ?? null,
+    google_linked: Boolean(raw.google_linked),
+    // Absent from an older API: assume a password, so nothing offers to
+    // strand the customer.
+    has_password: raw.has_password !== false,
     locale: (raw.locale as string | null) ?? null,
     dietary_preferences: (raw.dietary_preferences as User['dietary_preferences']) ?? null,
     default_address_id: (raw.default_address_id as number | null) ?? null,
@@ -40,6 +45,7 @@ function normalizeAuthResult(raw: Raw): AuthResult {
   return {
     user: normalizeUser(raw.user as Raw),
     token: raw.token as string,
+    isNewUser: Boolean(raw.is_new_user),
   };
 }
 
@@ -57,6 +63,22 @@ export async function register(payload: RegisterPayload): Promise<AuthResult> {
   const { data } = await apiClient.post<ApiEnvelope<Raw>>('/auth/register', {
     device_name: 'ahaar-mobile',
     ...payload,
+  });
+  return normalizeAuthResult(unwrap(data));
+}
+
+/**
+ * POST /auth/google/token → `{ data: { user, token, is_new_user } }`
+ *
+ * The API verifies the ID token with Google. An existing account with the same
+ * (Google-verified) email is signed in and connected rather than duplicated.
+ * Refusals are 422s with a `reason`: `account_inactive`, `email_unverified`,
+ * `account_conflict`, `invalid_token`, …
+ */
+export async function loginWithGoogle(idToken: string): Promise<AuthResult> {
+  const { data } = await apiClient.post<ApiEnvelope<Raw>>('/auth/google/token', {
+    id_token: idToken,
+    device_name: 'ahaar-mobile',
   });
   return normalizeAuthResult(unwrap(data));
 }

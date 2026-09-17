@@ -115,6 +115,8 @@ export const queryKeys = {
     all: () => ['media'] as const,
     list: () => ['media', 'list'] as const,
     detail: (id: string | number) => ['media', 'detail', String(id)] as const,
+    /** Every video's comments, for a pull-to-refresh on the Media tab. */
+    allComments: () => ['media', 'comments'] as const,
     /** Every viewer's copy of one video's comments. */
     comments: (videoId: string | number) =>
       ['media', 'comments', String(videoId)] as const,

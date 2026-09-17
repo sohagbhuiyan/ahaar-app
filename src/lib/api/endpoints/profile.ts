@@ -22,6 +22,21 @@ export async function getProfile(): Promise<User> {
   return normalizeUser(unwrap(data));
 }
 
+/** POST /me/google: connect Google to this account with a native ID token. */
+export async function linkGoogle(idToken: string): Promise<User> {
+  const { data } = await apiClient.post<ApiEnvelope<Raw>>('/me/google', { id_token: idToken });
+  return normalizeUser(unwrap(data));
+}
+
+/**
+ * DELETE /me/google. Refused (422, `reason: password_required`) while the
+ * account has no password, which would leave no way to sign in.
+ */
+export async function unlinkGoogle(): Promise<User> {
+  const { data } = await apiClient.delete<ApiEnvelope<Raw>>('/me/google');
+  return normalizeUser(unwrap(data));
+}
+
 /** PATCH /me */
 export async function updateProfile(
   payload: UpdateProfilePayload,

@@ -14,13 +14,31 @@ import {
 
 import { openCmsLink, resolveCmsLink } from '@/lib/cms';
 import { shadows } from '@/lib/theme';
-import type { HomeBanner } from '@/lib/api/types/home';
+import type { HomeBanner, PromoSectionType } from '@/lib/api/types/home';
 import { BANNER_BLURHASH } from '@/lib/constants/images';
+import { cn } from '@/lib/utils';
 
+/**
+ * Card shape per banner slot.
+ *
+ * `app_home` images are uploaded for a phone, at 16:9. The two website slots are
+ * uploaded wide (roughly 8:3 and 4:1); shown at their own ratio on a phone they
+ * would be a sliver, so they are cropped to a still-wide card that leaves room
+ * for the text overlay — the admin hint tells them to keep the subject central.
+ */
+export const PROMO_ASPECT: Record<PromoSectionType, number> = {
+  promo_app: 16 / 9,
+  promo_top: 12 / 5,
+  promo_mid: 5 / 2,
+};
 
 interface Props {
   banners: HomeBanner[];
   heading?: string | null;
+  /** Width ÷ height of each card. Defaults to the app slot's 16:9. */
+  aspectRatio?: number;
+  /** Outer spacing. Defaults to a bottom margin, for the screens that stack it. */
+  className?: string;
 }
 
 /**
@@ -34,7 +52,7 @@ interface Props {
  * horizontal page size stays correct on a tablet or in split view, where the
  * content is narrower than the screen.
  */
-export function PromoCarousel({ banners, heading }: Props) {
+export function PromoCarousel({ banners, heading, aspectRatio = 16 / 9, className = 'mb-5' }: Props) {
   const router = useRouter();
   const { width: windowWidth } = useWindowDimensions();
   const [width, setWidth] = useState(windowWidth);
@@ -58,7 +76,7 @@ export function PromoCarousel({ banners, heading }: Props) {
   return (
     // Own vertical rhythm, so the section below keeps its original spacing when
     // there are no banners and this renders nothing at all.
-    <View className="mb-5" onLayout={onLayout}>
+    <View className={className} onLayout={onLayout}>
       {heading ? (
         <Text className="mb-3 px-5 text-lg font-bold text-text-primary">{heading}</Text>
       ) : null}
@@ -78,6 +96,7 @@ export function PromoCarousel({ banners, heading }: Props) {
             key={banner.id}
             banner={banner}
             width={width}
+            aspectRatio={aspectRatio}
             onPress={() => openCmsLink(banner.cta_url, router)}
           />
         ))}
@@ -102,21 +121,25 @@ export function PromoCarousel({ banners, heading }: Props) {
 function PromoCard({
   banner,
   width,
+  aspectRatio,
   onPress,
 }: {
   banner: HomeBanner;
   width: number;
+  aspectRatio: number;
   onPress: () => void;
 }) {
   const hasCopy = Boolean(banner.title || banner.subtitle || banner.cta_label);
   // A banner whose link goes nowhere this app can open is shown as a plain
   // image — a press that silently does nothing is worse than no press target.
   const pressable = resolveCmsLink(banner.cta_url) !== null;
+  // A wide card is short: one line each keeps the overlay off the top edge.
+  const wide = aspectRatio > 2;
 
   const card = (
     <View
       className="overflow-hidden rounded-3xl bg-surface-muted"
-      style={[{ aspectRatio: 16 / 9 }, shadows.card]}
+      style={[{ aspectRatio }, shadows.card]}
     >
       {banner.image_url ? (
         <Image
@@ -134,19 +157,19 @@ function PromoCard({
         <View className="absolute inset-0 justify-end">
           {/* Scrim only where there is text, so a photo-only banner shows
               exactly as the admin uploaded it. */}
-          <View className="bg-black/45 p-4">
+          <View className={cn('bg-black/45', wide ? 'px-4 py-3' : 'p-4')}>
             {banner.title ? (
-              <Text className="text-base font-bold text-text-inverse" numberOfLines={2}>
+              <Text className="text-base font-bold text-text-inverse" numberOfLines={wide ? 1 : 2}>
                 {banner.title}
               </Text>
             ) : null}
             {banner.subtitle ? (
-              <Text className="mt-0.5 text-xs text-text-inverse/90" numberOfLines={2}>
+              <Text className="mt-0.5 text-xs text-text-inverse/90" numberOfLines={wide ? 1 : 2}>
                 {banner.subtitle}
               </Text>
             ) : null}
             {banner.cta_label && pressable ? (
-              <View className="mt-2 self-start rounded-full bg-surface px-3 py-1">
+              <View className={cn('self-start rounded-full bg-surface px-3 py-1', wide ? 'mt-1.5' : 'mt-2')}>
                 <Text className="text-xs font-bold text-brand-500">{banner.cta_label}</Text>
               </View>
             ) : null}

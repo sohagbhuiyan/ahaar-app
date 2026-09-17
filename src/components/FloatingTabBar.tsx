@@ -8,7 +8,7 @@ import {
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { navTint } from "../lib/theme";
+import { colors, navTint } from "../lib/theme";
 import { useInstantOrderCount } from "../lib/store";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -155,7 +155,7 @@ function TabItem({
           width: 52,
           height: 52,
           borderRadius: 14,
-          backgroundColor: "#fff0f5",
+          backgroundColor: colors.brand[50],
           transform: [{ scale: pillScale }],
         }}
       />
@@ -231,12 +231,12 @@ export default function FloatingTabBar({
       style={{
         width: "100%",
         height: totalHeight,
-        backgroundColor: "#ffffff",
+        backgroundColor: colors.surface.DEFAULT,
         flexDirection: "row",
         alignItems: "flex-start",
         paddingTop: 0,
         borderTopWidth: 1,
-        borderTopColor: "#ffe0ee",
+        borderTopColor: colors.border.DEFAULT,
         ...Platform.select({
           ios: {
             shadowColor: "#000",

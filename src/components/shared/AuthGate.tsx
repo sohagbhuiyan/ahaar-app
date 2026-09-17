@@ -7,7 +7,9 @@ import { useAuthHydrated, useIsAuthenticated } from '@/lib/store';
  * Keeps the route tree and the session in agreement.
  *
  * There is deliberately only **one** rule left here: a signed-in customer has
- * no business sitting on the login screen, so send them to the tabs.
+ * no business sitting on the login screen, so send them to Home. This is also
+ * what moves someone off the login and register screens once they succeed —
+ * those screens don't navigate themselves.
  *
  * The inverse rule — "signed out, anywhere but `(auth)` → go to login" — used
  * to live here and has been removed on purpose. The whole app is browsable
@@ -31,9 +33,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
 
+    // Pop back to the tabs — landing on Home — rather than replacing: a
+    // replace would stack a second copy of the tabs on top of the first.
     const inAuthGroup = segments[0] === '(auth)';
     if (isAuthenticated && inAuthGroup) {
-      router.replace('/(tabs)');
+      router.dismissTo('/(tabs)');
     }
   }, [hydrated, isAuthenticated, segments, router]);
 

@@ -20,6 +20,8 @@ export {
 export { Badge, type BadgeVariant } from './Badge';
 export { Skeleton, SkeletonText, SkeletonCard } from './Skeleton';
 export { Input } from './Input';
+export { PasswordInput } from './PasswordInput';
+export { PressableScale } from './PressableScale';
 export { Stepper } from './Stepper';
 export { Tabs, type TabItem } from './Tabs';
 export { Sheet } from './Sheet';

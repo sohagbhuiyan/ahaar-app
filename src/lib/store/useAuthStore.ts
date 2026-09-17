@@ -22,6 +22,7 @@ import { createJSONStorage, persist, type StateStorage } from 'zustand/middlewar
 
 import { AUTH_TOKEN_KEY, setAuthToken } from '../api/client';
 import * as authApi from '../api/endpoints/auth';
+import { signOutOfGoogle } from '../auth/google';
 import type { LoginPayload, RegisterPayload, User, UserRole } from '../api/types/auth';
 
 /** SecureStore key for the identity snapshot. Distinct from the token's key. */
@@ -76,8 +77,14 @@ interface AuthState {
   /** False until persisted state has been read back. Gate routing on this. */
   hasHydrated: boolean;
 
-  login: (payload: LoginPayload) => Promise<SessionUser>;
-  register: (payload: RegisterPayload) => Promise<SessionUser>;
+  /**
+   * Resolve with the full `User` from the response, not the snapshot — the
+   * caller seeds the profile cache with it so the account renders at once.
+   */
+  login: (payload: LoginPayload) => Promise<User>;
+  register: (payload: RegisterPayload) => Promise<User>;
+  /** Sign in with an ID token from native Google Sign-In (see `lib/auth/google.ts`). */
+  loginWithGoogle: (idToken: string) => Promise<{ user: User; isNewUser: boolean }>;
   logout: () => Promise<void>;
   /** Replace the identity snapshot after a profile update or `/me` refetch. */
   syncUser: (user: User) => void;
@@ -94,30 +101,40 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (payload) => {
         const { user, token } = await authApi.login(payload);
-        const session = toSessionUser(user);
 
         await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token).catch(() => undefined);
         setAuthToken(token);
-        set({ token, user: session });
+        set({ token, user: toSessionUser(user) });
 
-        return session;
+        return user;
       },
 
       register: async (payload) => {
         const { user, token } = await authApi.register(payload);
-        const session = toSessionUser(user);
 
         await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token).catch(() => undefined);
         setAuthToken(token);
-        set({ token, user: session });
+        set({ token, user: toSessionUser(user) });
 
-        return session;
+        return user;
+      },
+
+      loginWithGoogle: async (idToken) => {
+        const { user, token, isNewUser } = await authApi.loginWithGoogle(idToken);
+
+        await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token).catch(() => undefined);
+        setAuthToken(token);
+        set({ token, user: toSessionUser(user) });
+
+        return { user, isNewUser: Boolean(isNewUser) };
       },
 
       logout: async () => {
         // Revoke server-side first, but never let a failure strand the user in
         // a signed-in shell — local state is cleared either way.
         await authApi.logout().catch(() => undefined);
+        // So the next "Continue with Google" on this device asks which account.
+        await signOutOfGoogle();
         await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY).catch(() => undefined);
         setAuthToken(null);
         set({ token: null, user: null });

@@ -1,7 +1,9 @@
-import { Pressable, Text, View, type ViewProps } from 'react-native';
+import { Text, View, type ViewProps } from 'react-native';
 
 import { shadows } from '@/lib/theme';
 import { cn } from '@/lib/utils';
+
+import { PressableScale } from './PressableScale';
 
 interface CardProps extends ViewProps {
   /** Adds the brand-tinted elevation used for the highlighted plan. */
@@ -17,6 +19,9 @@ interface CardProps extends ViewProps {
  * Shadows are the one thing that can't be a `className`: React Native needs
  * `shadow*` on iOS and `elevation` on Android, so they come from the shared
  * `shadows` tokens rather than an ad-hoc inline object.
+ *
+ * A pressable card sinks slightly under the thumb (`PressableScale`) instead
+ * of just dimming, so tapping into a dish, plan or video feels physical.
  */
 export function Card({
   elevated = false,
@@ -33,14 +38,16 @@ export function Card({
 
   if (onPress) {
     return (
-      <Pressable
+      <PressableScale
         accessibilityRole="button"
+        accessibilityLabel={rest.accessibilityLabel}
+        testID={rest.testID}
         onPress={onPress}
-        className={cn(classes, 'active:opacity-90')}
+        className={classes}
         style={style}
       >
         {children}
-      </Pressable>
+      </PressableScale>
     );
   }
 

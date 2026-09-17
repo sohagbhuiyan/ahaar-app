@@ -40,6 +40,7 @@ import type {
   HomeBanner,
   HomeContent,
   HomeSectionContent,
+  PromoCode,
 } from './types/home';
 import { APP_SECTION_TYPES } from './types/home';
 import type {
@@ -795,10 +796,35 @@ function normalizeSectionContent(raw: unknown): HomeSectionContent | null {
     : null;
 }
 
+/**
+ * Promo codes, from wherever the section carries them. A code with no text is
+ * unusable and one past its expiry would only disappoint at checkout, so both
+ * are dropped here rather than rendered.
+ */
+export function normalizePromoCodes(raw: unknown, now: Date = new Date()): PromoCode[] {
+  if (!Array.isArray(raw)) return [];
+
+  return (raw as (Raw | null)[])
+    .filter((entry): entry is Raw => typeof entry?.code === 'string' && entry.code.trim() !== '')
+    .map((entry) => ({
+      code: (entry.code as string).trim(),
+      title: nullableText(entry.title),
+      description: nullableText(entry.description),
+      discount_label: nullableText(entry.discount_label),
+      expires_at: nullableText(entry.expires_at),
+    }))
+    .filter((code) => {
+      if (!code.expires_at) return true;
+      const expiry = new Date(code.expires_at).getTime();
+      return Number.isNaN(expiry) || expiry > now.getTime();
+    });
+}
+
 export function normalizeHomeContent(raw: Raw): HomeContent {
   const sections = Array.isArray(raw.sections) ? (raw.sections as Raw[]) : [];
 
   return {
+    layoutVersion: typeof raw.layout_version === 'number' ? raw.layout_version : 1,
     sections: sections
       .filter((s) => isAppSectionType(s.type))
       .map((s) => ({
@@ -808,6 +834,10 @@ export function normalizeHomeContent(raw: Raw): HomeContent {
         banners: Array.isArray(s.banners)
           ? (s.banners as Raw[]).map(normalizeHomeBanner)
           : [],
+        codes:
+          s.type === 'promo_codes'
+            ? normalizePromoCodes(s.codes ?? (s.content as Raw | null)?.codes)
+            : [],
       }))
       // The API already sorts; Home's layout depends on this order, so it is
       // cheap insurance rather than trust.

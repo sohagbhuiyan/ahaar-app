@@ -31,6 +31,7 @@ import type { Address } from '@/lib/api/types/catalog';
 import { isApiError } from '@/lib/api/types/common';
 import { ALLERGENS, DIETARY_TAGS, humanise, LOCALES } from '@/lib/constants/diet';
 import { formatAddress } from '@/components/shared/AddressPicker';
+import { ConnectedAccountsCard } from '@/components/shared/ConnectedAccountsCard';
 import {
   useAddresses,
   useChangeLocation,
@@ -555,6 +556,8 @@ export default function ProfileScreen() {
               )}
             </View>
           </Card>
+
+          {user ? <ConnectedAccountsCard user={user} className="mt-4" /> : null}
 
           <Button
             label="Sign out"

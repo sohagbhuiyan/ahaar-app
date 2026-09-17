@@ -22,13 +22,21 @@ import type { AddressDraft } from '../location/address';
 interface LocationState {
   /** Set by a signed-out visitor; saved to the account on sign-in. */
   guestLocation: AddressDraft | null;
-  /** The first-use "where should we deliver?" sheet has been offered once. */
+  /**
+   * The "where should we deliver?" sheet has been offered in this session.
+   *
+   * Deliberately *not* persisted. The address is what every order delivers to,
+   * so someone still without one is asked again on the next launch and after
+   * each sign-in — once per session, never in a loop within one.
+   */
   hasPromptedLocation: boolean;
   /** False until AsyncStorage has been read back — don't prompt before then. */
   hasHydrated: boolean;
 
   setGuestLocation: (draft: AddressDraft | null) => void;
   markPrompted: () => void;
+  /** Allow the prompt to be offered again — called when a session starts. */
+  resetLocationPrompt: () => void;
 }
 
 export const useLocationStore = create<LocationState>()(
@@ -40,13 +48,18 @@ export const useLocationStore = create<LocationState>()(
 
       setGuestLocation: (guestLocation) => set({ guestLocation }),
       markPrompted: () => set({ hasPromptedLocation: true }),
+      resetLocationPrompt: () => set({ hasPromptedLocation: false }),
     }),
     {
       name: 'ahaar.location',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({
-        guestLocation: state.guestLocation,
-        hasPromptedLocation: state.hasPromptedLocation,
+      partialize: (state) => ({ guestLocation: state.guestLocation }),
+      // An older build persisted `hasPromptedLocation: true`; ignore it so
+      // those customers are asked again if they still have no location.
+      merge: (persisted, current) => ({
+        ...current,
+        guestLocation:
+          (persisted as Partial<LocationState> | undefined)?.guestLocation ?? null,
       }),
       onRehydrateStorage: () => () => {
         useLocationStore.setState({ hasHydrated: true });

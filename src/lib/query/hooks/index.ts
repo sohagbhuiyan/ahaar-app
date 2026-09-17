@@ -71,6 +71,8 @@ export {
   useProfile,
   useUpdateProfile,
   useUpdateDietaryPreferences,
+  useLinkGoogle,
+  useUnlinkGoogle,
   useAddresses,
   useCreateAddress,
   useUpdateAddress,
@@ -88,4 +90,4 @@ export {
   type SaveLocationResult,
 } from './useLocation';
 export { usePayments } from './usePayments';
-export { useLogin, useRegister, useLogout } from './useAuth';
+export { useLogin, useRegister, useGoogleLogin, useLogout } from './useAuth';

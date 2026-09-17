@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ahaar-app",
+    "name": "Ahaar",
     "slug": "ahaar-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,11 +8,12 @@
     "scheme": "ahaarapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.sohagexpo.ahaarapp"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/images/ahaar2-adaptive.png",
         "monochromeImage": "./assets/images/images/ahaar2-adaptive.png"
       },
@@ -28,9 +29,10 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#FFFFFF",
           "image": "./assets/images/images/ahaar2.png",
-          "imageWidth": 76
+          "imageWidth": 220,
+          "resizeMode": "contain"
         }
       ],
       "expo-secure-store",

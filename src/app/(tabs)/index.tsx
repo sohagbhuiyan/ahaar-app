@@ -1,22 +1,33 @@
-import { useCallback, useState } from 'react';
+import { Fragment, useCallback, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BannerIllustration from '@/components/illustrations/BannerIllustration';
 import {
+  AhaarLogo,
   CategoryRail,
+  ClosingCta,
+  DeliveryCoverage,
+  FaqSection,
   FoodCard,
   FoodImage,
-  HomeSections,
+  HomeHero,
+  HowItWorksSection,
+  KitchenVideosRail,
   LocationPill,
+  LocationRequiredCard,
   LocationSheet,
-  MediaVideoCard,
   OfflineBanner,
   PackageCard,
   PlanCard,
+  PROMO_ASPECT,
   PromoCarousel,
+  PromoCodeStrip,
   SubscriptionSummaryCard,
+  TestimonialsSection,
+  WhyAhaarSection,
 } from '@/components/shared';
 import {
   Avatar,
@@ -27,6 +38,17 @@ import {
   Skeleton,
   SkeletonCard,
 } from '@/components/ui';
+import type {
+  AppSectionType,
+  CatalogSectionContent,
+  CtaContent,
+  FaqContent,
+  HeadingContent,
+  HeroContent,
+  HomeSection,
+  PromoContent,
+  TestimonialsContent,
+} from '@/lib/api/types/home';
 import {
   FALLBACK_HOME_LAYOUT,
   useCategoryTiles,
@@ -44,8 +66,21 @@ import {
   useTodaysDelivery,
 } from '@/lib/query/hooks';
 import { useAuthPromptStore, useCurrentUser, useFilterStore } from '@/lib/store';
-import { cmsText, openCmsLink, resolveCmsLink } from '@/lib/cms';
+import { cmsHeading, cmsText } from '@/lib/cms';
 import { formatLongDate, todayISO } from '@/lib/utils';
+
+/**
+ * Where the sections that are not CMS types go. Each rides directly behind the
+ * first of its anchors the admin has left on, the same way the website pins its
+ * bundles after the featured dishes — so switching one section off never takes
+ * an unrelated block down with it.
+ */
+const MEAL_BOXES_AFTER: AppSectionType[] = ['featured_menu', 'category_showcase', 'plans'];
+const COVERAGE_AFTER: AppSectionType[] = ['testimonials', 'why_us', 'how_it_works', 'faq'];
+
+function anchorOf(sections: HomeSection[], candidates: AppSectionType[]): AppSectionType | null {
+  return candidates.find((type) => sections.some((s) => s.type === type)) ?? null;
+}
 
 /**
  * Home.
@@ -59,17 +94,20 @@ import { formatLongDate, todayISO } from '@/lib/utils';
  * without a session (their queries are disabled), and what remains is the
  * public catalogue plus an invitation — no wall, no redirect.
  *
- * ── What the admin panel controls ───────────────────────────────────────────
- * The promo carousel, the copy above the two catalogue rails, how many cards
- * each shows, whether they appear at all, and the closing call-to-action card
- * all come from `GET /home?platform=app` — the same source the website reads.
- * Everything session-shaped (the greeting, today's delivery, the subscription
- * summary) is deliberately *not* CMS-driven: it is this customer's own state,
- * not marketing.
+ * ── Layout ──────────────────────────────────────────────────────────────────
+ * Two halves. The top is pinned and is this customer's own day: greeting,
+ * delivery location, today's meals and their subscription. Nothing the admin
+ * does can move it, because it is not marketing.
  *
- * The CMS is additive, never load-bearing: `FALLBACK_HOME_LAYOUT` keeps both
- * rails on when the read is in flight or fails, so an API problem costs the
- * promos, not the shop.
+ * Everything below comes from `GET /home?platform=app` — the same admin panel
+ * (Content → Layout & Copy, "Mobile app") and the same banners as the website:
+ * which sections appear, in what order, and their copy. Seeded order: hero,
+ * banners, categories, dishes (meal boxes pinned behind), kitchen videos,
+ * plans, then the pitch.
+ *
+ * The CMS is additive, never load-bearing: `FALLBACK_HOME_LAYOUT` and an older
+ * API both yield a complete screen from shipped copy, so an API problem costs
+ * the promos, not the shop.
  */
 export default function HomeScreen() {
   const router = useRouter();
@@ -101,13 +139,14 @@ export default function HomeScreen() {
   const setCategory = useFilterStore((s) => s.setCategory);
   const { data: featuredId } = useFeaturedPlanId();
   const { data: foods, refetch: refetchFoods } = useFoods();
-  const { data: kitchenVideos, refetch: refetchVideos } = useMediaVideos();
+  const { refetch: refetchVideos } = useMediaVideos();
 
   const { data: cmsLayout, refetch: refetchHome } = useHomeLayout();
   const layout = cmsLayout ?? FALLBACK_HOME_LAYOUT;
 
-  // Where the food goes. Offered once on first use when nothing is set yet,
-  // and always one tap away at the top of the screen after that.
+  // Where the food goes. Offered once a session (and after each sign-in) while
+  // nothing is set, backed by a full-width card on the screen itself, and
+  // always one tap away in the sticky bar.
   const location = useCurrentLocation();
   const [locationSheetOpen, setLocationSheetOpen] = useState(false);
   const openLocationSheet = useCallback(() => setLocationSheetOpen(true), []);
@@ -140,23 +179,232 @@ export default function HomeScreen() {
     router.push('/(tabs)/foods');
   };
 
-  const popularFoods = (foods?.items ?? []).slice(
-    0,
-    layout.featuredMenu.content?.limit ?? 6,
-  );
-  const promotedPlans = (plans ?? []).slice(0, layout.plans.content?.limit ?? 2);
+  const sections = layout.sections;
+  const mealBoxesAnchor = anchorOf(sections, MEAL_BOXES_AFTER);
+  const coverageAnchor = anchorOf(sections, COVERAGE_AFTER);
+
+  /** Meal boxes — bundles from /admin/catalog/packages, bought outright. */
+  const mealBoxes =
+    packages && packages.length > 0 ? (
+      <View className="mt-6">
+        <SectionHeader
+          title="Meal boxes"
+          subtitle="Complete meals at one price"
+          actionLabel="See all"
+          onAction={() => router.push('/packages')}
+        />
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }}
+          style={{ flexGrow: 0 }}
+        >
+          {packages.map((pkg) => (
+            <PackageCard
+              key={pkg.id}
+              pkg={pkg}
+              className="w-64"
+              onPress={() =>
+                router.push({
+                  pathname: '/package/[id]',
+                  params: { id: String(pkg.id) },
+                })
+              }
+            />
+          ))}
+        </ScrollView>
+      </View>
+    ) : null;
+
+  const renderSection = (section: HomeSection) => {
+    switch (section.type) {
+      case 'hero':
+        return <HomeHero content={section.content as HeroContent | null} className="mt-6" />;
+
+      case 'promo_top':
+      case 'promo_app':
+      case 'promo_mid':
+        return (
+          <PromoCarousel
+            banners={section.banners}
+            heading={cmsText((section.content as PromoContent | null)?.heading) || null}
+            aspectRatio={PROMO_ASPECT[section.type]}
+            className="mt-6"
+          />
+        );
+
+      case 'promo_codes': {
+        const content = section.content as HeadingContent | null;
+        return (
+          <PromoCodeStrip
+            codes={section.codes}
+            heading={content?.heading}
+            subheading={content?.subheading}
+            className="mt-6"
+          />
+        );
+      }
+
+      // Explore by category — the admin's own categories, each opening the
+      // Foods tab filtered to it. The coarser choice before the dish rail: pick
+      // a craving, then pick a dish.
+      case 'category_showcase': {
+        if (categories.length === 0) return null;
+        const copy = cmsHeading(section.content as HeadingContent | null, {
+          title: 'Explore by category',
+          subtitle: 'Something for every craving',
+        });
+        return (
+          <View className="mt-6">
+            <SectionHeader
+              {...copy}
+              actionLabel="See all"
+              onAction={() => router.push('/(tabs)/foods')}
+            />
+            <CategoryRail categories={categories} onSelect={openCategory} />
+          </View>
+        );
+      }
+
+      // Popular dishes — the fastest route to an order.
+      case 'featured_menu': {
+        const content = section.content as CatalogSectionContent | null;
+        const items = (foods?.items ?? []).slice(0, content?.limit ?? 6);
+        if (items.length === 0) return null;
+        const copy = cmsHeading(content, { title: 'Popular dishes' });
+        return (
+          <View className="mt-6">
+            <SectionHeader
+              {...copy}
+              actionLabel="See all"
+              onAction={() => router.push('/(tabs)/foods')}
+            />
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }}
+              style={{ flexGrow: 0 }}
+            >
+              {items.map((item) => (
+                <FoodCard
+                  key={item.id}
+                  item={item}
+                  layout="grid"
+                  className="w-44"
+                  onPress={() => router.push(`/food/${item.id}`)}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        );
+      }
+
+      // Kitchen videos — two by default; "See all" opens the Media tab. Renders
+      // nothing until the kitchen has posted one.
+      case 'media_videos': {
+        const content = section.content as CatalogSectionContent | null;
+        const copy = cmsHeading(content, {
+          title: 'From our kitchen',
+          subtitle: 'See how your meals are made',
+        });
+        return (
+          <KitchenVideosRail
+            layout="stack"
+            {...copy}
+            limit={content?.limit ?? 2}
+            className="mt-6"
+          />
+        );
+      }
+
+      case 'plans': {
+        const content = section.content as CatalogSectionContent | null;
+        const promoted = (plans ?? []).slice(0, content?.limit ?? 2);
+        const copy = cmsHeading(content, { title: 'Popular plans' });
+        return (
+          <View className="mt-6">
+            <SectionHeader
+              {...copy}
+              actionLabel="See all"
+              onAction={() => router.push('/(tabs)/plans')}
+            />
+
+            <View className="gap-4 px-5">
+              {plansLoading ? (
+                <>
+                  <SkeletonCard />
+                  <SkeletonCard />
+                </>
+              ) : promoted.length === 0 ? (
+                <EmptyState title="No plans yet" description="Check back soon." />
+              ) : (
+                promoted.map((plan) => (
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    featured={plan.id === featuredId}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/plan/[id]',
+                        params: { id: String(plan.id) },
+                      })
+                    }
+                  />
+                ))
+              )}
+            </View>
+          </View>
+        );
+      }
+
+      case 'how_it_works':
+        return (
+          <HowItWorksSection content={section.content as HeadingContent | null} className="mt-8" />
+        );
+
+      case 'why_us':
+        return (
+          <WhyAhaarSection content={section.content as HeadingContent | null} className="mt-8" />
+        );
+
+      case 'testimonials':
+        return (
+          <TestimonialsSection
+            content={section.content as TestimonialsContent | null}
+            className="mt-8"
+          />
+        );
+
+      case 'faq':
+        return <FaqSection content={section.content as FaqContent | null} className="mt-8" />;
+
+      case 'cta':
+        return <ClosingCta content={section.content as CtaContent | null} className="mt-8" />;
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={['top', 'left', 'right']}>
-      {/* Delivery location — sticky: outside the ScrollView, flush under the
-          safe area, so where the food goes stays in view however far down the
-          customer scrolls. */}
-      <LocationPill
-        variant="bar"
-        location={location}
-        onPress={openLocationSheet}
-        className="border-b border-border"
-      />
+      {/* Brand and delivery location — sticky: outside the ScrollView, flush
+          under the safe area, so the logo and where the food goes stay in view
+          however far down the customer scrolls. The logo is fixed-size and the
+          location takes the rest of the row, so a long address truncates
+          instead of pushing the brand off screen. */}
+      <View className="flex-row items-center border-b border-border bg-surface pl-4">
+        <AhaarLogo height={40} />
+        <View className="ml-3 h-9 w-px bg-border" />
+        <LocationPill
+          variant="bar"
+          location={location}
+          onPress={openLocationSheet}
+          className="flex-1 pl-3"
+        />
+      </View>
       <OfflineBanner />
 
       <ScrollView
@@ -168,10 +416,13 @@ export default function HomeScreen() {
         }
       >
         {/* Greeting */}
-        <View className="flex-row items-center justify-between px-5 pb-4 pt-4">
+        <Animated.View
+          entering={FadeInDown.duration(400)}
+          className="flex-row items-center justify-between px-5 pb-4 pt-4"
+        >
           <View className="flex-1">
             <Text className="text-sm text-text-secondary">
-              {firstName ? `Hello, ${firstName}` : 'Welcome to Ahaar'}
+              {firstName ? `${greetingForNow()}, ${firstName}` : 'Welcome to Ahaar'}
             </Text>
             <Text className="text-2xl font-bold text-text-primary">
               What&apos;s cooking today?
@@ -190,14 +441,18 @@ export default function HomeScreen() {
           >
             <Avatar name={displayName} size="md" />
           </Pressable>
-        </View>
+        </Animated.View>
 
-        {/* Admin-uploaded promos. Above the fold but below the greeting: the
-            customer's own day comes first, marketing second. */}
-        <PromoCarousel banners={layout.promoBanners} heading={layout.promoHeading} />
+        {/* No delivery location yet: the one gap that blocks every order, so
+            it leads the screen until it's filled. */}
+        {!location.isLoading && location.source === null ? (
+          <Animated.View entering={FadeInDown.delay(60).duration(400)} className="mb-5 px-5">
+            <LocationRequiredCard onPress={openLocationSheet} />
+          </Animated.View>
+        ) : null}
 
         {/* Today */}
-        <View className="px-5">
+        <Animated.View entering={FadeInDown.delay(120).duration(400)} className="px-5">
           {signedIn && (subLoading || deliveryLoading) ? (
             <Skeleton className="h-32 w-full" />
           ) : todaysMeals.length > 0 ? (
@@ -313,7 +568,7 @@ export default function HomeScreen() {
               </View>
             </Card>
           )}
-        </View>
+        </Animated.View>
 
         {/* Active subscription */}
         {subscription ? (
@@ -343,190 +598,17 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
-        {/* Explore by category — the admin's own categories from
-            /admin/catalog/categories, each opening the Foods tab filtered to
-            it. Above the dish rail because it is the coarser choice: pick a
-            craving, then pick a dish. */}
-        {categories.length > 0 ? (
-          <View className="mt-6">
-            <SectionHeader
-              title="Explore by category"
-              subtitle="Something for every craving"
-              actionLabel="See all"
-              onAction={() => router.push('/(tabs)/foods')}
-            />
-            <CategoryRail categories={categories} onSelect={openCategory} />
-          </View>
-        ) : null}
+        {/* Everything below follows the admin's app layout. */}
+        {sections.map((section) => (
+          <Fragment key={section.type}>
+            {renderSection(section)}
+            {section.type === mealBoxesAnchor ? mealBoxes : null}
+            {section.type === coverageAnchor ? <DeliveryCoverage className="mt-8" /> : null}
+          </Fragment>
+        ))}
 
-        {/* Popular dishes — the fastest route to an order. Headings fall back to
-            the built-in copy whenever the admin leaves a field empty. */}
-        {layout.featuredMenu.enabled && popularFoods.length > 0 ? (
-          <View className="mt-6">
-            <SectionHeader
-              title={cmsText(layout.featuredMenu.content?.heading, 'Popular dishes')}
-              subtitle={cmsText(layout.featuredMenu.content?.subheading)}
-              actionLabel="See all"
-              onAction={() => router.push('/(tabs)/foods')}
-            />
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }}
-              style={{ flexGrow: 0 }}
-            >
-              {popularFoods.map((item) => (
-                <FoodCard
-                  key={item.id}
-                  item={item}
-                  layout="grid"
-                  className="w-44"
-                  onPress={() => router.push(`/food/${item.id}`)}
-                />
-              ))}
-            </ScrollView>
-          </View>
-        ) : null}
-
-        {/* Meal boxes — bundles from /admin/catalog/packages. Bought outright
-            rather than subscribed to, so they sit between the single dishes and
-            the plans, which is the same order the website uses. */}
-        {packages && packages.length > 0 ? (
-          <View className="mt-6">
-            <SectionHeader
-              title="Meal boxes"
-              subtitle="Complete meals at one price"
-              actionLabel="See all"
-              onAction={() => router.push('/packages')}
-            />
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }}
-              style={{ flexGrow: 0 }}
-            >
-              {packages.map((pkg) => (
-                <PackageCard
-                  key={pkg.id}
-                  pkg={pkg}
-                  className="w-64"
-                  onPress={() =>
-                    router.push({
-                      pathname: '/package/[id]',
-                      params: { id: String(pkg.id) },
-                    })
-                  }
-                />
-              ))}
-            </ScrollView>
-          </View>
-        ) : null}
-
-        {/* Kitchen videos — only once the kitchen has posted one, so there is
-            never an empty rail (or a dead link while the feed is unavailable). */}
-        {kitchenVideos && kitchenVideos.length > 0 ? (
-          <View className="mt-6">
-            <SectionHeader
-              title="From our kitchen"
-              subtitle="See how your meals are made"
-              actionLabel="See all"
-              onAction={() => router.push('/media')}
-            />
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }}
-              style={{ flexGrow: 0 }}
-            >
-              {kitchenVideos.slice(0, 5).map((video) => (
-                <MediaVideoCard
-                  key={video.id}
-                  video={video}
-                  className="w-72"
-                  onPress={() =>
-                    router.push({
-                      pathname: '/media/[id]',
-                      params: { id: String(video.id) },
-                    })
-                  }
-                />
-              ))}
-            </ScrollView>
-          </View>
-        ) : null}
-
-        {/* Plans */}
-        {layout.plans.enabled ? (
-          <View className="mt-6">
-            <SectionHeader
-              title={cmsText(layout.plans.content?.heading, 'Popular plans')}
-              subtitle={cmsText(layout.plans.content?.subheading)}
-              actionLabel="See all"
-              onAction={() => router.push('/(tabs)/plans')}
-            />
-
-            <View className="gap-4 px-5">
-              {plansLoading ? (
-                <>
-                  <SkeletonCard />
-                  <SkeletonCard />
-                </>
-              ) : promotedPlans.length === 0 ? (
-                <EmptyState title="No plans yet" description="Check back soon." />
-              ) : (
-                promotedPlans.map((plan) => (
-                  <PlanCard
-                    key={plan.id}
-                    plan={plan}
-                    featured={plan.id === featuredId}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/plan/[id]',
-                        params: { id: String(plan.id) },
-                      })
-                    }
-                  />
-                ))
-              )}
-            </View>
-          </View>
-        ) : null}
-
-        {/* Closing call to action — shown only when an admin enabled it. */}
-        {layout.cta ? (
-          <View className="mt-6 px-5">
-            <Card>
-              <View className="p-5">
-                <Text className="text-base font-bold text-text-primary">
-                  {cmsText(layout.cta.heading, 'Ready to eat better?')}
-                </Text>
-                {layout.cta.subheading ? (
-                  <Text className="mt-1 text-sm text-text-secondary">
-                    {layout.cta.subheading}
-                  </Text>
-                ) : null}
-                {resolveCmsLink(layout.cta.cta_url ?? '/plans') ? (
-                  <Button
-                    label={cmsText(layout.cta.cta_label, 'Browse plans')}
-                    className="mt-4"
-                    onPress={() =>
-                      openCmsLink(layout.cta?.cta_url ?? '/plans', router)
-                    }
-                  />
-                ) : null}
-              </View>
-            </Card>
-          </View>
-        ) : null}
-        {/* The evergreen half of the page: how it works, why Ahaar, what
-            people say, coverage and the FAQ. Static, so it renders offline and
-            on a cold start — and it is what gives a signed-out visitor a reason
-            to keep scrolling. Below the catalogue on purpose: a subscriber
-            should never scroll past the pitch to reach their own food. */}
-        <HomeSections onBrowsePlans={() => router.push('/(tabs)/plans')} />
+        {/* Every anchor switched off: the bundles still have a place. */}
+        {mealBoxesAnchor === null ? mealBoxes : null}
       </ScrollView>
 
       <LocationSheet
@@ -537,12 +619,23 @@ export default function HomeScreen() {
   );
 }
 
+/** "Good morning" / "Good afternoon" / "Good evening", by the device clock. */
+function greetingForNow(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
 function SectionHeader({
+  eyebrow,
   title,
   subtitle,
   actionLabel,
   onAction,
 }: {
+  /** Optional CMS label above the title. Empty string renders nothing. */
+  eyebrow?: string;
   title: string;
   /** Optional CMS sub-heading. Empty string renders nothing. */
   subtitle?: string;
@@ -551,7 +644,12 @@ function SectionHeader({
 }) {
   return (
     <View className="mb-3 px-5">
-      <View className="flex-row items-center justify-between">
+      {eyebrow ? (
+        <Text className="text-xs font-bold uppercase tracking-wider text-brand-500">
+          {eyebrow}
+        </Text>
+      ) : null}
+      <View className="flex-row items-center justify-between gap-3">
         <Text className="flex-1 text-lg font-bold text-text-primary">{title}</Text>
         <Pressable accessibilityRole="button" onPress={onAction} hitSlop={8}>
           <Text className="text-sm font-bold text-brand-500">{actionLabel}</Text>

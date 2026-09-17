@@ -12,12 +12,39 @@ require('react-native-gesture-handler/jestSetup');
 // Reanimated 4 runs on react-native-worklets, whose native module has to be
 // mocked before Reanimated's own mock can load.
 jest.mock('react-native-worklets', () => require('react-native-worklets/src/mock'));
-jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+jest.mock('react-native-reanimated', () => {
+  const mock = require('react-native-reanimated/mock');
+  // The mock predates `useReducedMotion`, which motion-aware components (the
+  // press-to-scale surfaces, the splash) read on every render. Added onto the
+  // module rather than spread, so its ES-module default export survives.
+  if (typeof mock.useReducedMotion !== 'function') mock.useReducedMotion = () => false;
+  return mock;
+});
 
 jest.mock(
   'react-native-safe-area-context',
   () => require('react-native-safe-area-context/jest/mock').default,
 );
+
+// Native Google Sign-In has no JS fallback. Without EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
+// (unset under Jest) the Google buttons render nothing; a test that needs them
+// sets the variable and drives these mocks.
+jest.mock('@react-native-google-signin/google-signin', () => ({
+  GoogleSignin: {
+    configure: jest.fn(),
+    hasPlayServices: jest.fn(async () => true),
+    signIn: jest.fn(async () => ({ type: 'success', data: { idToken: 'mock-id-token' } })),
+    signOut: jest.fn(async () => null),
+  },
+  isSuccessResponse: (response) => response?.type === 'success',
+  isErrorWithCode: (error) => typeof error?.code === 'string',
+  statusCodes: {
+    SIGN_IN_CANCELLED: 'SIGN_IN_CANCELLED',
+    IN_PROGRESS: 'IN_PROGRESS',
+    PLAY_SERVICES_NOT_AVAILABLE: 'PLAY_SERVICES_NOT_AVAILABLE',
+    SIGN_IN_REQUIRED: 'SIGN_IN_REQUIRED',
+  },
+}));
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),

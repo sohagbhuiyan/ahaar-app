@@ -24,6 +24,12 @@ export interface User {
   phone: string | null;
   phone_verified: boolean;
   email_verified: boolean;
+  /** Photo from Google, for accounts that have signed in with it. */
+  avatar_url: string | null;
+  /** Google is connected, so the customer can sign in with it. */
+  google_linked: boolean;
+  /** False for an account created through Google that hasn't set a password. */
+  has_password: boolean;
   locale: string | null;
   dietary_preferences: DietaryPreferences | null;
   default_address_id: number | null;
@@ -38,6 +44,8 @@ export interface User {
 export interface AuthResult {
   user: User;
   token: string;
+  /** Google sign-in only: the account was created by this sign-in. */
+  isNewUser?: boolean;
 }
 
 export interface LoginPayload {

@@ -5,6 +5,7 @@ import { useCallback, useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Toaster } from "sonner-native";
 
+import { AnimatedSplash } from "@/components/shared/AnimatedSplash";
 import { AuthGate } from "@/components/shared/AuthGate";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { LocationSync } from "@/components/shared/LocationSync";
@@ -20,7 +21,10 @@ import { useAuthPromptStore, useAuthStore } from "@/lib/store";
 import { colors } from "@/lib/theme";
 import "../global.css";
 
+// The native splash stays up until `AnimatedSplash` has drawn its first frame
+// over it, then fades — see that component for the hand-over.
 SplashScreen.preventAutoHideAsync();
+SplashScreen.setOptions({ duration: 300, fade: true });
 
 // Runs once at module load, before any component mounts — Sentry has to be
 // initialised before the errors it should catch can happen.
@@ -28,10 +32,6 @@ initSentry();
 
 function RootLayout() {
   const navigationRef = useNavigationContainerRef();
-
-  useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
 
   // Lets Sentry attribute errors and transactions to a screen.
   useEffect(() => {
@@ -71,7 +71,17 @@ function RootLayout() {
               draws above whichever screen opened it. */}
           <BottomSheetModalProvider>
             <AuthGate>
-              <Stack screenOptions={{ headerShown: false }}>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  // One consistent push on both platforms: the iOS slide
+                  // (Android's default is a fade-through that reads as a
+                  // reload), over the app's own background so no black edge
+                  // shows mid-transition.
+                  animation: 'ios_from_right',
+                  contentStyle: { backgroundColor: colors.surface.DEFAULT },
+                }}
+              >
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen
@@ -98,8 +108,8 @@ function RootLayout() {
                 <Stack.Screen name="food/[id]" />
                 <Stack.Screen name="packages" />
                 <Stack.Screen name="package/[id]" />
-                {/* Kitchen videos — flat for the same reason as `orders`. */}
-                <Stack.Screen name="media" />
+                {/* One kitchen video and its comments. The list itself is the
+                    Media tab, `(tabs)/media`. */}
                 <Stack.Screen name="media/[id]" />
                 {/* Choosing where food goes — full screen, because a map in a
                     sheet fights the sheet's own drag gesture. */}
@@ -132,6 +142,11 @@ function RootLayout() {
               descriptionStyle: { color: colors.text.secondary },
             }}
           />
+
+          {/* Last, so it covers everything — sheets and toasts included —
+              until the app is ready, then fades away. Inside the query
+              provider: it waits for the persisted cache to restore. */}
+          <AnimatedSplash />
         </QueryProvider>
       </ErrorBoundary>
     </GestureHandlerRootView>

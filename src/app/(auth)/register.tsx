@@ -2,11 +2,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useRouter } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 import { z } from 'zod';
 
-import { Button, Input, InlineError } from '@/components/ui';
+import { AhaarLogo } from '@/components/shared/AhaarLogo';
+import { GoogleSignInButton } from '@/components/shared/GoogleSignInButton';
+import { Button, InlineError, Input, PasswordInput } from '@/components/ui';
 import { useRegister } from '@/lib/query/hooks';
 
 /**
@@ -29,6 +32,12 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
+/**
+ * Create an account.
+ *
+ * A new account lands on Home, where the first thing asked is where to deliver
+ * — `AuthGate` does the navigating once the token exists.
+ */
 export default function RegisterScreen() {
   const router = useRouter();
 
@@ -38,10 +47,7 @@ export default function RegisterScreen() {
   };
 
   const register = useRegister({
-    onSuccess: (user) => {
-      toast.success(`Welcome, ${user.name.split(' ')[0]}`);
-      leave();
-    },
+    onSuccess: (user) => toast.success(`Welcome to Ahaar, ${user.name.split(' ')[0]}`),
   });
 
   const { control, handleSubmit } = useForm<FormValues>({
@@ -71,134 +77,140 @@ export default function RegisterScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'center',
+            paddingHorizontal: 24,
+            paddingVertical: 32,
+          }}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <View className="mb-8">
-            <Text className="text-3xl font-bold text-text-primary">Create account</Text>
-            <Text className="mt-1.5 text-sm text-text-secondary">
+          <Animated.View entering={FadeInDown.duration(500)} className="mb-8 items-center">
+            <AhaarLogo height={64} />
+            <Text className="mt-5 text-3xl font-bold text-text-primary">Create account</Text>
+            <Text className="mt-1.5 text-center text-sm text-text-secondary">
               Fresh meals, delivered on your schedule
             </Text>
-          </View>
+          </Animated.View>
 
-          {register.isError ? (
-            <InlineError error={register.error} className="mb-4" />
-          ) : null}
+          <Animated.View entering={FadeInDown.delay(100).duration(500)}>
+            {/* No form to fill: Google vouches for the email, and an existing
+                account with it is connected rather than duplicated. */}
+            <GoogleSignInButton label="Sign up with Google" divider />
 
-          <View className="gap-4">
-            <Controller
-              control={control}
-              name="name"
-              render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                <Input
-                  label="Full name"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={fieldState.error?.message}
-                  autoComplete="name"
-                  textContentType="name"
-                  placeholder="Sohag Ahmed"
-                />
-              )}
+            {register.isError ? (
+              <InlineError error={register.error} className="mb-4" />
+            ) : null}
+
+            <View className="gap-4">
+              <Controller
+                control={control}
+                name="name"
+                render={({ field: { onChange, onBlur, value }, fieldState }) => (
+                  <Input
+                    label="Full name"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    error={fieldState.error?.message}
+                    autoComplete="name"
+                    textContentType="name"
+                    placeholder="Your name"
+                  />
+                )}
+              />
+
+              <Controller
+                control={control}
+                name="email"
+                render={({ field: { onChange, onBlur, value }, fieldState }) => (
+                  <Input
+                    label="Email"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    error={fieldState.error?.message}
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    keyboardType="email-address"
+                    textContentType="emailAddress"
+                    placeholder="you@example.com"
+                  />
+                )}
+              />
+
+              <Controller
+                control={control}
+                name="phone"
+                render={({ field: { onChange, onBlur, value }, fieldState }) => (
+                  <Input
+                    label="Phone"
+                    hint="Optional"
+                    value={value ?? ''}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    error={fieldState.error?.message}
+                    keyboardType="phone-pad"
+                    autoComplete="tel"
+                    textContentType="telephoneNumber"
+                  />
+                )}
+              />
+
+              <Controller
+                control={control}
+                name="password"
+                render={({ field: { onChange, onBlur, value }, fieldState }) => (
+                  <PasswordInput
+                    label="Password"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    error={fieldState.error?.message}
+                    hint="At least 8 characters"
+                    autoComplete="new-password"
+                    textContentType="newPassword"
+                  />
+                )}
+              />
+
+              <Controller
+                control={control}
+                name="password_confirmation"
+                render={({ field: { onChange, onBlur, value }, fieldState }) => (
+                  <PasswordInput
+                    label="Confirm password"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    error={fieldState.error?.message}
+                    autoComplete="new-password"
+                    textContentType="newPassword"
+                    onSubmitEditing={handleSubmit(onSubmit)}
+                    returnKeyType="go"
+                  />
+                )}
+              />
+            </View>
+
+            <Button
+              label="Create account"
+              size="lg"
+              className="mt-6"
+              loading={register.isPending}
+              onPress={handleSubmit(onSubmit)}
             />
 
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                <Input
-                  label="Email"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={fieldState.error?.message}
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  keyboardType="email-address"
-                  textContentType="emailAddress"
-                  placeholder="you@example.com"
-                />
-              )}
-            />
+            <View className="mt-6 flex-row items-center justify-center gap-1.5">
+              <Text className="text-sm text-text-secondary">Already have an account?</Text>
+              <Link href="/(auth)/login" className="text-sm font-bold text-brand-500">
+                Sign in
+              </Link>
+            </View>
 
-            <Controller
-              control={control}
-              name="phone"
-              render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                <Input
-                  label="Phone"
-                  hint="Optional"
-                  value={value ?? ''}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={fieldState.error?.message}
-                  keyboardType="phone-pad"
-                  autoComplete="tel"
-                  textContentType="telephoneNumber"
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                <Input
-                  label="Password"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={fieldState.error?.message}
-                  hint="At least 8 characters"
-                  secureTextEntry
-                  autoComplete="new-password"
-                  textContentType="newPassword"
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="password_confirmation"
-              render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                <Input
-                  label="Confirm password"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={fieldState.error?.message}
-                  secureTextEntry
-                  autoComplete="new-password"
-                  textContentType="newPassword"
-                  onSubmitEditing={handleSubmit(onSubmit)}
-                  returnKeyType="go"
-                />
-              )}
-            />
-          </View>
-
-          <Button
-            label="Create account"
-            size="lg"
-            className="mt-6"
-            loading={register.isPending}
-            onPress={handleSubmit(onSubmit)}
-          />
-
-          <View className="mt-6 flex-row items-center justify-center gap-1.5">
-            <Text className="text-sm text-text-secondary">Already have an account?</Text>
-            <Link href="/(auth)/login" className="text-sm font-bold text-brand-500">
-              Sign in
-            </Link>
-          </View>
-
-          <Button
-            label="Keep browsing"
-            variant="ghost"
-            className="mt-2"
-            onPress={leave}
-          />
+            <Button label="Keep browsing" variant="ghost" className="mt-2" onPress={leave} />
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

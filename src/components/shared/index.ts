@@ -29,9 +29,23 @@ export { QuotaMeter, QuotaMeterList } from './QuotaMeter';
 export { AddonPicker, type AddonSelection } from './AddonPicker';
 export { SubscriptionSummaryCard } from './SubscriptionSummaryCard';
 export { OfflineBanner } from './OfflineBanner';
-export { PromoCarousel } from './PromoCarousel';
-export { HomeSections } from './HomeSections';
+export { PromoCarousel, PROMO_ASPECT } from './PromoCarousel';
+export { PromoCodeStrip } from './PromoCodeStrip';
+export { LocationRequiredCard } from './LocationRequiredCard';
+export { KitchenVideosRail } from './KitchenVideosRail';
+export { HomeHero } from './HomeHero';
+export { AhaarLogo } from './AhaarLogo';
+export { DeliveryCalendar } from './DeliveryCalendar';
+export {
+  ClosingCta,
+  DeliveryCoverage,
+  FaqSection,
+  HowItWorksSection,
+  TestimonialsSection,
+  WhyAhaarSection,
+} from './HomeSections';
 export { MediaGallery } from './MediaGallery';
 export { TapToPlayVideo, PlayBadge, formatDuration } from './VideoPlayer';
 export { MediaVideoCard, commentCountLabel } from './MediaVideoCard';
+export { MediaFeedCard } from './MediaFeedCard';
 export { MediaCommentItem, MediaCommentComposer } from './MediaComments';

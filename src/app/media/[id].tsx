@@ -33,19 +33,23 @@ import { formatLongDate } from '@/lib/utils';
 /**
  * One kitchen video and the conversation under it.
  *
- * The comment box is pinned to the bottom and rides up with the keyboard
- * (`behavior="padding"` on iOS; Android resizes the window itself), so the
- * newest comments stay readable while typing. Signed out, the box is a prompt
- * that opens the login sheet — see `MediaCommentComposer`.
+ * The player is pinned under the header, outside the list, the way a video app
+ * does it: scrolling through the comments never scrolls a playing video out of
+ * sight. The comment box is pinned to the bottom and rides up with the keyboard
+ * (`behavior="padding"` on iOS; Android resizes the window itself). Signed out,
+ * the box is a prompt that opens the login sheet — see `MediaCommentComposer`.
  */
 export default function MediaVideoScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, autoplay } = useLocalSearchParams<{ id: string; autoplay?: string }>();
 
   const { data: video, isLoading, isError, error, refetch } = useMediaVideo(id);
   const comments = useMediaComments(id);
   const removeComment = useDeleteMediaComment(id ?? '');
 
-  const [playing, setPlaying] = useState(false);
+  // Opened by tapping a video's poster, the customer already asked for it to
+  // play — making them press play a second time is friction. Opened from the
+  // comments, or a deep link without the flag, it waits behind the poster.
+  const [playing, setPlaying] = useState(autoplay === '1');
   const [pendingDelete, setPendingDelete] = useState<MediaComment | null>(null);
 
   if (isLoading) {
@@ -83,8 +87,31 @@ export default function MediaVideoScreen() {
     });
   };
 
-  const header = (
-    <View className="pb-2">
+  const total = comments.data?.total ?? video.comments_count;
+
+  const details = (
+    <View className="px-5 pb-2 pt-4">
+      <Text className="text-xl font-bold text-text-primary">{video.title}</Text>
+      {video.published_at ? (
+        <Text className="mt-0.5 text-xs text-text-muted">
+          {formatLongDate(video.published_at.slice(0, 10))}
+        </Text>
+      ) : null}
+      {video.description ? (
+        <Text className="mt-3 text-sm leading-5 text-text-secondary">{video.description}</Text>
+      ) : null}
+
+      <Text className="mt-6 text-base font-bold text-text-primary">
+        Comments{total > 0 ? ` · ${total}` : ''}
+      </Text>
+    </View>
+  );
+
+  return (
+    <SafeAreaView className="flex-1 bg-surface" edges={['top', 'left', 'right']}>
+      <ScreenHeader title={video.title} subtitle="Kitchen video" />
+      <OfflineBanner />
+
       <TapToPlayVideo
         url={video.video_url}
         posterUrl={video.poster_url}
@@ -95,31 +122,6 @@ export default function MediaVideoScreen() {
         className="aspect-video w-full"
       />
 
-      <View className="px-5 pt-4">
-        <Text className="text-xl font-bold text-text-primary">{video.title}</Text>
-        {video.published_at ? (
-          <Text className="mt-0.5 text-xs text-text-muted">
-            {formatLongDate(video.published_at.slice(0, 10))}
-          </Text>
-        ) : null}
-        {video.description ? (
-          <Text className="mt-3 text-sm leading-5 text-text-secondary">
-            {video.description}
-          </Text>
-        ) : null}
-
-        <Text className="mt-6 text-base font-bold text-text-primary">
-          Comments{video.comments_count > 0 ? ` · ${video.comments_count}` : ''}
-        </Text>
-      </View>
-    </View>
-  );
-
-  return (
-    <SafeAreaView className="flex-1 bg-surface" edges={['top', 'left', 'right']}>
-      <ScreenHeader title={video.title} subtitle="Kitchen video" />
-      <OfflineBanner />
-
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -127,7 +129,7 @@ export default function MediaVideoScreen() {
         <FlashList
           data={comments.data?.comments ?? []}
           keyExtractor={(comment) => String(comment.id)}
-          ListHeaderComponent={header}
+          ListHeaderComponent={details}
           contentContainerStyle={{ paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"

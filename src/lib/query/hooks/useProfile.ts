@@ -8,6 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import * as profileApi from '../../api/endpoints/profile';
+import { requestGoogleIdToken } from '../../auth/google';
 import type {
   UpdateDietaryPayload,
   UpdateProfilePayload,
@@ -37,6 +38,38 @@ export function useUpdateProfile() {
       // Seed rather than invalidate — the response IS the updated user.
       queryClient.setQueryData(queryKeys.profile.me(), user);
       syncUser(user);
+    },
+  });
+}
+
+/**
+ * Connect Google to the signed-in account, from the profile. Resolves with
+ * `null` when the customer backs out of Google's picker.
+ */
+export function useLinkGoogle(options?: { onSuccess?: (user: User) => void }) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const idToken = await requestGoogleIdToken();
+      return idToken ? profileApi.linkGoogle(idToken) : null;
+    },
+    onSuccess: (user) => {
+      if (!user) return;
+      queryClient.setQueryData(queryKeys.profile.me(), user);
+      options?.onSuccess?.(user);
+    },
+  });
+}
+
+export function useUnlinkGoogle(options?: { onSuccess?: (user: User) => void }) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: profileApi.unlinkGoogle,
+    onSuccess: (user) => {
+      queryClient.setQueryData(queryKeys.profile.me(), user);
+      options?.onSuccess?.(user);
     },
   });
 }

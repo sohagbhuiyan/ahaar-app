@@ -17,6 +17,21 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  * for a local `expo prebuild`. Geocoding and search never use these: they go
  * through the Ahaar API, which holds its own server key.
  */
+/**
+ * Google Sign-In on iOS returns to the app through a URL scheme: the iOS OAuth
+ * client id, reversed. Derived from EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID (the id
+ * `src/lib/auth/google.ts` passes at runtime) so the two can't drift apart.
+ * Like the maps keys, it's baked in at build time. Android needs no native
+ * config: its OAuth client is matched by package name + signing SHA-1.
+ */
+function googleSignInPlugin(): ExpoConfig['plugins'] {
+  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+  if (!iosClientId) return ['@react-native-google-signin/google-signin'];
+
+  const iosUrlScheme = `com.googleusercontent.apps.${iosClientId.replace('.apps.googleusercontent.com', '')}`;
+  return [['@react-native-google-signin/google-signin', { iosUrlScheme }]];
+}
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: config.name ?? 'ahaar-app',
@@ -37,5 +52,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         iosGoogleMapsApiKey: process.env.GOOGLE_MAPS_IOS_API_KEY,
       },
     ],
+    ...(googleSignInPlugin() ?? []),
   ],
 });
