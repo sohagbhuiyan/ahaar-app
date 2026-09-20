@@ -17,13 +17,15 @@ interface Props {
   /** Rendered height in points; the width follows the artwork's proportions. */
   height?: number;
   style?: StyleProp<ImageStyle>;
+  /** Fired once the artwork has drawn — the splash hands over on this. */
+  onLoadEnd?: () => void;
 }
 
 /**
  * One component for every place the brand appears — the Home header, sign-in,
  * registration — so its size and proportions stay consistent across the app.
  */
-export function AhaarLogo({ height = 40, style }: Props) {
+export function AhaarLogo({ height = 40, style, onLoadEnd }: Props) {
   return (
     <Image
       source={LOGO}
@@ -31,6 +33,7 @@ export function AhaarLogo({ height = 40, style }: Props) {
       accessibilityLabel="Ahaar"
       resizeMode="contain"
       fadeDuration={0}
+      onLoadEnd={onLoadEnd}
       style={[{ height, width: Math.round(height * ASPECT_RATIO) }, style]}
     />
   );

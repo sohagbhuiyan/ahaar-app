@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Platform,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  Platform,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, navTint } from "../lib/theme";
 import { useInstantOrderCount } from "../lib/store";
+import { colors, navTint } from "../lib/theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -34,8 +34,7 @@ type NavigationHelpers = {
 type DescriptorOptions = {
   title?: string;
   tabBarLabel?:
-    | string
-    | ((props: { focused: boolean; color: string }) => React.ReactNode);
+    string | ((props: { focused: boolean; color: string }) => React.ReactNode);
   tabBarIcon?: (props: {
     focused: boolean;
     color: string;
@@ -81,7 +80,9 @@ function TabItem({
   const [scaleAnim] = useState(() => new Animated.Value(1));
   const [labelOpacity] = useState(() => new Animated.Value(isFocused ? 1 : 0));
   const [pillScale] = useState(() => new Animated.Value(isFocused ? 1 : 0));
-  const [iconTranslate] = useState(() => new Animated.Value(isFocused ? -2 : 0));
+  const [iconTranslate] = useState(
+    () => new Animated.Value(isFocused ? -2 : 0),
+  );
 
   useEffect(() => {
     Animated.parallel([
@@ -192,7 +193,9 @@ function TabItem({
                 borderColor: "#ffffff",
               }}
             >
-              <Text style={{ color: "#ffffff", fontSize: 9, fontWeight: "700" }}>
+              <Text
+                style={{ color: "#ffffff", fontSize: 9, fontWeight: "700" }}
+              >
                 {badge > 9 ? "9+" : badge}
               </Text>
             </View>

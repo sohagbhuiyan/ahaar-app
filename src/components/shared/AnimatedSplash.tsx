@@ -1,7 +1,7 @@
 import { useIsRestoring } from '@tanstack/react-query';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   Extrapolation,
@@ -17,19 +17,30 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import { useAuthHydrated } from '@/lib/store';
-import { colors } from '@/lib/theme';
-
-const LOGO = require('@/assets/images/images/ahaar2.png');
+import { AhaarLogo } from '@/components/shared/AhaarLogo';
+import { useAuthHydrated, useOnboardingHydrated } from '@/lib/store';
+import { colors, shadows } from '@/lib/theme';
 
 /**
  * Must equal `imageWidth` of the `expo-splash-screen` plugin in app.json: the
- * first frame of this screen draws the logo exactly where the native splash
+ * first frame of this screen draws the disc exactly where the native splash
  * had it, so the hand-over is invisible and the animation simply begins.
  */
-const LOGO_WIDTH = 220;
-/** ahaar2.png is 677 × 369. */
-const LOGO_HEIGHT = Math.round((LOGO_WIDTH * 369) / 677);
+const PLATE_SIZE = 200;
+/**
+ * The artwork's share of the disc's width, matching the plate PNG — see
+ * `scripts/build-splash-plate.js`, which explains why the logo sits on a white
+ * disc on the pink field rather than straight on it.
+ */
+const ART_FRACTION = 0.73;
+/**
+ * `AhaarLogo` is sized by height and draws the whole 378 × 245 file, of which
+ * 366 × 234 is artwork. Working back from the artwork width keeps the JS disc
+ * and the baked PNG in agreement to the pixel.
+ */
+const LOGO_HEIGHT = Math.round(
+  ((PLATE_SIZE * ART_FRACTION * 378) / 366) * (245 / 378),
+);
 const LIFT = 36;
 const RING_SIZE = 280;
 const BAR_WIDTH = 132;
@@ -59,10 +70,11 @@ function hideNativeSplash() {
  * out from behind it, the tagline writes itself in word by word over a slim
  * loading bar, and the whole layer fades up and away to reveal Home.
  *
- * It waits for what the first screen actually needs — the persisted session
- * and the on-disk query cache — so Home appears already filled in rather than
- * flashing skeletons, but shows for at least `MIN_VISIBLE_MS` so a warm start
- * doesn't strobe, and never more than `MAX_VISIBLE_MS`.
+ * It waits for what the first screen actually needs — the persisted session,
+ * the on-disk query cache, and the "have they seen the welcome tour?" flag —
+ * so Home appears already filled in rather than flashing skeletons, but shows
+ * for at least `MIN_VISIBLE_MS` so a warm start doesn't strobe, and never more
+ * than `MAX_VISIBLE_MS`.
  *
  * With "reduce motion" on, the ripples and spring are skipped and the splash
  * is brief. Taps pass straight through while it fades out.
@@ -71,6 +83,9 @@ export function AnimatedSplash() {
   const reduceMotion = useReducedMotion();
   const authHydrated = useAuthHydrated();
   const restoring = useIsRestoring();
+  // Also waited on, so a first-time visitor never sees Home flick past before
+  // `OnboardingGate` redirects them to the welcome tour.
+  const onboardingHydrated = useOnboardingHydrated();
 
   const [minElapsed, setMinElapsed] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
@@ -83,7 +98,8 @@ export function AnimatedSplash() {
   const progress = useSharedValue(0);
   const exit = useSharedValue(0);
 
-  const leaving = (authHydrated && !restoring && minElapsed) || timedOut;
+  const leaving =
+    (authHydrated && onboardingHydrated && !restoring && minElapsed) || timedOut;
 
   useEffect(() => {
     const visibleFor = reduceMotion ? REDUCED_MIN_VISIBLE_MS : MIN_VISIBLE_MS;
@@ -163,14 +179,10 @@ export function AnimatedSplash() {
         <Ripple progress={ripple} visibility={intro} offset={0} />
         <Ripple progress={ripple} visibility={intro} offset={0.5} />
 
-        <Animated.View style={logoStyle}>
-          <Image
-            source={LOGO}
-            style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT }}
-            resizeMode="contain"
-            fadeDuration={0}
-            onLoadEnd={hideNativeSplash}
-          />
+        {/* The same white disc the native splash just showed, redrawn here so
+            the two frames coincide. */}
+        <Animated.View style={[styles.plate, logoStyle]}>
+          <AhaarLogo height={LOGO_HEIGHT} onLoadEnd={hideNativeSplash} />
         </Animated.View>
       </Animated.View>
 
@@ -247,7 +259,8 @@ const styles = StyleSheet.create({
     elevation: 1000,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface.DEFAULT,
+    // Matches `backgroundColor` of the expo-splash-screen plugin in app.json.
+    backgroundColor: colors.brand[500],
   },
   stage: {
     width: RING_SIZE,
@@ -255,12 +268,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Every accent on the pink field is white at low alpha rather than a lighter
+  // brand step: a tint of the background can only ever be a paler pink, which
+  // on #ff2b85 reads as a printing fault rather than light.
   glow: {
     position: 'absolute',
     width: RING_SIZE * 0.92,
     height: RING_SIZE * 0.92,
     borderRadius: RING_SIZE,
-    backgroundColor: colors.brand[50],
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
   ring: {
     position: 'absolute',
@@ -268,7 +284,16 @@ const styles = StyleSheet.create({
     height: RING_SIZE,
     borderRadius: RING_SIZE / 2,
     borderWidth: 2,
-    borderColor: colors.brand[300],
+    borderColor: 'rgba(255,255,255,0.55)',
+  },
+  plate: {
+    width: PLATE_SIZE,
+    height: PLATE_SIZE,
+    borderRadius: PLATE_SIZE / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface.DEFAULT,
+    ...shadows.card,
   },
   below: {
     position: 'absolute',
@@ -276,7 +301,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
-    marginTop: LOGO_HEIGHT / 2 - LIFT + RING_SIZE / 2 - LOGO_HEIGHT / 2 + 12,
+    // Clear of the ripple stage, which is lifted along with the plate.
+    marginTop: RING_SIZE / 2 - LIFT + 12,
   },
   tagline: {
     flexDirection: 'row',
@@ -291,14 +317,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.6,
     textTransform: 'uppercase',
-    color: colors.text.primary,
+    color: colors.text.inverse,
   },
   dot: {
     width: 4,
     height: 4,
     borderRadius: 2,
     marginHorizontal: 10,
-    backgroundColor: colors.brand[500],
+    backgroundColor: 'rgba(255,255,255,0.7)',
   },
   bar: {
     marginTop: 20,
@@ -306,11 +332,11 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     overflow: 'hidden',
-    backgroundColor: colors.brand[100],
+    backgroundColor: 'rgba(255,255,255,0.28)',
   },
   barFill: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.brand[500],
+    backgroundColor: colors.text.inverse,
   },
 });

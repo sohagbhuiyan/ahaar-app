@@ -10,6 +10,7 @@ import { AuthGate } from "@/components/shared/AuthGate";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { LocationSync } from "@/components/shared/LocationSync";
 import { LoginPrompt } from "@/components/shared/LoginPrompt";
+import { OnboardingGate } from "@/components/shared/OnboardingGate";
 import {
   initSentry,
   navigationIntegration,
@@ -70,55 +71,72 @@ function RootLayout() {
               content can read server state, and around the stack so a sheet
               draws above whichever screen opened it. */}
           <BottomSheetModalProvider>
-            <AuthGate>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  // One consistent push on both platforms: the iOS slide
-                  // (Android's default is a fade-through that reads as a
-                  // reload), over the app's own background so no black edge
-                  // shows mid-transition.
-                  animation: 'ios_from_right',
-                  contentStyle: { backgroundColor: colors.surface.DEFAULT },
-                }}
-              >
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen
-                  name="checkout"
-                  options={{ presentation: "modal", headerShown: false }}
-                />
-                <Stack.Screen
-                  name="order"
-                  options={{ presentation: "modal", headerShown: false }}
-                />
-                <Stack.Screen name="subscriptions" />
-                <Stack.Screen name="subscriptions/[id]" />
-                <Stack.Screen name="deliveries" />
-                <Stack.Screen name="schedule" />
-                <Stack.Screen name="payments" />
-                <Stack.Screen name="profile" />
-                {/* `orders.tsx` + `orders/[id].tsx` rather than an `orders/`
-                    folder with an `index`: the flat file keeps the generated
-                    route literal a stable `/orders`, which the folder form
-                    flip-flops to `/orders/index` on incremental type generation. */}
-                <Stack.Screen name="orders" />
-                <Stack.Screen name="orders/[id]" />
-                <Stack.Screen name="plan/[id]" />
-                <Stack.Screen name="food/[id]" />
-                <Stack.Screen name="packages" />
-                <Stack.Screen name="package/[id]" />
-                {/* One kitchen video and its comments. The list itself is the
-                    Media tab, `(tabs)/media`. */}
-                <Stack.Screen name="media/[id]" />
-                {/* Choosing where food goes — full screen, because a map in a
-                    sheet fights the sheet's own drag gesture. */}
-                <Stack.Screen
-                  name="location-picker"
-                  options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
-                />
-              </Stack>
-            </AuthGate>
+            {/* Outside `AuthGate`: the welcome tour is shown before any
+                question of who is signed in, and neither gate can see a route
+                the other cares about. */}
+            <OnboardingGate>
+              <AuthGate>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    // One consistent push on both platforms: the iOS slide
+                    // (Android's default is a fade-through that reads as a
+                    // reload), over the app's own background so no black edge
+                    // shows mid-transition.
+                    animation: 'ios_from_right',
+                    contentStyle: { backgroundColor: colors.surface.DEFAULT },
+                  }}
+                >
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="(auth)" />
+                  {/* Shown once per install, by `OnboardingGate`. Fades rather
+                      than sliding in: it arrives under the splash, and a slide
+                      from the right would announce a push that never happened. */}
+                  <Stack.Screen
+                    name="onboarding"
+                    options={{
+                      animation: "fade",
+                      // Its own brand field, so the fade never flashes the
+                      // app's white surface behind it.
+                      contentStyle: { backgroundColor: colors.brand[500] },
+                    }}
+                  />
+                  <Stack.Screen
+                    name="checkout"
+                    options={{ presentation: "modal", headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="order"
+                    options={{ presentation: "modal", headerShown: false }}
+                  />
+                  <Stack.Screen name="subscriptions" />
+                  <Stack.Screen name="subscriptions/[id]" />
+                  <Stack.Screen name="deliveries" />
+                  <Stack.Screen name="schedule" />
+                  <Stack.Screen name="payments" />
+                  <Stack.Screen name="profile" />
+                  {/* `orders.tsx` + `orders/[id].tsx` rather than an `orders/`
+                      folder with an `index`: the flat file keeps the generated
+                      route literal a stable `/orders`, which the folder form
+                      flip-flops to `/orders/index` on incremental type generation. */}
+                  <Stack.Screen name="orders" />
+                  <Stack.Screen name="orders/[id]" />
+                  <Stack.Screen name="plan/[id]" />
+                  <Stack.Screen name="food/[id]" />
+                  <Stack.Screen name="packages" />
+                  <Stack.Screen name="package/[id]" />
+                  {/* One kitchen video and its comments. The list itself is the
+                      Media tab, `(tabs)/media`. */}
+                  <Stack.Screen name="media/[id]" />
+                  {/* Choosing where food goes — full screen, because a map in a
+                      sheet fights the sheet's own drag gesture. */}
+                  <Stack.Screen
+                    name="location-picker"
+                    options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
+                  />
+                </Stack>
+              </AuthGate>
+            </OnboardingGate>
 
             {/* Sign-in happens in a sheet over whatever the customer was doing,
                 so a gated tap never costs them their place. */}

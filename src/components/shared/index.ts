@@ -22,6 +22,7 @@ export { LocationPill } from './LocationPill';
 export { LocationSheet } from './LocationSheet';
 export { LocationSync } from './LocationSync';
 export { LoginPrompt } from './LoginPrompt';
+export { OnboardingGate } from './OnboardingGate';
 export { ScreenHeader } from './ScreenHeader';
 export { OrderCard } from './OrderCard';
 export { ExtraOrderSheet, GuestOrderSheet } from './ExtraOrderSheet';

@@ -29,9 +29,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FFFFFF",
-          "image": "./assets/images/images/ahaar2.png",
-          "imageWidth": 220,
+          "backgroundColor": "#ff2b85",
+          "image": "./assets/images/brand/splash-plate.png",
+          "imageWidth": 200,
           "resizeMode": "contain"
         }
       ],

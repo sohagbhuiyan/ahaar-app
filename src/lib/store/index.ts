@@ -40,4 +40,10 @@ export { useLocationStore } from './useLocationStore';
 
 export { useNetworkStore, useIsOffline } from './useNetworkStore';
 
+export {
+  useOnboardingStore,
+  useOnboardingHydrated,
+  useNeedsOnboarding,
+} from './useOnboardingStore';
+
 export { useUIStore, useIsSheetOpen, type SheetId } from './useUIStore';
