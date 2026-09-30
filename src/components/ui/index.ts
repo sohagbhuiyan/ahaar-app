@@ -29,3 +29,5 @@ export { Dialog, AlertDialog } from './Dialog';
 export { Avatar } from './Avatar';
 export { Separator } from './Separator';
 export { EmptyState, ErrorState, InlineError } from './States';
+export { LoadMore } from './LoadMore';
+export { Checkbox } from './Checkbox';

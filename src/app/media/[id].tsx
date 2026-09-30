@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
@@ -16,6 +16,7 @@ import {
   AlertDialog,
   EmptyState,
   ErrorState,
+  LoadMore,
   Separator,
   Skeleton,
   SkeletonText,
@@ -27,7 +28,6 @@ import {
   useMediaComments,
   useMediaVideo,
 } from '@/lib/query/hooks';
-import { colors } from '@/lib/theme';
 import { formatLongDate } from '@/lib/utils';
 
 /**
@@ -135,10 +135,6 @@ export default function MediaVideoScreen() {
           keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <Separator className="mx-5" />}
-          onEndReachedThreshold={0.5}
-          onEndReached={() => {
-            if (comments.hasNextPage && !comments.isFetchingNextPage) comments.fetchNextPage();
-          }}
           ListEmptyComponent={
             comments.isLoading ? (
               <View className="px-5 pt-2">
@@ -154,11 +150,12 @@ export default function MediaVideoScreen() {
             )
           }
           ListFooterComponent={
-            comments.isFetchingNextPage ? (
-              <View className="py-6">
-                <ActivityIndicator color={colors.brand[500]} />
-              </View>
-            ) : null
+            <LoadMore
+              hasMore={comments.hasNextPage}
+              loading={comments.isFetchingNextPage}
+              onPress={() => comments.fetchNextPage()}
+              label="Load older comments"
+            />
           }
           renderItem={({ item }) => (
             <View className="px-5">

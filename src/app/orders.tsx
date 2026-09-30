@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
+import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { OfflineBanner, OrderCard, ScreenHeader } from '@/components/shared';
-import { Button, EmptyState, ErrorState, SkeletonCard } from '@/components/ui';
+import { Button, EmptyState, ErrorState, LoadMore, SkeletonCard } from '@/components/ui';
 import type { Order, OrderStatus } from '@/lib/api/types/order';
 import { isPayable, openCheckout } from '@/lib/payments';
 import { useDeliverySlotMap, useFilteredOrders, useIsSignedIn } from '@/lib/query/hooks';
-import { colors } from '@/lib/theme';
 
 /** `undefined` = every order. Mirrors `OrderFilters.status`. */
 const FILTERS: { label: string; value: OrderStatus | undefined }[] = [
@@ -116,10 +115,6 @@ export default function OrdersScreen() {
             refreshControl={
               <RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} />
             }
-            onEndReachedThreshold={0.5}
-            onEndReached={() => {
-              if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-            }}
             ListEmptyComponent={
               <EmptyState
                 title={status ? 'Nothing here' : 'No orders yet'}
@@ -133,11 +128,13 @@ export default function OrdersScreen() {
               />
             }
             ListFooterComponent={
-              isFetchingNextPage ? (
-                <View className="py-6">
-                  <ActivityIndicator color={colors.brand[500]} />
-                </View>
-              ) : null
+              <LoadMore
+                hasMore={hasNextPage}
+                loading={isFetchingNextPage}
+                onPress={() => fetchNextPage()}
+                label="Load older orders"
+                className="px-0"
+              />
             }
             renderItem={({ item }) => (
               <OrderCard

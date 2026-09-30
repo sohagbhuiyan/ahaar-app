@@ -13,7 +13,12 @@ import {
 } from '@/components/ui';
 import { isApiError } from '@/lib/api/types/common';
 import type { Order } from '@/lib/api/types/order';
-import { isPayable, openCheckout } from '@/lib/payments';
+import {
+  CASH_GATEWAY,
+  isCashAllowedForAmount,
+  isPayable,
+  openCheckout,
+} from '@/lib/payments';
 import {
   useAddonCatalogue,
   useCreateExtraOrder,
@@ -22,6 +27,7 @@ import {
 } from '@/lib/query/hooks';
 import { cn, formatMoney } from '@/lib/utils';
 
+import { CashOnDeliveryCheckbox } from './CashOnDeliveryCheckbox';
 import { FoodImage } from './FoodImage';
 
 interface ExtraProps {
@@ -67,6 +73,8 @@ export function ExtraOrderSheet({
   const [picked, setPicked] = useState<Record<number, number>>({});
   /** package_id → quantity. */
   const [bundles, setBundles] = useState<Record<number, number>>({});
+  /** Card is the default; cash is the deliberate choice. */
+  const [payWithCash, setPayWithCash] = useState(false);
 
   /**
    * Clear on the way out rather than in an effect watching `open`.
@@ -81,6 +89,7 @@ export function ExtraOrderSheet({
   const handleClose = () => {
     setPicked({});
     setBundles({});
+    setPayWithCash(false);
     createExtra.reset();
     onClose();
   };
@@ -113,12 +122,15 @@ export function ExtraOrderSheet({
 
   const lineCount = lines.length + packageLines.length;
 
+  /** Cash, but only while the basket is still under the ceiling. */
+  const useCash = payWithCash && isCashAllowedForAmount(total);
+
   /**
    * One key per (delivery, exact selection). A retry after a dropped response
    * hits the same key and cannot double-charge; changing the selection is
    * legitimately a different order.
    */
-  const idempotencyKey = `extra-${deliveryId}-${[
+  const idempotencyKey = `extra-${deliveryId}-${useCash ? 'cash' : 'card'}-${[
     ...lines.map((l) => `i${l.menu_item_id}x${l.quantity}`),
     ...packageLines.map((l) => `p${l.package_id}x${l.quantity}`),
   ]
@@ -134,6 +146,7 @@ export function ExtraOrderSheet({
           daily_delivery_id: deliveryId,
           items: lines,
           packages: packageLines,
+          ...(useCash ? { gateway: CASH_GATEWAY } : {}),
         },
         idempotencyKey,
       },
@@ -141,8 +154,13 @@ export function ExtraOrderSheet({
         onSuccess: async (order) => {
           setPicked({});
           setBundles({});
+          setPayWithCash(false);
           onClose();
-          toast.success('Extras added to your meal');
+          toast.success(
+            useCash
+              ? 'Extras added · pay cash on delivery'
+              : 'Extras added to your meal',
+          );
           if (isPayable(order.payment)) {
             await openCheckout(order.payment.checkout_url);
           }
@@ -162,7 +180,13 @@ export function ExtraOrderSheet({
       description="Added to this meal and charged separately — extras don't use up your plan."
       footer={
         <Button
-          label={lineCount > 0 ? `Add · ${formatMoney(total)}` : 'Add extras'}
+          label={
+            lineCount === 0
+              ? 'Add extras'
+              : useCash
+                ? `Add · pay ${formatMoney(total)} on delivery`
+                : `Add · ${formatMoney(total)}`
+          }
           size="lg"
           loading={createExtra.isPending}
           disabled={lineCount === 0 || !beforeCutoff}
@@ -339,6 +363,20 @@ export function ExtraOrderSheet({
               </View>
             );
           })}
+
+          {/* Only once there is something to pay for — an empty basket has no
+              payment method to choose. */}
+          {lineCount > 0 ? (
+            <View className="gap-3 border-t border-border pt-5">
+              <Text className="text-sm font-bold text-text-primary">Payment</Text>
+              <CashOnDeliveryCheckbox
+                checked={payWithCash}
+                onChange={setPayWithCash}
+                total={total}
+                disabled={!beforeCutoff}
+              />
+            </View>
+          ) : null}
         </View>
       )}
     </Sheet>
@@ -368,11 +406,13 @@ export function GuestOrderSheet({
   onPlaced,
 }: GuestProps) {
   const [guests, setGuests] = useState(1);
+  const [payWithCash, setPayWithCash] = useState(false);
   const createGuest = useCreateGuestOrder();
 
   /** Reset on dismissal, not in an effect — see `ExtraOrderSheet`. */
   const handleClose = () => {
     setGuests(1);
+    setPayWithCash(false);
     createGuest.reset();
     onClose();
   };
@@ -382,13 +422,22 @@ export function GuestOrderSheet({
 
     createGuest.mutate(
       {
-        payload: { daily_delivery_id: deliveryId, guests_count: guests },
-        idempotencyKey: `guest-${deliveryId}-${guests}`,
+        payload: {
+          daily_delivery_id: deliveryId,
+          guests_count: guests,
+          ...(payWithCash ? { gateway: CASH_GATEWAY } : {}),
+        },
+        idempotencyKey: `guest-${deliveryId}-${payWithCash ? 'cash' : 'card'}-${guests}`,
       },
       {
         onSuccess: async (order) => {
+          setPayWithCash(false);
           onClose();
-          toast.success(`${guests} guest portion${guests > 1 ? 's' : ''} added`);
+          toast.success(
+            payWithCash
+              ? `${guests} guest portion${guests > 1 ? 's' : ''} added · pay cash on delivery`
+              : `${guests} guest portion${guests > 1 ? 's' : ''} added`,
+          );
           if (isPayable(order.payment)) {
             await openCheckout(order.payment.checkout_url);
           }
@@ -451,6 +500,20 @@ export function GuestOrderSheet({
         variant="muted"
         className="mt-4"
       />
+
+      <View className="mt-5 gap-3 border-t border-border pt-5">
+        <Text className="text-sm font-bold text-text-primary">Payment</Text>
+        {/*
+          No `total`: guest portions are priced from the delivery's own items
+          server-side, so the app has no figure to quote until the order comes
+          back. The box says what will happen without inventing an amount.
+        */}
+        <CashOnDeliveryCheckbox
+          checked={payWithCash}
+          onChange={setPayWithCash}
+          disabled={!beforeCutoff}
+        />
+      </View>
     </Sheet>
   );
 }

@@ -30,6 +30,7 @@ export { QuotaMeter, QuotaMeterList } from './QuotaMeter';
 export { AddonPicker, type AddonSelection } from './AddonPicker';
 export { SubscriptionSummaryCard } from './SubscriptionSummaryCard';
 export { OfflineBanner } from './OfflineBanner';
+export { CashOnDeliveryCheckbox } from './CashOnDeliveryCheckbox';
 export { PromoCarousel, PROMO_ASPECT } from './PromoCarousel';
 export { PromoCodeStrip } from './PromoCodeStrip';
 export { LocationRequiredCard } from './LocationRequiredCard';

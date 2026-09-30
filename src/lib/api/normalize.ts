@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Raw API payloads â†’ the domain types in `./types`.
  *
  * There is exactly one systematic transformation: Laravel casts money columns

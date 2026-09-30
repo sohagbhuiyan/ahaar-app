@@ -1,15 +1,14 @@
 import { FlashList } from '@shopify/flash-list';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
+import { RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MediaFeedCard, OfflineBanner } from '@/components/shared';
-import { EmptyState, ErrorState, SkeletonCard } from '@/components/ui';
+import { EmptyState, ErrorState, LoadMore, SkeletonCard } from '@/components/ui';
 import type { MediaVideo } from '@/lib/api/types/media';
 import { useMediaVideos } from '@/lib/query/hooks';
 import { queryKeys } from '@/lib/query/keys';
-import { colors } from '@/lib/theme';
 
 /**
  * The Media tab — every kitchen video, newest first, each with its latest
@@ -91,10 +90,6 @@ export default function MediaScreen() {
               onRefresh={refresh}
             />
           }
-          onEndReachedThreshold={0.5}
-          onEndReached={() => {
-            if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-          }}
           ListEmptyComponent={
             <EmptyState
               title="No videos yet"
@@ -102,11 +97,13 @@ export default function MediaScreen() {
             />
           }
           ListFooterComponent={
-            isFetchingNextPage ? (
-              <View className="py-6">
-                <ActivityIndicator color={colors.brand[500]} />
-              </View>
-            ) : null
+            <LoadMore
+              hasMore={hasNextPage}
+              loading={isFetchingNextPage}
+              onPress={() => fetchNextPage()}
+              label="Load more videos"
+              className="px-0"
+            />
           }
           renderItem={({ item }) => (
             <MediaFeedCard video={item} onPlay={play} onOpenComments={openComments} />

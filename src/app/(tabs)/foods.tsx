@@ -1,7 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -11,7 +10,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FoodCard, OfflineBanner } from '@/components/shared';
-import { Button, EmptyState, ErrorState, Input, SkeletonCard, Stepper } from '@/components/ui';
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  Input,
+  LoadMore,
+  SkeletonCard,
+  Stepper,
+} from '@/components/ui';
 import type { MenuItem } from '@/lib/api/types/catalog';
 import { useFilteredFoods, useFoodCategories, usePackages } from '@/lib/query/hooks';
 import {
@@ -185,11 +192,6 @@ export default function FoodsScreen() {
             refreshControl={
               <RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} />
             }
-            // Page in ahead of the end so the spinner rarely becomes visible.
-            onEndReachedThreshold={0.5}
-            onEndReached={() => {
-              if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-            }}
             ListEmptyComponent={
               <EmptyState
                 title={hasFilters ? 'No matches' : 'Nothing on the menu yet'}
@@ -205,11 +207,13 @@ export default function FoodsScreen() {
               />
             }
             ListFooterComponent={
-              isFetchingNextPage ? (
-                <View className="py-6">
-                  <ActivityIndicator color={colors.brand[500]} />
-                </View>
-              ) : null
+              <LoadMore
+                hasMore={hasNextPage}
+                loading={isFetchingNextPage}
+                onPress={() => fetchNextPage()}
+                label="Load more dishes"
+                className="px-0"
+              />
             }
             renderItem={({ item }) => {
               const quantity = quantityFor(item.id);

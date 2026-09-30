@@ -2,7 +2,8 @@ import { memo } from 'react';
 import { Text, View } from 'react-native';
 
 import { Badge, Card, type BadgeVariant } from '@/components/ui';
-import type { Order, OrderStatus, PaymentStatus } from '@/lib/api/types/order';
+import type { Order, OrderStatus } from '@/lib/api/types/order';
+import { paymentStatusLabel, paymentStatusTone } from '@/lib/payments';
 import { formatMoney, formatShortDate } from '@/lib/utils';
 
 interface Props {
@@ -28,28 +29,14 @@ const STATUS_VARIANT: Record<OrderStatus, BadgeVariant> = {
   cancelled: 'danger',
 };
 
-const PAYMENT_VARIANT: Record<PaymentStatus, BadgeVariant> = {
-  pending: 'warning',
-  succeeded: 'success',
-  failed: 'danger',
-  refunded: 'muted',
-  partially_refunded: 'muted',
-};
-
-const PAYMENT_LABEL: Record<PaymentStatus, string> = {
-  pending: 'Payment due',
-  succeeded: 'Paid',
-  failed: 'Payment failed',
-  refunded: 'Refunded',
-  partially_refunded: 'Partly refunded',
-};
-
 /**
  * One row in the order history.
  *
  * Payment status is shown next to order status rather than folded into it: an
  * order can sit at `pending` because the customer never finished checkout, and
- * "Payment due" is the only label that tells them there is something to do.
+ * the payment label is the only thing that tells them there is something to do
+ * — or, for a cash order, that there deliberately isn't. Both the wording and
+ * the tone come from `lib/payments` so every screen says the same thing.
  */
 function OrderCardComponent({ order, slotName, onPress, action }: Props) {
   const itemCount = (order.items ?? []).reduce((sum, i) => sum + i.quantity, 0);
@@ -93,8 +80,8 @@ function OrderCardComponent({ order, slotName, onPress, action }: Props) {
             </Text>
             {order.payment ? (
               <Badge
-                label={PAYMENT_LABEL[order.payment.status] ?? order.payment.status}
-                variant={PAYMENT_VARIANT[order.payment.status] ?? 'muted'}
+                label={paymentStatusLabel(order.payment)}
+                variant={paymentStatusTone(order.payment)}
               />
             ) : null}
           </View>

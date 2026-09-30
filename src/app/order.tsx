@@ -7,6 +7,7 @@ import { toast } from 'sonner-native';
 import {
   AddressFormSheet,
   AddressPicker,
+  CashOnDeliveryCheckbox,
   DayStrip,
   FoodImage,
   formatAddress,
@@ -26,7 +27,12 @@ import {
 import { isApiError } from '@/lib/api/types/common';
 import type { Order } from '@/lib/api/types/order';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { isPayable, openCheckout } from '@/lib/payments';
+import {
+  CASH_GATEWAY,
+  isCashAllowedForAmount,
+  isPayable,
+  openCheckout,
+} from '@/lib/payments';
 import {
   useAddresses,
   useCreateInstantOrder,
@@ -79,6 +85,9 @@ export default function InstantOrderScreen() {
 
   const [addressFormOpen, setAddressFormOpen] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
+
+  // Card is the default; cash is the deliberate choice, so it starts unticked.
+  const [payWithCash, setPayWithCash] = useState(false);
 
   // `after_or_equal:today` on `CreateInstantOrderRequest` — today counts, as
   // long as some slot for it is still open.
@@ -150,6 +159,15 @@ export default function InstantOrderScreen() {
   const isEmpty = lines.length === 0 && packageLines.length === 0;
 
   /**
+   * Cash, but only while the basket is still small enough for it.
+   *
+   * Derived rather than stored, so a customer who ticks the box and then adds
+   * another meal box cannot carry a now-invalid choice through to submit. The
+   * checkbox disables itself at the same threshold, so the two always agree.
+   */
+  const useCash = payWithCash && isCashAllowedForAmount(total);
+
+  /**
    * Stable for a given basket + delivery, so a retry after a dropped response
    * can't create a second order and a second charge. Changing anything about
    * the order legitimately makes it a different order.
@@ -165,8 +183,12 @@ export default function InstantOrderScreen() {
     ]
       .sort()
       .join('.');
-    return `instant-${deliveryDate}-${slotId}-${effectiveAddressId ?? 'default'}-${signature}`;
-  }, [lines, packageLines, deliveryDate, slotId, effectiveAddressId]);
+    // The payment method is part of the signature: a customer who places a
+    // card order, backs out and re-places it as cash means it, and the second
+    // one must not be swallowed as a retry of the first.
+    const method = useCash ? 'cash' : 'card';
+    return `instant-${deliveryDate}-${slotId}-${effectiveAddressId ?? 'default'}-${method}-${signature}`;
+  }, [lines, packageLines, deliveryDate, slotId, effectiveAddressId, useCash]);
 
   const createOrder = useCreateInstantOrder();
 
@@ -191,6 +213,9 @@ export default function InstantOrderScreen() {
             package_id: l.package_id,
             quantity: l.quantity,
           })),
+          // Omitted for card so the API keeps using its configured default
+          // gateway; sent only when the customer has actually chosen cash.
+          ...(useCash ? { gateway: CASH_GATEWAY } : {}),
         },
         idempotencyKey,
       },
@@ -199,7 +224,15 @@ export default function InstantOrderScreen() {
           // The server now owns this order; a lingering basket would let the
           // customer submit the same thing again.
           clearBasket();
-          toast.success(`Order #${order.id} placed`);
+
+          // A cash order is already confirmed and needs no checkout page, so
+          // say what will happen rather than the neutral "placed" — this is
+          // the customer's only prompt to have the money ready.
+          toast.success(
+            useCash
+              ? `Order #${order.id} confirmed · pay cash on delivery`
+              : `Order #${order.id} placed`,
+          );
 
           if (isPayable(order.payment)) {
             await openCheckout(order.payment.checkout_url);
@@ -385,6 +418,16 @@ export default function InstantOrderScreen() {
           />
         </View>
 
+        {/* Payment method */}
+        <View className="mt-6 px-5">
+          <StepLabel n={4} label="How would you like to pay?" />
+          <CashOnDeliveryCheckbox
+            checked={payWithCash}
+            onChange={setPayWithCash}
+            total={total}
+          />
+        </View>
+
         {/* Total */}
         <View className="mt-6 px-5">
           <Card>
@@ -423,11 +466,16 @@ export default function InstantOrderScreen() {
                       : 'Your default address'
                   }
                 />
+                <SummaryRow
+                  label="Paying by"
+                  value={useCash ? 'Cash on delivery' : 'Card'}
+                />
               </View>
 
               <Text className="mt-3 text-xs text-text-muted">
-                Prices include tax. The final amount is confirmed by the server
-                when the order is created.
+                {useCash
+                  ? 'Prices include tax. Pay the rider in cash when your order arrives.'
+                  : 'Prices include tax. The final amount is confirmed by the server when the order is created.'}
               </Text>
             </View>
           </Card>
@@ -453,9 +501,11 @@ export default function InstantOrderScreen() {
         */}
         <Button
           label={
-            signedIn
-              ? `Place order · ${formatMoney(total)}`
-              : 'Sign in to place this order'
+            !signedIn
+              ? 'Sign in to place this order'
+              : useCash
+                ? `Place order · pay ${formatMoney(total)} on delivery`
+                : `Place order · ${formatMoney(total)}`
           }
           size="lg"
           loading={createOrder.isPending}

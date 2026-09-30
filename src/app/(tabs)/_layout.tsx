@@ -10,7 +10,7 @@ import PlansIcon from "../../components/icons/PlansIcon";
 export default function TabLayout() {
   return (
     <Tabs
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       tabBar={(props) => <FloatingTabBar {...(props as any)} />}
       screenOptions={{
         headerShown: false,

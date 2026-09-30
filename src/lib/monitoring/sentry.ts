@@ -13,8 +13,8 @@
  * ── Why the SDK is loaded lazily ────────────────────────────────────────────
  * `@sentry/react-native` ships its own Android and iOS native code and is not
  * an Expo module, so it is **not present in Expo Go** — unlike every other
- * native dependency here (reanimated, worklets, secure-store, glass-effect),
- * which Expo Go bundles. Importing it at module scope runs its top-level
+ * native dependency here (reanimated, worklets, secure-store), which Expo Go
+ * bundles. Importing it at module scope runs its top-level
  * initialisation, which reaches for a native binding that does not exist there.
  *
  * Requiring it only when `isSentryEnabled` means that never happens in the two

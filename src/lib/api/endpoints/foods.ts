@@ -51,3 +51,32 @@ export async function getAddonCatalogue(
 ): Promise<Paginated<MenuItem>> {
   return getFoods({ addons_only: true, page });
 }
+
+/** 20 pages x 50 rows — far past any real add-on catalogue, and a hard stop. */
+const MAX_ADDON_PAGES = 20;
+
+/**
+ * Every add-on, across all pages.
+ *
+ * `ExtraOrderSheet` shows the whole add-on catalogue in one scrollable picker
+ * and has no way to ask for more, so a paged answer here is silently a wrong
+ * one: the customer simply cannot see add-on 51. This is the same shape as
+ * `getAllDeliveries` in `./menu.ts` — the consumer always wants the complete
+ * set, so the paging is resolved here rather than left half-done in the UI.
+ */
+export async function getAllAddons(): Promise<MenuItem[]> {
+  const first = await getAddonCatalogue();
+  const all = [...first.data];
+
+  // A guard, not an expectation: `last_page` is the server's own count, and a
+  // malformed one must not turn a list into an unbounded request loop.
+  const lastPage = Math.min(first.meta.last_page ?? 1, MAX_ADDON_PAGES);
+
+  for (let page = 2; page <= lastPage; page++) {
+    const next = await getAddonCatalogue(page);
+    all.push(...next.data);
+    if (next.data.length === 0) break;
+  }
+
+  return all;
+}

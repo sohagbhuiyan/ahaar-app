@@ -14,6 +14,18 @@ import type { PackageLineInput } from './package';
 
 export type OrderType = 'extra' | 'guest' | 'instant';
 
+/**
+ * The payment methods an order may be created with.
+ *
+ * `cash` is settled at the door and has no checkout page — see
+ * `lib/payments.ts`. It is accepted on all three order types but **not** on a
+ * subscription, which the API bills up front; `CreateSubscriptionPayload`
+ * therefore keeps its own narrower union.
+ *
+ * `test` only resolves in the API's local/testing environments.
+ */
+export type PaymentGateway = 'test' | 'mollie' | 'stripe' | 'cash';
+
 export type OrderStatus = 'pending' | 'confirmed' | 'cancelled' | 'delivered';
 
 export type PaymentStatus =
@@ -29,8 +41,14 @@ export interface Payment {
   amount: number;
   currency: string;
   status: PaymentStatus;
-  gateway: string;
-  /** Hand the user here while `status === 'pending'`. */
+  /** Widened to `string`: the API may add gateways the app does not know. */
+  gateway: PaymentGateway | (string & {});
+  /**
+   * Hand the user here while `status === 'pending'`.
+   *
+   * Always `null` for `cash`, which has nowhere to send them — that null is
+   * what stops a "Pay now" button appearing on a cash order.
+   */
   checkout_url: string | null;
   paid_at: string | null;
   created_at: string;
@@ -105,14 +123,14 @@ export interface CreateExtraOrderPayload {
   daily_delivery_id: number;
   items?: OrderLineInput[];
   packages?: PackageLineInput[];
-  gateway?: 'test' | 'mollie' | 'stripe';
+  gateway?: PaymentGateway;
 }
 
 /** POST /orders/guest — mirrors the delivery's items ×`guests_count` (1-10). */
 export interface CreateGuestOrderPayload {
   daily_delivery_id: number;
   guests_count: number;
-  gateway?: 'test' | 'mollie' | 'stripe';
+  gateway?: PaymentGateway;
 }
 
 /**
@@ -126,7 +144,7 @@ export interface CreateInstantOrderPayload {
   address_id?: number | null;
   items?: OrderLineInput[];
   packages?: PackageLineInput[];
-  gateway?: 'test' | 'mollie' | 'stripe';
+  gateway?: PaymentGateway;
 }
 
 export interface OrderFilters {

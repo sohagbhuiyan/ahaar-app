@@ -37,6 +37,39 @@ export async function getSubscriptions(
   return normalizePaginated(data, normalizeSubscription);
 }
 
+/** 20 pages x 20 rows — far past any real customer, and a hard stop. */
+const MAX_SUBSCRIPTION_PAGES = 20;
+
+/**
+ * Every subscription the customer has ever had.
+ *
+ * `GET /subscriptions` pages at 20, newest first, and both consumers need the
+ * whole set to be right. The subscriptions screen lists them with no way to
+ * ask for more, and `useCurrentSubscription` picks "the one that matters now"
+ * by ranking *all* of them — active first, then by start date. Given only page
+ * 1, a customer with twenty newer cancelled plans would have their live plan
+ * fall off the end, and Home would confidently show the wrong one.
+ *
+ * Same shape as `getAllDeliveries` in `./menu.ts`: the set is small and
+ * bounded, nobody ever wanted a page, so the paging is resolved here.
+ */
+export async function getAllSubscriptions(): Promise<Subscription[]> {
+  const first = await getSubscriptions();
+  const all = [...first.data];
+
+  // A guard, not an expectation: `last_page` is the server's own count, and a
+  // malformed one must not turn a list into an unbounded request loop.
+  const lastPage = Math.min(first.meta.last_page ?? 1, MAX_SUBSCRIPTION_PAGES);
+
+  for (let page = 2; page <= lastPage; page++) {
+    const next = await getSubscriptions({ page });
+    all.push(...next.data);
+    if (next.data.length === 0) break;
+  }
+
+  return all;
+}
+
 /** GET /subscriptions/{id} */
 export async function getSubscription(
   id: number | string,

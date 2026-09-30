@@ -29,6 +29,10 @@ if (!BASE_URL) {
   );
 }
 
+// `axios.create` on the default export is axios's documented entry point. The
+// import plugin flags it only because the package also exports a named
+// `create`, which is not what any axios example uses.
+// eslint-disable-next-line import/no-named-as-default-member
 export const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },

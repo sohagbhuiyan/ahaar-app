@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { OfflineBanner, ScreenHeader } from '@/components/shared';
@@ -9,32 +9,22 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  LoadMore,
   Separator,
   SkeletonCard,
-  type BadgeVariant,
 } from '@/components/ui';
-import type { PaymentStatus } from '@/lib/api/types/order';
-import { isPayable, openCheckout } from '@/lib/payments';
+import {
+  isAwaitingCash,
+  isPayable,
+  openCheckout,
+  paymentMethodLabel,
+  paymentStatusLabel,
+  paymentStatusTone,
+} from '@/lib/payments';
 import { useIsSignedIn, usePayments } from '@/lib/query/hooks';
 import { useAuthPromptStore } from '@/lib/store';
-import { colors } from '@/lib/theme';
 import { formatMoney, formatShortDate } from '@/lib/utils';
 
-const STATUS_LABEL: Record<PaymentStatus, string> = {
-  pending: 'Awaiting payment',
-  succeeded: 'Paid',
-  failed: 'Failed',
-  refunded: 'Refunded',
-  partially_refunded: 'Partly refunded',
-};
-
-const STATUS_VARIANT: Record<PaymentStatus, BadgeVariant> = {
-  pending: 'warning',
-  succeeded: 'success',
-  failed: 'danger',
-  refunded: 'muted',
-  partially_refunded: 'muted',
-};
 
 /**
  * Payment history — every charge on this account.
@@ -81,7 +71,11 @@ export default function PaymentsScreen() {
     );
   }
 
+  // Only card payments the customer can still complete. A cash payment is
+  // `pending` too, but it is settled at the door — listing it as "outstanding"
+  // would invite them to pay for it twice.
   const outstanding = (payments ?? []).filter((p) => isPayable(p));
+  const awaitingCash = (payments ?? []).filter((p) => isAwaitingCash(p));
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
@@ -95,13 +89,6 @@ export default function PaymentsScreen() {
         refreshControl={
           <RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} />
         }
-        onScroll={({ nativeEvent }) => {
-          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-          const nearEnd =
-            layoutMeasurement.height + contentOffset.y >= contentSize.height - 400;
-          if (nearEnd && hasNextPage && !isFetchingNextPage) fetchNextPage();
-        }}
-        scrollEventThrottle={200}
       >
         {isLoading ? (
           <View className="gap-3">
@@ -140,6 +127,23 @@ export default function PaymentsScreen() {
               </Card>
             ) : null}
 
+            {awaitingCash.length > 0 ? (
+              <Card className="mb-4 border-brand-500">
+                <View className="p-5">
+                  <Text className="text-sm font-bold text-text-primary">
+                    {awaitingCash.length} cash{' '}
+                    {awaitingCash.length === 1 ? 'payment' : 'payments'} on the way
+                  </Text>
+                  <Text className="mt-1 text-xs text-text-secondary">
+                    Pay{' '}
+                    {formatMoney(awaitingCash.reduce((sum, p) => sum + p.amount, 0))}{' '}
+                    in cash when your {awaitingCash.length === 1 ? 'order arrives' : 'orders arrive'}.
+                    Nothing to do here.
+                  </Text>
+                </View>
+              </Card>
+            ) : null}
+
             <Card>
               <View className="p-5">
                 {payments.map((payment, index) => (
@@ -156,13 +160,13 @@ export default function PaymentsScreen() {
                           {formatShortDate(
                             (payment.paid_at ?? payment.created_at).slice(0, 10),
                           )}{' '}
-                          · {payment.gateway}
+                          · {paymentMethodLabel(payment)}
                         </Text>
                       </View>
 
                       <Badge
-                        label={STATUS_LABEL[payment.status] ?? payment.status}
-                        variant={STATUS_VARIANT[payment.status] ?? 'muted'}
+                        label={paymentStatusLabel(payment)}
+                        variant={paymentStatusTone(payment)}
                       />
                     </View>
 
@@ -180,11 +184,13 @@ export default function PaymentsScreen() {
               </View>
             </Card>
 
-            {isFetchingNextPage ? (
-              <View className="py-6">
-                <ActivityIndicator color={colors.brand[500]} />
-              </View>
-            ) : null}
+            <LoadMore
+              hasMore={hasNextPage}
+              loading={isFetchingNextPage}
+              onPress={() => fetchNextPage()}
+              label="Load older payments"
+              className="px-0"
+            />
           </>
         )}
       </ScrollView>

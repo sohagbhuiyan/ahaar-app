@@ -24,7 +24,12 @@ import "../global.css";
 
 // The native splash stays up until `AnimatedSplash` has drawn its first frame
 // over it, then fades — see that component for the hand-over.
-SplashScreen.preventAutoHideAsync();
+//
+// Caught, not awaited: this rejects if the splash has already been dismissed
+// (a fast resume, or a Fast Refresh that re-runs this module), and an
+// unhandled rejection at module scope is reported as a crash by Sentry for
+// something entirely harmless.
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
 SplashScreen.setOptions({ duration: 300, fade: true });
 
 // Runs once at module load, before any component mounts — Sentry has to be

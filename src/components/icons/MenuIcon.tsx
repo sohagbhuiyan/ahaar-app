@@ -1,5 +1,5 @@
-﻿import { ColorValue } from 'react-native';
-import Svg, { Path, Circle, Rect } from 'react-native-svg';
+import { ColorValue } from 'react-native';
+import Svg, { Path, Circle } from 'react-native-svg';
 
 type Props = { color: ColorValue; filled?: boolean; size?: number };
 

@@ -4,12 +4,21 @@
     "slug": "ahaar-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/images/ahaar2-adaptive.png",
+    "icon": "./assets/store/play-store-icon.png",
     "scheme": "ahaarapp",
     "userInterfaceStyle": "automatic",
+    "primaryColor": "#ff2b85",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/867c988f-3ef3-46b8-be64-f361cc7072d2",
+      "fallbackToCacheTimeout": 0
+    },
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.sohagexpo.ahaarapp"
+      "bundleIdentifier": "com.sohagexpo.ahaarapp",
+      "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +27,24 @@
         "monochromeImage": "./assets/images/images/ahaar2-adaptive.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.sohagexpo.ahaarapp"
+      "package": "com.sohagexpo.ahaarapp",
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "blockedPermissions": [
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO"
+      ]
     },
     "web": {
       "output": "static",

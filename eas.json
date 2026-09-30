@@ -13,6 +13,7 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.ahaar.store/api/v1",
+        "EXPO_PUBLIC_WEBSITE_URL": "https://www.ahaar.store",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "571864958809-3808cvd5r65h09v0cugd4c2v6gkojg4e.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "571864958809-gun63taovlt9kfjluutrqdep425uahlj.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "571864958809-l6tq33v6ce06v660mcuqe2a63efucpdl.apps.googleusercontent.com"
@@ -26,6 +27,7 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.ahaar.store/api/v1",
+        "EXPO_PUBLIC_WEBSITE_URL": "https://www.ahaar.store",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "571864958809-3808cvd5r65h09v0cugd4c2v6gkojg4e.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "571864958809-gun63taovlt9kfjluutrqdep425uahlj.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "571864958809-l6tq33v6ce06v660mcuqe2a63efucpdl.apps.googleusercontent.com"
@@ -33,20 +35,34 @@
     },
     "production": {
       "autoIncrement": true,
-      "distribution": "internal",
+      "distribution": "store",
       "channel": "production",
       "android": {
-        "buildType": "apk"
+        "buildType": "app-bundle"
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.ahaar.store/api/v1",
+        "EXPO_PUBLIC_WEBSITE_URL": "https://www.ahaar.store",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "571864958809-3808cvd5r65h09v0cugd4c2v6gkojg4e.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "571864958809-gun63taovlt9kfjluutrqdep425uahlj.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "571864958809-l6tq33v6ce06v660mcuqe2a63efucpdl.apps.googleusercontent.com"
       }
+    },
+    "production-apk": {
+      "extends": "production",
+      "distribution": "internal",
+      "channel": "production",
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    }
   }
 }

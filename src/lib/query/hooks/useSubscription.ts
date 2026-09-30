@@ -15,22 +15,27 @@ import type {
   PauseSubscriptionPayload,
   Subscription,
 } from '../../api/types/subscription';
-import type { Paginated } from '../../api/types/common';
 import { useCartStore } from '../../store/useCartStore';
 import { queryKeys } from '../keys';
 import { useIsSignedIn } from './useIsSignedIn';
 
 const SUBSCRIPTION_STALE_MS = 60 * 1000;
 
+/**
+ * Every subscription on the account.
+ *
+ * Complete on purpose — see `getAllSubscriptions`. The screen has no "load
+ * more", and `useCurrentSubscription` below ranks the whole set to decide what
+ * Home shows, so a truncated list is a wrong answer rather than a short one.
+ */
 export function useSubscriptions() {
   const signedIn = useIsSignedIn();
 
   return useQuery({
     queryKey: queryKeys.subscription.list(),
-    queryFn: () => subscriptionsApi.getSubscriptions(),
+    queryFn: () => subscriptionsApi.getAllSubscriptions(),
     enabled: signedIn,
     staleTime: SUBSCRIPTION_STALE_MS,
-    select: (page: Paginated<Subscription>) => page.data,
   });
 }
 
@@ -66,11 +71,11 @@ export function useCurrentSubscription() {
 
   return useQuery({
     queryKey: queryKeys.subscription.list(),
-    queryFn: () => subscriptionsApi.getSubscriptions(),
+    queryFn: () => subscriptionsApi.getAllSubscriptions(),
     enabled: signedIn,
     staleTime: SUBSCRIPTION_STALE_MS,
-    select: (page: Paginated<Subscription>): Subscription | null => {
-      const sorted = [...page.data].sort((a, b) => {
+    select: (items: Subscription[]): Subscription | null => {
+      const sorted = [...items].sort((a, b) => {
         const byStatus = STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status];
         if (byStatus !== 0) return byStatus;
         return b.start_date.localeCompare(a.start_date);

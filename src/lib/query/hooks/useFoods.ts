@@ -188,14 +188,17 @@ export function useFood(id: string | number | undefined) {
  * Every `is_addon` item, not the ones offerable on a given weekday/slot — the
  * backend models neither that restriction nor a free/paid flag yet, so the
  * picker treats all of these as paid extras.
+ *
+ * Complete on purpose, like `useDeliveries`. This was an `useInfiniteQuery`
+ * that nothing ever paged: `ExtraOrderSheet` reads `data` and `isLoading` and
+ * has no "load more" affordance, so add-on 51 was unreachable — invisible to
+ * the customer and indistinguishable from the kitchen not offering it. The
+ * paging is resolved in `getAllAddons`, so this is a plain query again.
  */
 export function useAddonCatalogue() {
-  return useInfiniteQuery({
+  return useQuery({
     queryKey: queryKeys.foods.addons(),
-    queryFn: ({ pageParam }) => foodsApi.getAddonCatalogue(pageParam),
-    initialPageParam: 1,
-    getNextPageParam: nextPage,
+    queryFn: () => foodsApi.getAllAddons(),
     staleTime: CATALOGUE_STALE_MS,
-    select: (data) => data.pages.flatMap((page) => page.data),
   });
 }

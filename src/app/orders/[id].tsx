@@ -21,8 +21,15 @@ import {
   type BadgeVariant,
 } from '@/components/ui';
 import { isApiError } from '@/lib/api/types/common';
-import type { OrderStatus, PaymentStatus } from '@/lib/api/types/order';
-import { isPayable, openCheckout } from '@/lib/payments';
+import type { OrderStatus } from '@/lib/api/types/order';
+import {
+  isAwaitingCash,
+  isPayable,
+  openCheckout,
+  paymentMethodLabel,
+  paymentStatusLabel,
+  paymentStatusTone,
+} from '@/lib/payments';
 import { useCancelOrder, useDeliverySlotMap, useOrder } from '@/lib/query/hooks';
 import { slotWindow } from '@/lib/slots';
 import { formatLongDate, formatMoney } from '@/lib/utils';
@@ -34,13 +41,6 @@ const STATUS_VARIANT: Record<OrderStatus, BadgeVariant> = {
   cancelled: 'danger',
 };
 
-const PAYMENT_LABEL: Record<PaymentStatus, string> = {
-  pending: 'Awaiting payment',
-  succeeded: 'Paid',
-  failed: 'Payment failed',
-  refunded: 'Refunded',
-  partially_refunded: 'Partly refunded',
-};
 
 const TYPE_LABEL: Record<string, string> = {
   instant: 'One-off order',
@@ -213,19 +213,35 @@ export default function OrderDetailScreen() {
             </View>
 
             {order.payment ? (
-              <View className="mt-4 flex-row items-center justify-between">
-                <Text className="text-sm text-text-secondary">Payment</Text>
-                <Badge
-                  label={PAYMENT_LABEL[order.payment.status] ?? order.payment.status}
-                  variant={
-                    order.payment.status === 'succeeded'
-                      ? 'success'
-                      : order.payment.status === 'failed'
-                        ? 'danger'
-                        : 'warning'
-                  }
-                />
-              </View>
+              <>
+                <View className="mt-4 flex-row items-center justify-between">
+                  <Text className="text-sm text-text-secondary">Payment</Text>
+                  <Badge
+                    label={paymentStatusLabel(order.payment)}
+                    variant={paymentStatusTone(order.payment)}
+                  />
+                </View>
+
+                <View className="mt-2 flex-row items-center justify-between">
+                  <Text className="text-sm text-text-secondary">Method</Text>
+                  <Text className="text-sm font-semibold text-text-primary">
+                    {paymentMethodLabel(order.payment)}
+                  </Text>
+                </View>
+
+                {/* The order is already confirmed and being cooked, so the one
+                    thing left to say is what the customer has to do at the
+                    door. Without it, "Pay on delivery" is a status and not an
+                    instruction. */}
+                {isAwaitingCash(order.payment) ? (
+                  <View className="mt-4 rounded-2xl bg-brand-50 px-4 py-3">
+                    <Text className="text-xs leading-5 text-brand-700">
+                      Have {formatMoney(order.total_amount)} in cash ready when the
+                      rider arrives. Riders may not carry change.
+                    </Text>
+                  </View>
+                ) : null}
+              </>
             ) : null}
           </View>
         </Card>
