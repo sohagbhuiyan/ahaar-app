@@ -17,7 +17,7 @@
     },
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.sohagexpo.ahaarapp",
+      "bundleIdentifier": "store.ahaar",
       "supportsTablet": false
     },
     "android": {
@@ -27,7 +27,7 @@
         "monochromeImage": "./assets/images/images/ahaar2-adaptive.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.sohagexpo.ahaarapp",
+      "package": "store.ahaar",
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",

@@ -9,7 +9,7 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  * `EXPO_PUBLIC_*` ones, and changing them means a new build.
  *
  *   GOOGLE_MAPS_ANDROID_API_KEY  Maps SDK for Android, restricted to package
- *                                `com.sohagexpo.ahaarapp` and the build's SHA-1.
+ *                                `store.ahaar` and the build's SHA-1.
  *   GOOGLE_MAPS_IOS_API_KEY      Optional — without it iOS draws Apple Maps.
  *
  * Set them as EAS environment variables for cloud builds

@@ -2,16 +2,16 @@
 
 Everything needed to prepare, build and publish the AHAAR Android app.
 
-| | |
-|---|---|
-| **App name** | Ahaar |
-| **Package / Application ID** | `com.sohagexpo.ahaarapp` |
-| **Version name** | `1.0.0` |
-| **Version code** | Managed remotely by EAS (`appVersionSource: "remote"`, `autoIncrement: true`) |
-| **EAS project ID** | `867c988f-3ef3-46b8-be64-f361cc7072d2` |
-| **Production API** | `https://api.ahaar.store/api/v1` |
-| **Expo SDK** | 57 · React Native 0.86 · Hermes · New Architecture |
-| **Primary market** | Saudi Arabia |
+|                              |                                                                               |
+| ---------------------------- | ----------------------------------------------------------------------------- |
+| **App name**                 | Ahaar                                                                         |
+| **Package / Application ID** | `store.ahaar`                                                                 |
+| **Version name**             | `1.0.0`                                                                       |
+| **Version code**             | Managed remotely by EAS (`appVersionSource: "remote"`, `autoIncrement: true`) |
+| **EAS project ID**           | `867c988f-3ef3-46b8-be64-f361cc7072d2`                                        |
+| **Production API**           | `https://api.ahaar.store/api/v1`                                              |
+| **Expo SDK**                 | 57 · React Native 0.86 · Hermes · New Architecture                            |
+| **Primary market**           | Saudi Arabia                                                                  |
 
 ---
 
@@ -52,9 +52,10 @@ eas env:create --name GOOGLE_MAPS_ANDROID_API_KEY --value "AIza…" --environmen
 ```
 
 **This key is baked into `AndroidManifest.xml` and is readable by anyone who unzips the AAB.** That is by Google's design for Android Maps keys — the protection is the restriction, not secrecy. It **must** be restricted in Google Cloud Console to:
+
 - **Application restriction:** Android apps
-- **Package name:** `com.sohagexpo.ahaarapp`
-- **SHA-1:** the Play App Signing certificate fingerprint *and* your EAS upload key (`eas credentials`). Add the debug keystore SHA-1 too if you build locally.
+- **Package name:** `store.ahaar`
+- **SHA-1:** the Play App Signing certificate fingerprint _and_ your EAS upload key (`eas credentials`). Add the debug keystore SHA-1 too if you build locally.
 - **API restriction:** Maps SDK for Android only.
 
 An unrestricted key on a public app will be scraped and billed to you.
@@ -63,14 +64,14 @@ An unrestricted key on a public app will be scraped and billed to you.
 
 This is the most commonly confused part of the setup, and getting it wrong either breaks the map or leaks a billable key.
 
-| | `GOOGLE_MAPS_ANDROID_API_KEY` | `GOOGLE_MAPS_API_KEY` |
-|---|---|---|
-| Lives in | `ahaar-app` — EAS env / `.env.local` | `ahaar-backend` — `.env` |
-| Read by | `app.config.ts` → baked into `AndroidManifest.xml` | `config/location.php` → the Geo provider |
-| Used for | Drawing the map in the address picker | Geocoding and Places lookups (`/geo/*`) |
-| **Ships inside the app?** | **Yes — visible to anyone who unzips the AAB** | **No — never leaves the server** |
-| APIs to enable | Maps SDK for Android **only** | Geocoding API + Places API (New) **only** |
-| How to restrict | Android apps → package `com.sohagexpo.ahaarapp` + signing SHA-1s | **IP address** → your server's egress IP |
+|                           | `GOOGLE_MAPS_ANDROID_API_KEY`                         | `GOOGLE_MAPS_API_KEY`                     |
+| ------------------------- | ----------------------------------------------------- | ----------------------------------------- |
+| Lives in                  | `ahaar-app` — EAS env / `.env.local`                  | `ahaar-backend` — `.env`                  |
+| Read by                   | `app.config.ts` → baked into `AndroidManifest.xml`    | `config/location.php` → the Geo provider  |
+| Used for                  | Drawing the map in the address picker                 | Geocoding and Places lookups (`/geo/*`)   |
+| **Ships inside the app?** | **Yes — visible to anyone who unzips the AAB**        | **No — never leaves the server**          |
+| APIs to enable            | Maps SDK for Android **only**                         | Geocoding API + Places API (New) **only** |
+| How to restrict           | Android apps → package `store.ahaar` + signing SHA-1s | **IP address** → your server's egress IP  |
 
 They must be **two separate keys**. Reusing one for both is the failure mode to avoid: an Android-restricted key rejects server-side geocoding calls, an IP-restricted key renders a grey map, and a single unrestricted key that satisfies both is exactly the key that gets scraped out of the APK and billed to you.
 
@@ -92,53 +93,58 @@ Play requires a live Privacy Policy URL for any app that handles personal data. 
 
 Everything in the listing leads with those three pillars, in that order:
 
-| Pillar | The promise | What actually backs it in the product |
-|---|---|---|
-| **Quality** | Chef-cooked, fresh the same day, never frozen | Real kitchens, seasonal ingredients, macro-counted dishes, kitchen videos customers can watch |
-| **Speed** | Ordered quickly, delivered on time | Saved addresses, repeat ordering, fixed time slots with live cutoffs, one-tap Google sign-in |
-| **Price** | Far less than eating out, no surprises | Flat-price plans, bundled meal boxes cheaper than à la carte, tax-inclusive pricing, no hidden fees, cash accepted |
+| Pillar      | The promise                                   | What actually backs it in the product                                                                              |
+| ----------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Quality** | Chef-cooked, fresh the same day, never frozen | Real kitchens, seasonal ingredients, macro-counted dishes, kitchen videos customers can watch                      |
+| **Speed**   | Ordered quickly, delivered on time            | Saved addresses, repeat ordering, fixed time slots with live cutoffs, one-tap Google sign-in                       |
+| **Price**   | Far less than eating out, no surprises        | Flat-price plans, bundled meal boxes cheaper than à la carte, tax-inclusive pricing, no hidden fees, cash accepted |
 
-> **A copywriting note worth one line.** You described the price pillar as "cheap". I have written it as *affordable / great value / less than eating out* rather than "cheap", because "cheap food" undercuts the "best quality" claim in the very same sentence — shoppers read it as low quality, not low cost. The meaning you asked for is intact; only the word changed. If you specifically want the word "cheap" in the listing, it is a one-word edit in each place below.
+> **A copywriting note worth one line.** You described the price pillar as "cheap". I have written it as _affordable / great value / less than eating out_ rather than "cheap", because "cheap food" undercuts the "best quality" claim in the very same sentence — shoppers read it as low quality, not low cost. The meaning you asked for is intact; only the word changed. If you specifically want the word "cheap" in the listing, it is a one-word edit in each place below.
 
 ---
 
 ## Store listing
 
 ### App title
-*(30 characters max)*
+
+_(30 characters max)_
 
 ```
 Ahaar: Quality Food & Catering
 ```
+
 **30 characters — exactly at the limit.** Valid, but with no headroom: add one character and Play truncates it. Prefer a shorter option below if you expect to tweak it later.
 
 **Alternatives:**
 
-| Title | Chars | Leans towards |
-|---|---|---|
-| `Ahaar: Fresh Food & Catering` | 28 | Quality + catering |
-| `Ahaar: Catering & Meal Plans` | 28 | Catering + subscriptions |
-| `Ahaar: Quality Food, Fast` | 25 | Quality + speed |
-| `Ahaar — Food & Catering` | 23 | Broadest, most headroom |
+| Title                          | Chars | Leans towards            |
+| ------------------------------ | ----- | ------------------------ |
+| `Ahaar: Fresh Food & Catering` | 28    | Quality + catering       |
+| `Ahaar: Catering & Meal Plans` | 28    | Catering + subscriptions |
+| `Ahaar: Quality Food, Fast`    | 25    | Quality + speed          |
+| `Ahaar — Food & Catering`      | 23    | Broadest, most headroom  |
 
 ### Short description
-*(80 characters max — shown under the title in search results, and the single highest-leverage piece of copy in the listing)*
+
+_(80 characters max — shown under the title in search results, and the single highest-leverage piece of copy in the listing)_
 
 ```
 Top-quality food and catering, delivered fast, at prices that actually work.
 ```
+
 76 characters. Carries all three pillars in one line.
 
 **Alternatives:**
 
-| Short description | Chars |
-|---|---|
-| `Best-quality meals and catering, delivered fast, without the restaurant price.` | 78 |
-| `Quality food and catering, delivered fast, at a price that works. Order today.` | 78 |
-| `Great food, fast delivery, fair prices. Daily meal plans, catering and one-offs.` | 80 |
+| Short description                                                                  | Chars |
+| ---------------------------------------------------------------------------------- | ----- |
+| `Best-quality meals and catering, delivered fast, without the restaurant price.`   | 78    |
+| `Quality food and catering, delivered fast, at a price that works. Order today.`   | 78    |
+| `Great food, fast delivery, fair prices. Daily meal plans, catering and one-offs.` | 80    |
 
 ### Full description
-*(4000 characters max — the text below is **3,853**, verified. ~150 characters of headroom, so edit with care.)*
+
+_(4000 characters max — the text below is **3,853**, verified. ~150 characters of headroom, so edit with care.)_
 
 ```
 Best-quality food. In less time. At a price that works.
@@ -242,7 +248,7 @@ Best-quality food, in less time, at a price that works.
 Download Ahaar and eat better this week.
 ```
 
-⚠ **One honesty check before you publish this.** The copy above sells "catering" as *daily meal catering* — plans, meal boxes and guest portions for up to ten people — because that is what the app genuinely does today. It does **not** promise event catering: there is no venue field, no headcount above ten, no custom-quote flow and no event date. If you intend to sell weddings and corporate functions, do not add that language until the feature exists. Advertising a capability the app does not have is both a Play policy violation (misrepresentation) and the fastest route to one-star reviews.
+⚠ **One honesty check before you publish this.** The copy above sells "catering" as _daily meal catering_ — plans, meal boxes and guest portions for up to ten people — because that is what the app genuinely does today. It does **not** promise event catering: there is no venue field, no headcount above ten, no custom-quote flow and no event date. If you intend to sell weddings and corporate functions, do not add that language until the feature exists. Advertising a capability the app does not have is both a Play policy violation (misrepresentation) and the fastest route to one-star reviews.
 
 ### App category
 
@@ -277,21 +283,21 @@ food delivery Saudi Arabia, catering Riyadh, meal plan Riyadh
 
 The **Pillar** column is the one to check before writing any new marketing copy: if a claim does not map to a real row here, it should not go in the listing.
 
-| Feature | Detail | Pillar |
-|---|---|---|
-| Meal plan subscriptions | Flat-price plans covering every meal the plan serves, for its full duration | Price |
-| One-off ("instant") orders | Any menu item, any open date and slot, no subscription required | Speed |
-| Meal boxes / packages | Bundles charged as one line, cheaper than à la carte, exploded into dishes for the kitchen | Price |
-| Add-ons & extras | Paid extras attached to an existing delivery before its cutoff | — |
-| Guest portions | The delivery's own items ×N (**capped at 10**), for people eating with the customer | Catering |
-| Meal swaps | Transpose two plates the customer already owns; quota-neutral | Quality |
-| Pause & resume | Suspend a running plan and restart it | Price |
-| Delivery schedule | Day-by-day calendar with live per-slot cutoffs | Speed |
-| Kitchen media | Video feed with comments — customers watch their food being made | Quality |
-| Addresses & location | Map/GPS-first picker, multiple saved addresses, default switching | Speed |
-| Payments | Card (Mollie / Stripe) and **Cash on Delivery** | Price |
-| Auth | Email + password, one-tap Google Sign-In, password reset | Speed |
-| Offline tolerance | Persisted query cache, offline banner, shipped marketing copy | — |
+| Feature                    | Detail                                                                                     | Pillar   |
+| -------------------------- | ------------------------------------------------------------------------------------------ | -------- |
+| Meal plan subscriptions    | Flat-price plans covering every meal the plan serves, for its full duration                | Price    |
+| One-off ("instant") orders | Any menu item, any open date and slot, no subscription required                            | Speed    |
+| Meal boxes / packages      | Bundles charged as one line, cheaper than à la carte, exploded into dishes for the kitchen | Price    |
+| Add-ons & extras           | Paid extras attached to an existing delivery before its cutoff                             | —        |
+| Guest portions             | The delivery's own items ×N (**capped at 10**), for people eating with the customer        | Catering |
+| Meal swaps                 | Transpose two plates the customer already owns; quota-neutral                              | Quality  |
+| Pause & resume             | Suspend a running plan and restart it                                                      | Price    |
+| Delivery schedule          | Day-by-day calendar with live per-slot cutoffs                                             | Speed    |
+| Kitchen media              | Video feed with comments — customers watch their food being made                           | Quality  |
+| Addresses & location       | Map/GPS-first picker, multiple saved addresses, default switching                          | Speed    |
+| Payments                   | Card (Mollie / Stripe) and **Cash on Delivery**                                            | Price    |
+| Auth                       | Email + password, one-tap Google Sign-In, password reset                                   | Speed    |
+| Offline tolerance          | Persisted query cache, offline banner, shipped marketing copy                              | —        |
 
 **Not built, and therefore not advertised:** event catering (venue, event date, custom quotes), headcounts above 10, recurring corporate contracts, live courier tracking, in-app chat support, loyalty points or referral rewards. Several of these are obvious next features for a catering business — but every one of them must exist before it appears in the listing.
 
@@ -308,12 +314,14 @@ COD is implemented end to end and is worth describing accurately in your review 
 **Where it is not.** Meal plan subscriptions. A plan is billed up front for a whole run of deliveries, so there is no single door at which to collect it; the API rejects `gateway=cash` on `POST /subscriptions` with a plain-language message.
 
 **What happens behind it.**
+
 1. The order is created and **immediately confirmed** — the kitchen must cook it, so placement is the commitment.
 2. Its payment row stays `pending` with **no checkout URL**, which is what stops any "Pay now" button appearing.
 3. **No invoice is issued and no revenue is booked** at this point. An order refused at the door must not already be in the finance reports.
-4. When the rider hands the cash in, an admin calls `POST /admin/finance/payments/{payment}/collect`. *That* fires `PaymentSucceeded`, which issues the invoice and books the revenue. It is idempotent and refuses non-cash payments.
+4. When the rider hands the cash in, an admin calls `POST /admin/finance/payments/{payment}/collect`. _That_ fires `PaymentSucceeded`, which issues the invoice and books the revenue. It is idempotent and refuses non-cash payments.
 
 **Operational limits** (backend `.env`):
+
 - `PAYMENT_CASH_ENABLED=true` — kill switch; withdraw cash for a region or a rider shortage with no deploy.
 - `PAYMENT_CASH_MAX_AMOUNT=500` — the float a rider is expected to carry. Above it the order must be prepaid. Enforced server-side; the checkbox greys itself out and explains why.
 
@@ -327,21 +335,21 @@ Complete the Play Console **Data safety** form to match this. Getting it wrong i
 
 ### Data collected
 
-| Data type | Collected | Shared | Purpose | Optional? |
-|---|---|---|---|---|
-| Name | Yes | No | Account management, delivery | Required |
-| Email address | Yes | No | Account management, sign-in | Required |
-| Phone number | Yes | No | Delivery coordination | Required |
-| Physical address | Yes | No | Order fulfilment | Required |
-| **Precise location** | Yes | No | Setting the delivery address on a map | **Optional** — can be typed instead |
-| Purchase history | Yes | No | Order history, app functionality | Required |
-| Payment info | **No** | — | Handled entirely by Mollie / Stripe; card data never touches Ahaar | — |
-| User-generated content | Yes | No | Comments on kitchen videos | Optional |
-| Crash logs | Yes | Yes (Sentry) | Diagnostics | Optional |
-| Diagnostics / performance | Yes | Yes (Sentry) | Diagnostics | Optional |
-| App interactions | Yes | Yes (Sentry) | Diagnostics | Optional |
-| Device or other IDs | No | — | — | — |
-| Advertising ID | **No** | — | No ads, no ad SDKs, no tracking | — |
+| Data type                 | Collected | Shared       | Purpose                                                            | Optional?                           |
+| ------------------------- | --------- | ------------ | ------------------------------------------------------------------ | ----------------------------------- |
+| Name                      | Yes       | No           | Account management, delivery                                       | Required                            |
+| Email address             | Yes       | No           | Account management, sign-in                                        | Required                            |
+| Phone number              | Yes       | No           | Delivery coordination                                              | Required                            |
+| Physical address          | Yes       | No           | Order fulfilment                                                   | Required                            |
+| **Precise location**      | Yes       | No           | Setting the delivery address on a map                              | **Optional** — can be typed instead |
+| Purchase history          | Yes       | No           | Order history, app functionality                                   | Required                            |
+| Payment info              | **No**    | —            | Handled entirely by Mollie / Stripe; card data never touches Ahaar | —                                   |
+| User-generated content    | Yes       | No           | Comments on kitchen videos                                         | Optional                            |
+| Crash logs                | Yes       | Yes (Sentry) | Diagnostics                                                        | Optional                            |
+| Diagnostics / performance | Yes       | Yes (Sentry) | Diagnostics                                                        | Optional                            |
+| App interactions          | Yes       | Yes (Sentry) | Diagnostics                                                        | Optional                            |
+| Device or other IDs       | No        | —            | —                                                                  | —                                   |
+| Advertising ID            | **No**    | —            | No ads, no ad SDKs, no tracking                                    | —                                   |
 
 ### Declarations
 
@@ -353,12 +361,12 @@ Complete the Play Console **Data safety** form to match this. Getting it wrong i
 
 ### Third parties receiving data
 
-| Party | What | Why |
-|---|---|---|
-| Sentry | Crash logs, performance traces, account **ID only** | Diagnostics |
-| Google (Sign-In) | Email, name, profile ID | Authentication |
-| Google (Maps SDK) | Location while the picker is open | Rendering the map |
-| Mollie / Stripe | Payment amount, order reference | Card processing |
+| Party             | What                                                | Why               |
+| ----------------- | --------------------------------------------------- | ----------------- |
+| Sentry            | Crash logs, performance traces, account **ID only** | Diagnostics       |
+| Google (Sign-In)  | Email, name, profile ID                             | Authentication    |
+| Google (Maps SDK) | Location while the picker is open                   | Rendering the map |
+| Mollie / Stripe   | Payment amount, order reference                     | Card processing   |
 
 Sentry is configured to minimise exposure: `sendDefaultPii: false`, `attachScreenshot: false`, and `beforeSend` strips `Authorization` headers from breadcrumbs. Only the account ID is attached — never name, email or address.
 
@@ -368,17 +376,17 @@ Sentry is configured to minimise exposure: `sendDefaultPii: false`, `attachScree
 
 The release manifest declares exactly five permissions. Everything an autolinked library tried to add is explicitly stripped with `tools:node="remove"` in `app.json` → `android.blockedPermissions`.
 
-| Permission | Why | Prompted? |
-|---|---|---|
-| `INTERNET` | Every API call | No |
-| `ACCESS_NETWORK_STATE` | Offline banner, query retry behaviour | No |
+| Permission               | Why                                      | Prompted?   |
+| ------------------------ | ---------------------------------------- | ----------- |
+| `INTERNET`               | Every API call                           | No          |
+| `ACCESS_NETWORK_STATE`   | Offline banner, query retry behaviour    | No          |
 | `ACCESS_COARSE_LOCATION` | Centre the address map near the customer | Yes, at use |
-| `ACCESS_FINE_LOCATION` | Accurate pin placement for delivery | Yes, at use |
-| `VIBRATE` | Haptic feedback | No |
+| `ACCESS_FINE_LOCATION`   | Accurate pin placement for delivery      | Yes, at use |
+| `VIBRATE`                | Haptic feedback                          | No          |
 
 **Explicitly blocked:** `ACCESS_BACKGROUND_LOCATION`, `CAMERA`, `RECORD_AUDIO`, `READ/WRITE_EXTERNAL_STORAGE`, `READ_MEDIA_IMAGES/VIDEO/AUDIO`, `SYSTEM_ALERT_WINDOW`.
 
-**Location declaration.** Foreground only, and only while the address picker is open. There is **no** background location access, so the Play Console location-permission declaration form should say so. The in-app rationale string is: *"Ahaar uses your location to place your delivery address on the map."* Location is genuinely optional — an address can be typed by hand.
+**Location declaration.** Foreground only, and only while the address picker is open. There is **no** background location access, so the Play Console location-permission declaration form should say so. The in-app rationale string is: _"Ahaar uses your location to place your delivery address on the map."_ Location is genuinely optional — an address can be typed by hand.
 
 No sensitive permissions (SMS, call log, `QUERY_ALL_PACKAGES`, `MANAGE_EXTERNAL_STORAGE`) are requested, so no additional declaration forms are needed.
 
@@ -388,19 +396,19 @@ No sensitive permissions (SMS, call log, `QUERY_ALL_PACKAGES`, `MANAGE_EXTERNAL_
 
 Complete the IARC questionnaire. Expected answers for this app:
 
-| Question | Answer |
-|---|---|
-| Violence, sexuality, profanity, drugs | None |
-| Gambling / simulated gambling | None |
+| Question                               | Answer                               |
+| -------------------------------------- | ------------------------------------ |
+| Violence, sexuality, profanity, drugs  | None                                 |
+| Gambling / simulated gambling          | None                                 |
 | **Users can interact with each other** | **Yes** — comments on kitchen videos |
-| Shares user location with other users | No |
-| Allows purchase of digital goods | No |
-| **Allows purchase of physical goods** | **Yes** — food |
-| Unrestricted internet access | No |
+| Shares user location with other users  | No                                   |
+| Allows purchase of digital goods       | No                                   |
+| **Allows purchase of physical goods**  | **Yes** — food                       |
+| Unrestricted internet access           | No                                   |
 
 **Expected rating:** Everyone / PEGI 3 / 3+.
 
-⚠ Answering *yes* to user interaction means Play expects moderation. Have a plan for the comment feature: profanity filtering, a report path, and the ability to remove a comment and suspend an account. The API already supports comment deletion.
+⚠ Answering _yes_ to user interaction means Play expects moderation. Have a plan for the comment feature: profanity filtering, a report path, and the ability to remove a comment and suspend an account. The API already supports comment deletion.
 
 ### Target audience
 
@@ -413,6 +421,7 @@ Complete the IARC questionnaire. Expected answers for this app:
 ## Required assets
 
 ### App icon
+
 - **1024 × 1024 px**, 32-bit PNG, **no alpha/transparency**, no rounded corners (Play applies its own masking).
 - **Upload `assets/store/play-store-icon.png`.** ✅ Generated for this purpose: 1024 × 1024, 24-bit RGB, verified fully opaque.
 
@@ -420,27 +429,30 @@ The original `assets/images/images/ahaar2-adaptive.png` **contains fully transpa
 
 So the two are now split deliberately:
 
-| Use | File | Transparency |
-|---|---|---|
-| Play Console listing icon | `assets/store/play-store-icon.png` | None — flattened onto white |
-| `app.json` → `icon` (legacy launcher fallback) | `assets/store/play-store-icon.png` | None |
-| `app.json` → `android.adaptiveIcon.foregroundImage` | `assets/images/images/ahaar2-adaptive.png` | Yes — required |
-| `android.adaptiveIcon.monochromeImage` (themed icons) | `assets/images/images/ahaar2-adaptive.png` | Yes — required |
+| Use                                                   | File                                       | Transparency                |
+| ----------------------------------------------------- | ------------------------------------------ | --------------------------- |
+| Play Console listing icon                             | `assets/store/play-store-icon.png`         | None — flattened onto white |
+| `app.json` → `icon` (legacy launcher fallback)        | `assets/store/play-store-icon.png`         | None                        |
+| `app.json` → `android.adaptiveIcon.foregroundImage`   | `assets/images/images/ahaar2-adaptive.png` | Yes — required              |
+| `android.adaptiveIcon.monochromeImage` (themed icons) | `assets/images/images/ahaar2-adaptive.png` | Yes — required              |
 
 If you rebrand, regenerate the store icon by flattening the new artwork onto an opaque background at 1024 × 1024 — do not just rename the adaptive source.
 
 ### Feature graphic
+
 - **1024 × 500 px**, PNG or JPG, no transparency. **Required.**
 - Shown at the top of your listing and in promotional placements.
 - Keep text minimal and well inside the centre — the edges get cropped on some surfaces.
-- Suggested: the Ahaar logo on the brand pink (`#ff2b85`) with a plated meal photo, plus a short line such as *"Fresh meals, delivered daily."*
+- Suggested: the Ahaar logo on the brand pink (`#ff2b85`) with a plated meal photo, plus a short line such as _"Fresh meals, delivered daily."_
 
 ### Phone screenshots
+
 - **Minimum 2, maximum 8.** Supply **6–8**.
 - 16:9 or 9:16, each side between **320 px and 3840 px**. Recommended: **1080 × 1920**.
 - PNG or JPG, no transparency.
 
 ### Tablet screenshots
+
 Optional. `supportsTablet` is `false` for iOS and the layouts are phone-first, so **skip these** rather than ship stretched phone shots.
 
 ### Recommended screenshot list
@@ -449,16 +461,16 @@ Capture on a clean device with realistic data — no Lorem Ipsum, no empty state
 
 Ordered so the first three carry the three pillars — most shoppers never swipe past screenshot three, so quality, price and speed all have to land before they stop.
 
-| # | Screen | Caption | Pillar |
-|---|---|---|---|
-| 1 | Home with plans and promos | **Chef-cooked food, fresh every day** | Quality |
-| 2 | Plan detail with the weekly menu | **A whole week of meals, one flat price** | Price |
-| 3 | Foods tab browsing the catalogue | **Order in seconds, delivered on time** | Speed |
-| 4 | Meal box / package detail | **Complete meals for less than à la carte** | Price |
-| 5 | **Checkout with the Cash on Delivery box ticked** | **Pay by card — or cash at the door** | Price |
-| 6 | Kitchen video feed | **Watch your food being made** | Quality |
-| 7 | Delivery schedule / day view | **See your whole week at a glance** | Speed |
-| 8 | Meal swap sheet | **Swap any dish, any week, no fees** | Quality |
+| #   | Screen                                            | Caption                                     | Pillar  |
+| --- | ------------------------------------------------- | ------------------------------------------- | ------- |
+| 1   | Home with plans and promos                        | **Chef-cooked food, fresh every day**       | Quality |
+| 2   | Plan detail with the weekly menu                  | **A whole week of meals, one flat price**   | Price   |
+| 3   | Foods tab browsing the catalogue                  | **Order in seconds, delivered on time**     | Speed   |
+| 4   | Meal box / package detail                         | **Complete meals for less than à la carte** | Price   |
+| 5   | **Checkout with the Cash on Delivery box ticked** | **Pay by card — or cash at the door**       | Price   |
+| 6   | Kitchen video feed                                | **Watch your food being made**              | Quality |
+| 7   | Delivery schedule / day view                      | **See your whole week at a glance**         | Speed   |
+| 8   | Meal swap sheet                                   | **Swap any dish, any week, no fees**        | Quality |
 
 Two of these earn their place for specific reasons:
 
@@ -466,6 +478,7 @@ Two of these earn their place for specific reasons:
 - **Screenshot 5 (Cash on Delivery)** is worth including deliberately. COD is a genuine differentiator in this market, and a reviewer who sees the tick box up front has far less ambiguity about how payment works.
 
 ### Promo video
+
 Optional. A YouTube URL, 30 s – 2 min. Skip for v1.
 
 ---
@@ -477,6 +490,7 @@ Optional. A YouTube URL, 30 s – 2 min. Skip for v1.
 **Mandatory.** Must be a live, publicly reachable URL (no login, no PDF-only), linked both in the Play Console and from inside the app. Suggested: `https://www.ahaar.store/privacy`.
 
 Must cover:
+
 - **Who you are** — legal entity name, registered address, contact email.
 - **What is collected** — name, email, phone, delivery addresses, precise location (optional), order and payment history, comments, crash diagnostics. Must match the Data safety form exactly.
 - **Why** — fulfilling orders, taking payment, support, diagnostics.
@@ -493,6 +507,7 @@ Must cover:
 ### Account deletion (mandatory for apps with sign-in)
 
 Play requires **both**:
+
 1. **In-app** deletion — present on the account screen.
 2. **A web URL** reachable without installing the app, e.g. `https://www.ahaar.store/account/delete`. Enter this in Play Console → App content → Data deletion.
 
@@ -521,21 +536,23 @@ Food is perishable and made to order, so the usual distance-selling cooling-off 
 Fill these in before submitting.
 
 ### Store listing contact details
-| Field | Value |
-|---|---|
-| Email | `support@ahaar.store` *(required, publicly shown)* |
-| Phone | *(optional, publicly shown)* |
-| Website | `https://www.ahaar.store` |
-| Privacy Policy | `https://www.ahaar.store/privacy` |
+
+| Field          | Value                                              |
+| -------------- | -------------------------------------------------- |
+| Email          | `support@ahaar.store` _(required, publicly shown)_ |
+| Phone          | _(optional, publicly shown)_                       |
+| Website        | `https://www.ahaar.store`                          |
+| Privacy Policy | `https://www.ahaar.store/privacy`                  |
 
 ### Developer account
-| Field | Value |
-|---|---|
-| Developer name | *(publicly shown — must match your verified identity)* |
-| Legal entity | |
-| Registered address | *(publicly shown for organisation accounts)* |
-| D-U-N-S number | *(required for organisation accounts)* |
-| Contact email | *(verified, not public)* |
+
+| Field              | Value                                                  |
+| ------------------ | ------------------------------------------------------ |
+| Developer name     | _(publicly shown — must match your verified identity)_ |
+| Legal entity       |                                                        |
+| Registered address | _(publicly shown for organisation accounts)_           |
+| D-U-N-S number     | _(required for organisation accounts)_                 |
+| Contact email      | _(verified, not public)_                               |
 
 ⚠ Google requires identity verification for all developer accounts, and **new personal accounts must run a 14-day closed test with at least 12 testers** before they can apply for production access. Organisation accounts are exempt. Check which applies to you early — it is the single most common cause of a delayed first launch.
 
@@ -638,7 +655,7 @@ Emulators hide signing, Maps and Google Sign-In problems. Test on hardware.
 
 ### Play Console setup
 
-- [ ] App created; package name `com.sohagexpo.ahaarapp` (**permanent — cannot be changed**)
+- [ ] App created; package name `store.ahaar` (**permanent — cannot be changed**)
 - [ ] Store listing: title, short and full description
 - [ ] App icon (1024×1024, no alpha)
 - [ ] Feature graphic (1024×500)
@@ -674,15 +691,16 @@ Emulators hide signing, Maps and Google Sign-In problems. Test on hardware.
 
 ### `eas.json` profiles
 
-| Profile | Output | Distribution | Channel | Use |
-|---|---|---|---|---|
-| `development` | APK | internal | development | Dev client with the debug menu |
-| `preview` | APK | internal | preview | Sideloadable QA build |
-| `production` | **AAB** | **store** | production | **Play Store upload** |
-| `production-apk` | APK | internal | production | Production config, sideloadable for QA |
+| Profile          | Output  | Distribution | Channel     | Use                                    |
+| ---------------- | ------- | ------------ | ----------- | -------------------------------------- |
+| `development`    | APK     | internal     | development | Dev client with the debug menu         |
+| `preview`        | APK     | internal     | preview     | Sideloadable QA build                  |
+| `production`     | **AAB** | **store**    | production  | **Play Store upload**                  |
+| `production-apk` | APK     | internal     | production  | Production config, sideloadable for QA |
 
 ### Android configuration
-- **Package:** `com.sohagexpo.ahaarapp` (permanent once published)
+
+- **Package:** `store.ahaar` (permanent once published)
 - **Min SDK / Target SDK / Compile SDK:** Expo SDK 57 defaults (target 36 — comfortably above Play's current floor)
 - **Architectures:** `armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`
 - **Hermes:** enabled · **New Architecture:** enabled · **Edge-to-edge:** enabled
@@ -690,6 +708,7 @@ Emulators hide signing, Maps and Google Sign-In problems. Test on hardware.
 - **Signing:** Play App Signing, with EAS holding the upload key. Run `eas credentials` to inspect. **Never lose the upload key** — losing it means a reset request to Google.
 
 ### Over-the-air updates
+
 `expo-updates` is now fully configured: `runtimeVersion` uses the `appVersion` policy and `updates.url` points at the EAS endpoint. An OTA update can ship JS-only fixes to a released build:
 
 ```bash
@@ -699,9 +718,11 @@ eas update --branch production --message "Fix X"
 ⚠ `runtimeVersion` is tied to `version`, so **bumping `version` in `app.json` breaks OTA compatibility with already-installed builds** — those users need a new store release. Only bump it when you are actually shipping a new binary.
 
 ### Deep linking
+
 Scheme-only: `ahaarapp://` and `exp+ahaar-app://`, used chiefly for the OAuth return. There are **no** Android App Links (no verified `https://` domain association and no `assetlinks.json`). If you want `https://ahaar.store/...` links to open the app, that is additional setup — not required for launch.
 
 ### Performance notes
+
 - Production JS bundle: **~8 MB** Hermes bytecode, 2,800 modules. Verified building cleanly via `npx expo export --platform android`.
 - **~1 MB** of that is the Material Symbols font, pulled in transitively by `expo-router`'s native-tabs feature via `expo-symbols`. This app uses a custom tab bar and never renders those icons. Unavoidable without patching `expo-router`; not worth the risk for 1 MB, but worth knowing if you are chasing size.
 - Lists use FlashList with explicit "Load more" paging rather than auto-fetch on scroll, so memory stays bounded and no page is ever fetched that the customer did not ask for.
