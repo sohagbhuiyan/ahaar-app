@@ -8,6 +8,11 @@
     "scheme": "ahaarapp",
     "userInterfaceStyle": "automatic",
     "primaryColor": "#ff2b85",
+    "androidStatusBar": {
+      "barStyle": "dark-content",
+      "backgroundColor": "#00000000",
+      "translucent": true
+    },
     "runtimeVersion": {
       "policy": "appVersion"
     },

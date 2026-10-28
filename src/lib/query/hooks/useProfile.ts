@@ -15,6 +15,8 @@ import type {
   User,
 } from '../../api/types/auth';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useCartStore, useInstantOrderStore } from '../../store';
+import { clearPrivateQueries } from '../session';
 import { queryKeys } from '../keys';
 
 export function useProfile() {
@@ -161,6 +163,25 @@ export function useSetDefaultAddress() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.profile.addresses() });
       queryClient.invalidateQueries({ queryKey: queryKeys.profile.me() });
+    },
+  });
+}
+
+export function useDeleteAccount(options?: { onSuccess?: () => void }) {
+  const queryClient = useQueryClient();
+  const clearSession = useAuthStore((s) => s.clearSession);
+  const clearCart = useCartStore((s) => s.clear);
+  const clearBasket = useInstantOrderStore((s) => s.clear);
+
+  return useMutation({
+    mutationFn: (payload?: { password?: string; confirm?: boolean; reason?: string }) =>
+      profileApi.deleteAccount(payload),
+    onSuccess: async () => {
+      await clearSession();
+      clearCart();
+      clearBasket();
+      await clearPrivateQueries(queryClient);
+      options?.onSuccess?.();
     },
   });
 }

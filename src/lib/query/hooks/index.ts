@@ -78,6 +78,7 @@ export {
   useUpdateAddress,
   useDeleteAddress,
   useSetDefaultAddress,
+  useDeleteAccount,
 } from './useProfile';
 export {
   useCurrentLocation,

@@ -1,8 +1,11 @@
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Stack, useNavigationContainerRef } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect } from "react";
+import { Platform, StatusBar as RNStatusBar } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
 
 import { AnimatedSplash } from "@/components/shared/AnimatedSplash";
@@ -67,11 +70,24 @@ function RootLayout() {
       .prompt("to pick up where you left off — your session expired");
   }, []);
 
+  // Ensure Android status bar is translucent with a transparent background
+  // so app background/content renders edge-to-edge behind the status bar.
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      RNStatusBar.setTranslucent(true);
+      RNStatusBar.setBackgroundColor('transparent');
+    }
+  }, []);
+
   return (
     // sonner-native renders through gesture-handler, so this wraps everything.
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ErrorBoundary>
-        <QueryProvider onUnauthorized={handleUnauthorized}>
+      <SafeAreaProvider>
+        {/* Transparent status bar with dark icons for the app's light surface.
+            Translucent floats above content edge-to-edge on Android and iOS. */}
+        <StatusBar style="dark" />
+        <ErrorBoundary>
+          <QueryProvider onUnauthorized={handleUnauthorized}>
           {/* Hosts every bottom sheet. Inside the query provider so sheet
               content can read server state, and around the stack so a sheet
               draws above whichever screen opened it. */}
@@ -172,8 +188,9 @@ function RootLayout() {
           <AnimatedSplash />
         </QueryProvider>
       </ErrorBoundary>
-    </GestureHandlerRootView>
-  );
+    </SafeAreaProvider>
+  </GestureHandlerRootView>
+);
 }
 
 // `Sentry.wrap` adds touch/navigation breadcrumbs and native crash context.

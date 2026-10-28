@@ -107,3 +107,26 @@ export async function setDefaultAddress(id: number): Promise<Address> {
   );
   return normalizeAddress(unwrap(data));
 }
+
+/**
+ * DELETE /me (with fallback to POST /me/delete) — Permanently deletes the customer account and revokes all tokens.
+ */
+export async function deleteAccount(payload?: {
+  password?: string;
+  confirm?: boolean;
+  reason?: string;
+}): Promise<void> {
+  try {
+    await apiClient.delete('/me', {
+      data: payload,
+      headers: { 'X-HTTP-Method-Override': 'DELETE' },
+    });
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    if (status === 405) {
+      await apiClient.post('/me/delete', payload);
+      return;
+    }
+    throw err;
+  }
+}

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Image } from 'expo-image';
+import { StatusBar } from 'expo-status-bar';
 import {
   FlatList,
   Modal,
@@ -283,6 +284,7 @@ function ImageViewer({
 
   return (
     <Modal visible animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+      <StatusBar style="light" />
       <View className="flex-1 bg-black">
         <FlatList
           data={images}

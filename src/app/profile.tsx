@@ -24,7 +24,9 @@ import {
   ErrorState,
   InlineError,
   Input,
+  PasswordInput,
   Separator,
+  Sheet,
   SkeletonText,
 } from '@/components/ui';
 import type { Address } from '@/lib/api/types/catalog';
@@ -36,6 +38,7 @@ import {
   useAddresses,
   useChangeLocation,
   useCurrentLocation,
+  useDeleteAccount,
   useDeleteAddress,
   useDeliverySlots,
   useIsSignedIn,
@@ -92,12 +95,23 @@ export default function ProfileScreen() {
   const deleteAddress = useDeleteAddress();
 
   const logout = useLogout({ onSuccess: () => router.replace('/(tabs)') });
+  const deleteAccount = useDeleteAccount({
+    onSuccess: () => {
+      setDeleteSheetOpen(false);
+      toast.success('Your account has been deleted');
+      router.replace('/(tabs)');
+    },
+  });
 
   const [addressForm, setAddressForm] = useState<{ open: boolean; address?: Address }>({
     open: false,
   });
   const [pendingDelete, setPendingDelete] = useState<Address | null>(null);
   const [locationSheetOpen, setLocationSheetOpen] = useState(false);
+  const [deleteSheetOpen, setDeleteSheetOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteReason, setDeleteReason] = useState('');
   const location = useCurrentLocation();
 
   const { control, handleSubmit, reset, formState } = useForm<FormValues>({
@@ -559,6 +573,28 @@ export default function ProfileScreen() {
 
           {user ? <ConnectedAccountsCard user={user} className="mt-4" /> : null}
 
+          {user ? (
+            <Card className="mt-6 border-danger/30 bg-surface p-4">
+              <Text className="text-base font-bold text-danger">Delete Account</Text>
+              <Text className="mt-1.5 text-xs text-text-secondary leading-relaxed">
+                Permanently delete your account and personal details. Active sessions and saved delivery addresses will be wiped immediately. This action cannot be undone.
+              </Text>
+              <Button
+                label="Delete Account"
+                variant="destructive"
+                size="sm"
+                className="mt-4 self-start"
+                fullWidth={false}
+                onPress={() => {
+                  setDeletePassword('');
+                  setDeleteConfirmText('');
+                  setDeleteReason('');
+                  setDeleteSheetOpen(true);
+                }}
+              />
+            </Card>
+          ) : null}
+
           <Button
             label="Sign out"
             variant="outline"
@@ -604,6 +640,110 @@ export default function ProfileScreen() {
         destructive
         loading={deleteAddress.isPending}
       />
+
+      <Sheet
+        open={deleteSheetOpen}
+        onClose={() => {
+          if (deleteAccount.isPending) return;
+          setDeleteSheetOpen(false);
+          setDeletePassword('');
+          setDeleteConfirmText('');
+          setDeleteReason('');
+          deleteAccount.reset();
+        }}
+        title="Delete your account"
+        description="This action is permanent and cannot be undone. All saved delivery addresses, preferences, and personal details will be deleted immediately."
+        footer={
+          <View className="gap-3">
+            <Button
+              label="Delete account permanently"
+              variant="destructive"
+              size="lg"
+              loading={deleteAccount.isPending}
+              disabled={
+                deleteAccount.isPending ||
+                (user?.has_password !== false
+                  ? !deletePassword.trim()
+                  : deleteConfirmText.trim().toUpperCase() !== 'DELETE')
+              }
+              onPress={() => {
+                deleteAccount.mutate(
+                  {
+                    password: user?.has_password !== false ? deletePassword : undefined,
+                    confirm: user?.has_password === false ? true : undefined,
+                    reason: deleteReason.trim() || undefined,
+                  },
+                  {
+                    onError: (e) => {
+                      toast.error(
+                        isApiError(e)
+                          ? e.message
+                          : 'Could not delete account. Please check your credentials or try again later.',
+                      );
+                    },
+                  },
+                );
+              }}
+            />
+            <Button
+              label="Cancel"
+              variant="outline"
+              size="md"
+              disabled={deleteAccount.isPending}
+              onPress={() => {
+                setDeleteSheetOpen(false);
+                setDeletePassword('');
+                setDeleteConfirmText('');
+                setDeleteReason('');
+                deleteAccount.reset();
+              }}
+            />
+          </View>
+        }
+      >
+        {deleteAccount.isError ? (
+          <InlineError error={deleteAccount.error} className="mb-4" />
+        ) : null}
+
+        <View className="gap-4 pb-2">
+          {user?.has_password !== false ? (
+            <PasswordInput
+              label="Confirm your password"
+              placeholder="Enter your current password"
+              value={deletePassword}
+              onChangeText={setDeletePassword}
+              editable={!deleteAccount.isPending}
+              returnKeyType="next"
+              autoFocus
+            />
+          ) : (
+            <View className="gap-1.5">
+              <Text className="text-xs text-text-secondary">
+                You signed in with Google. Type <Text className="font-bold text-danger">DELETE</Text> to confirm.
+              </Text>
+              <Input
+                label="Type DELETE to confirm"
+                placeholder="DELETE"
+                value={deleteConfirmText}
+                onChangeText={setDeleteConfirmText}
+                autoCapitalize="characters"
+                editable={!deleteAccount.isPending}
+                returnKeyType="next"
+                autoFocus
+              />
+            </View>
+          )}
+
+          <Input
+            label="Reason for leaving (optional)"
+            placeholder="Tell us why you're leaving"
+            value={deleteReason}
+            onChangeText={setDeleteReason}
+            editable={!deleteAccount.isPending}
+            returnKeyType="done"
+          />
+        </View>
+      </Sheet>
     </SafeAreaView>
   );
 }

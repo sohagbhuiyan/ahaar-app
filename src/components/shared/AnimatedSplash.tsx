@@ -1,5 +1,6 @@
 import { useIsRestoring } from '@tanstack/react-query';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -174,6 +175,9 @@ export function AnimatedSplash() {
         { pointerEvents: leaving ? 'none' : 'auto' },
       ]}
     >
+      {/* Pink brand splash extends edge-to-edge behind the transparent status bar.
+          Status bar icons are light so they contrast with brand[500]. */}
+      <StatusBar style="light" />
       <Animated.View style={[styles.stage, liftStyle]}>
         <Animated.View style={[styles.glow, glowStyle]} />
         <Ripple progress={ripple} visibility={intro} offset={0} />
