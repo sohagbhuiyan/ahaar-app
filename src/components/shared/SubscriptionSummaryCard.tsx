@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import { Badge, Card, Separator, type BadgeVariant } from '@/components/ui';
@@ -19,12 +20,13 @@ const STATUS_VARIANT: Record<SubscriptionStatus, BadgeVariant> = {
   cancelled: 'danger',
 };
 
+/** Label keys, resolved at render so they follow the app language. */
 const STATUS_LABEL: Record<SubscriptionStatus, string> = {
-  pending: 'Awaiting payment',
-  active: 'Active',
-  paused: 'Paused',
-  completed: 'Finished',
-  cancelled: 'Cancelled',
+  pending: 'account.summary.awaitingPayment',
+  active: 'common.status.active',
+  paused: 'common.status.paused',
+  completed: 'account.summary.finished',
+  cancelled: 'common.status.cancelled',
 };
 
 /**
@@ -42,6 +44,7 @@ export function SubscriptionSummaryCard({
   children,
   className,
 }: Props) {
+  const { t } = useTranslation();
   const { plan, status, start_date, end_date } = subscription;
 
   const totalDays = daySpan(start_date, end_date);
@@ -61,24 +64,25 @@ export function SubscriptionSummaryCard({
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
             <Text className="text-lg font-bold text-text-primary">
-              {plan?.name ?? 'Subscription'}
+              {plan?.name ?? t('account.subscription.title')}
             </Text>
             <Text className="mt-0.5 text-xs text-text-muted">
-              {formatLongDate(start_date)} → {formatLongDate(end_date)}
+              {t('account.dateRange', { from: formatLongDate(start_date), to: formatLongDate(end_date) })}
             </Text>
           </View>
 
-          <Badge label={STATUS_LABEL[status]} variant={STATUS_VARIANT[status]} />
+          <Badge
+            label={t(STATUS_LABEL[status] ?? `common.status.${status}`, { defaultValue: status })} variant={STATUS_VARIANT[status]} />
         </View>
 
         {isRunning && totalDays > 0 ? (
           <View className="mt-4 gap-1.5">
             <View className="flex-row items-center justify-between">
               <Text className="text-xs font-semibold text-text-secondary">
-                Day {currentDay} of {totalDays}
+                {t('account.deliveries.dayOf', { day: currentDay, total: totalDays })}
               </Text>
               <Text className="text-xs text-text-muted">
-                {Math.max(0, totalDays - currentDay)} days left
+                {t('account.daysLeft', { count: Math.max(0, totalDays - currentDay) })}
               </Text>
             </View>
 
@@ -91,8 +95,9 @@ export function SubscriptionSummaryCard({
 
             {extended ? (
               <Text className="text-[11px] text-text-muted">
-                Extended past {formatLongDate(subscription.original_end_date)} to
-                make up paused days.
+                {t('account.summary.extended', {
+                  date: formatLongDate(subscription.original_end_date),
+                })}
               </Text>
             ) : null}
           </View>
@@ -102,7 +107,7 @@ export function SubscriptionSummaryCard({
           <>
             <Separator className="my-4" />
             <View className="flex-row items-center justify-between">
-              <Text className="text-sm text-text-secondary">Paid</Text>
+              <Text className="text-sm text-text-secondary">{t('account.paid')}</Text>
               <Text className="text-base font-bold text-text-primary">
                 {formatMoney(subscription.price_paid)}
               </Text>

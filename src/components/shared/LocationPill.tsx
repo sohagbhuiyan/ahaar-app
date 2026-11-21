@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 
 import ChevronDownIcon from '@/components/icons/ChevronDownIcon';
@@ -26,15 +27,16 @@ interface Props {
  * to "where does my food go?" is one tap from changing.
  */
 export function LocationPill({ location, onPress, variant = 'card', className }: Props) {
+  const { t } = useTranslation();
   const hasLocation = location.source !== null && location.title !== '';
   const flag = hasLocation && isSupportedCountry(location.country) ? countryRules(location.country).flag : null;
-  const title = hasLocation ? location.title : 'Set delivery location';
+  const title = hasLocation ? location.title : t('location.pill.setLocation');
 
   const accessibilityLabel = location.isLoading
-    ? 'Delivery location, loading'
+    ? t('location.pill.loading')
     : hasLocation
-      ? `Delivering to ${location.title}. Change location`
-      : 'Set delivery location';
+      ? t('location.pill.a11yDelivering', { title: location.title })
+      : t('location.pill.setLocation');
 
   if (variant === 'bar') {
     return (
@@ -54,7 +56,7 @@ export function LocationPill({ location, onPress, variant = 'card', className }:
 
         <View className="flex-1">
           <Text className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-            Deliver to
+            {t('location.pill.deliverTo')}
           </Text>
           {location.isLoading ? (
             <View testID="location-pill-loading">
@@ -96,7 +98,7 @@ export function LocationPill({ location, onPress, variant = 'card', className }:
       </View>
 
       <View className="flex-1">
-        <Text className="text-xs text-text-muted">Deliver to</Text>
+        <Text className="text-xs text-text-muted">{t('location.pill.deliverTo')}</Text>
         {location.isLoading ? (
           <View testID="location-pill-loading">
             <Skeleton className="mt-1 h-4 w-40" />
@@ -112,7 +114,7 @@ export function LocationPill({ location, onPress, variant = 'card', className }:
         )}
       </View>
 
-      <Text className="text-xs font-bold text-brand-500">{hasLocation ? 'Change' : 'Set'}</Text>
+      <Text className="text-xs font-bold text-brand-500">{hasLocation ? t('location.pill.change') : t('location.pill.set')}</Text>
       <ChevronDownIcon color={colors.text.muted} size={16} />
     </Pressable>
   );

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, Text, View } from 'react-native';
 
 import { Button } from './Button';
@@ -27,6 +28,7 @@ export function Dialog({
   dismissOnBackdropPress = true,
   className,
 }: DialogProps) {
+  const { t } = useTranslation();
   return (
     <Modal
       visible={open}
@@ -38,7 +40,7 @@ export function Dialog({
       <View className="flex-1 items-center justify-center px-6">
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close"
+          accessibilityLabel={t('common.actions.close')}
           onPress={dismissOnBackdropPress ? onClose : undefined}
           className="absolute inset-0 bg-black/40"
         />
@@ -84,11 +86,12 @@ export function AlertDialog({
   onConfirm,
   title,
   description,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   destructive = false,
   loading = false,
 }: AlertDialogProps) {
+  const { t } = useTranslation();
   return (
     <Dialog
       open={open}
@@ -99,7 +102,7 @@ export function AlertDialog({
       footer={
         <View className="flex-row gap-3">
           <Button
-            label={cancelLabel}
+            label={cancelLabel ?? t('common.actions.cancel')}
             variant="outline"
             onPress={onClose}
             disabled={loading}
@@ -107,7 +110,7 @@ export function AlertDialog({
             fullWidth={false}
           />
           <Button
-            label={confirmLabel}
+            label={confirmLabel ?? t('common.actions.confirm')}
             variant={destructive ? 'destructive' : 'primary'}
             onPress={onConfirm}
             loading={loading}

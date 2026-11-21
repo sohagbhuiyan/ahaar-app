@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import type { DeliveryAddress } from '@/lib/api/types/catalog';
@@ -17,7 +18,8 @@ interface Props {
  * address later must not rewrite where a past order went. Older orders placed
  * before snapshots existed carry none, and simply don't show the block.
  */
-export function DeliveryAddressBlock({ address, title = 'Delivering to', className }: Props) {
+export function DeliveryAddressBlock({ address, title, className }: Props) {
+  const { t } = useTranslation();
   if (!address) return null;
 
   return (
@@ -25,7 +27,9 @@ export function DeliveryAddressBlock({ address, title = 'Delivering to', classNa
       testID="delivery-address"
       className={cn('rounded-2xl bg-surface-muted px-4 py-3', className)}
     >
-      <Text className="text-xs font-bold uppercase text-text-muted">{title}</Text>
+      <Text className="text-xs font-bold uppercase text-text-muted">
+        {title ?? t('location.deliveryBlock.title')}
+      </Text>
       {address.label ? (
         <Text className="mt-0.5 text-sm font-semibold text-text-primary">{address.label}</Text>
       ) : null}

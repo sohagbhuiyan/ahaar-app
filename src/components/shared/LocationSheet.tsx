@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { toast } from 'sonner-native';
 
@@ -47,6 +48,7 @@ const MANUAL_DRAFT: AddressDraft = { ...EMPTY_DRAFT, location_source: 'manual' }
  * plans, packages and prices are the same everywhere.
  */
 export function LocationSheet({ open, onClose }: Props) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [typing, setTyping] = useState(false);
 
@@ -89,10 +91,10 @@ export function LocationSheet({ open, onClose }: Props) {
     }
     try {
       const address = await selectAddress(addressId);
-      toast.success(`Delivering to ${locationTitle(address)}`);
+      toast.success(t('location.common.deliveringToTitle', { title: locationTitle(address) }));
       finish();
     } catch (error) {
-      toast.error(isApiError(error) ? error.message : 'Could not change your location');
+      toast.error(isApiError(error) ? error.message : t('location.sheet.changeFailed'));
     }
   };
 
@@ -101,15 +103,15 @@ export function LocationSheet({ open, onClose }: Props) {
     const result = await saveLocation(draft);
     toast.success(
       result.kind === 'existing'
-        ? `Using your saved address — ${locationTitle(result.address)}`
-        : 'Delivery location updated',
+        ? t('location.common.usingSaved', { title: locationTitle(result.address) })
+        : t('location.common.locationUpdated'),
     );
     finish();
   };
 
   const resetGuestLocation = () => {
     setGuestLocation(null);
-    toast.success('Delivery location cleared');
+    toast.success(t('location.sheet.cleared'));
     finish();
   };
 
@@ -121,13 +123,15 @@ export function LocationSheet({ open, onClose }: Props) {
       <Sheet
         open={open && !typing}
         onClose={finish}
-        title="Delivery location"
-        description="Place the pin on your door. Menus and prices are the same everywhere."
+        title={t('location.sheet.title')}
+        description={t('location.sheet.description')}
       >
         <View className="gap-5 pb-2">
           {current.source ? (
             <View testID="current-location" className="rounded-2xl bg-surface-muted px-4 py-3">
-              <Text className="text-xs font-bold uppercase text-text-muted">Delivering to</Text>
+              <Text className="text-xs font-bold uppercase text-text-muted">
+                {t('location.sheet.deliveringTo')}
+              </Text>
               <Text numberOfLines={1} className="mt-0.5 text-sm font-bold text-text-primary">
                 {flag ? `${flag} ` : ''}
                 {current.title}
@@ -150,15 +154,15 @@ export function LocationSheet({ open, onClose }: Props) {
             <ActionRow
               testID="search-address"
               icon={<SearchIcon color={colors.text.primary} size={20} />}
-              label="Search for an address"
-              hint="A street, building or place"
+              label={t('location.common.searchAddress')}
+              hint={t('location.sheet.searchHint')}
               onPress={() => openPicker({ start: 'search' })}
             />
             <ActionRow
               testID="choose-on-map"
               icon={<PinIcon color={colors.text.primary} size={20} />}
-              label="Choose on the map"
-              hint="Drag the map until the pin is on your door"
+              label={t('location.common.chooseOnMap')}
+              hint={t('location.sheet.mapHint')}
               onPress={() => openPicker()}
             />
           </View>
@@ -166,7 +170,7 @@ export function LocationSheet({ open, onClose }: Props) {
           {savedAddresses.length > 0 ? (
             <View>
               <Text className="mb-2 text-xs font-bold uppercase text-text-muted">
-                Saved addresses
+                {t('location.sheet.saved')}
               </Text>
               <View className="gap-2">
                 {savedAddresses.map((address) => {
@@ -207,7 +211,7 @@ export function LocationSheet({ open, onClose }: Props) {
                       {busy ? (
                         <ActivityIndicator size="small" color={colors.brand[500]} />
                       ) : selected ? (
-                        <Badge label="Current" variant="brand" />
+                        <Badge label={t('location.sheet.current')} variant="brand" />
                       ) : null}
                     </Pressable>
                   );
@@ -219,23 +223,22 @@ export function LocationSheet({ open, onClose }: Props) {
           {!signedIn ? (
             <View className="rounded-2xl bg-surface-muted px-4 py-3">
               <Text className="text-xs text-text-secondary">
-                No account needed. Your location is kept on this phone, and saved to your
-                account when you sign in.
+                {t('location.sheet.guestNote')}
               </Text>
               <View className="mt-1 flex-row flex-wrap gap-2">
                 <Button
-                  label="Sign in"
+                  label={t('location.sheet.signIn')}
                   variant="ghost"
                   size="sm"
                   fullWidth={false}
                   onPress={() => {
                     finish();
-                    promptLogin('to save your delivery addresses');
+                    promptLogin(t('location.sheet.signInReason'));
                   }}
                 />
                 {current.source === 'guest' ? (
                   <Button
-                    label="Reset location"
+                    label={t('location.sheet.reset')}
                     variant="ghost"
                     size="sm"
                     fullWidth={false}
@@ -250,7 +253,7 @@ export function LocationSheet({ open, onClose }: Props) {
           <Pressable
             testID="type-address"
             accessibilityRole="button"
-            accessibilityLabel="Type the address instead"
+            accessibilityLabel={t('location.sheet.typeInstead')}
             onPress={() => {
               device.reset();
               setTyping(true);
@@ -258,7 +261,9 @@ export function LocationSheet({ open, onClose }: Props) {
             className="flex-row items-center justify-center gap-2 py-1 active:opacity-70"
           >
             <EditIcon color={colors.text.muted} size={16} />
-            <Text className="text-xs font-semibold text-text-muted">Type the address instead</Text>
+            <Text className="text-xs font-semibold text-text-muted">
+              {t('location.sheet.typeInstead')}
+            </Text>
           </Pressable>
         </View>
       </Sheet>
@@ -269,9 +274,9 @@ export function LocationSheet({ open, onClose }: Props) {
         onClose={() => setTyping(false)}
         initialDraft={current.draft ?? MANUAL_DRAFT}
         onSubmitDraft={submitTyped}
-        title="Your delivery address"
-        description="Add your building and flat so the rider finds the door."
-        submitLabel="Deliver here"
+        title={t('location.sheet.typedTitle')}
+        description={t('location.common.riderHint')}
+        submitLabel={t('location.common.deliverHere')}
       />
     </>
   );

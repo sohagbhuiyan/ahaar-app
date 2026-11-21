@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 
 import { Badge, Button } from '@/components/ui';
@@ -34,16 +35,16 @@ export function AddressPicker({
   onAdd,
   className,
 }: Props) {
+  const { t } = useTranslation();
   if (addresses.length === 0) {
     return (
       <View className={cn('rounded-2xl bg-surface-muted px-4 py-4', className)}>
         <Text className="text-sm text-text-secondary">
-          No saved address yet. We&apos;ll use the one on your account if you
-          have one.
+          {t('location.addressPicker.empty')}
         </Text>
         {onAdd ? (
           <Button
-            label="Add an address"
+            label={t('location.common.addAddress')}
             variant="secondary"
             size="sm"
             fullWidth={false}
@@ -75,7 +76,7 @@ export function AddressPicker({
               <Text className="flex-1 text-sm font-semibold text-text-primary">
                 {address.label ?? address.line1}
               </Text>
-              {address.is_default ? <Badge label="Default" variant="muted" /> : null}
+              {address.is_default ? <Badge label={t('location.addressPicker.default')} variant="muted" /> : null}
             </View>
             <Text numberOfLines={2} className="mt-0.5 text-xs text-text-muted">
               {formatAddress(address)}
@@ -86,7 +87,7 @@ export function AddressPicker({
 
       {onAdd ? (
         <Button
-          label="Add another address"
+          label={t('location.addressPicker.addAnother')}
           variant="ghost"
           size="sm"
           fullWidth={false}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { Button } from './Button';
@@ -26,13 +27,14 @@ interface Props {
  * Returns `null` on the last page so the list simply ends — an exhausted list
  * needs no footer, and a disabled button at the bottom reads as a fault.
  */
-export function LoadMore({ hasMore, loading, onPress, label = 'Load more', className }: Props) {
+export function LoadMore({ hasMore, loading, onPress, label, className }: Props) {
+  const { t } = useTranslation();
   if (!hasMore) return null;
 
   return (
     <View className={cn('px-5 py-6', className)}>
       <Button
-        label={loading ? 'Loading…' : label}
+        label={loading ? t('common.states.loading') : (label ?? t('ui.loadMore'))}
         variant="outline"
         loading={loading}
         onPress={onPress}

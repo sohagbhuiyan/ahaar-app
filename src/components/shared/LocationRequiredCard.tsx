@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import BrandDecor from '@/components/illustrations/BrandDecor';
@@ -20,11 +21,12 @@ interface Props {
  * moment a location exists.
  */
 export function LocationRequiredCard({ onPress, className }: Props) {
+  const { t } = useTranslation();
   return (
     <PressableScale
       testID="location-required"
       accessibilityRole="button"
-      accessibilityLabel="Set your delivery location"
+      accessibilityLabel={t('location.required.a11y')}
       onPress={onPress}
       className={cn('overflow-hidden rounded-3xl bg-brand-500', className)}
       style={shadows.brand}
@@ -37,17 +39,17 @@ export function LocationRequiredCard({ onPress, className }: Props) {
         </View>
         <View className="flex-1">
           <Text className="text-base font-bold text-text-inverse">
-            Where should we deliver?
+            {t('location.required.title')}
           </Text>
           <Text className="mt-0.5 text-xs leading-4 text-white/90">
-            Add your address so your plan, orders and delivery times are ready when you are.
+            {t('location.required.body')}
           </Text>
         </View>
       </View>
 
       <View className="mx-5 mb-5 flex-row items-center justify-center gap-2 rounded-2xl bg-surface py-3">
         <PinIcon color={colors.brand[500]} size={18} />
-        <Text className="text-sm font-bold text-brand-500">Set delivery location</Text>
+        <Text className="text-sm font-bold text-brand-500">{t('location.required.cta')}</Text>
       </View>
     </PressableScale>
   );

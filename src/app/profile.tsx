@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { TFunction } from 'i18next';
 import { useRouter } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
+import { Trans, useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -31,9 +33,16 @@ import {
 } from '@/components/ui';
 import type { Address } from '@/lib/api/types/catalog';
 import { isApiError } from '@/lib/api/types/common';
-import { ALLERGENS, DIETARY_TAGS, humanise, LOCALES } from '@/lib/constants/diet';
+import {
+  ALLERGENS,
+  allergenLabelKey,
+  DIETARY_TAGS,
+  dietTagLabelKey,
+  humanise,
+} from '@/lib/constants/diet';
 import { formatAddress } from '@/components/shared/AddressPicker';
 import { ConnectedAccountsCard } from '@/components/shared/ConnectedAccountsCard';
+import { LanguagePicker } from '@/components/shared/LanguagePicker';
 import {
   useAddresses,
   useChangeLocation,
@@ -55,15 +64,40 @@ import { cn } from '@/lib/utils';
 /**
  * Mirrors `UpdateProfileRequest`. Every field there is `sometimes`, so this
  * only sends what actually changed — see `changedOnly` below.
+ *
+ * `users.locale` (the language for emails and notifications) is not on this
+ * form: `LanguagePicker` keeps it in sync with the app's display language.
  */
-const schema = z.object({
-  name: z.string().min(2, 'Enter your name').max(120),
-  email: z.string().min(1, 'Email is required').email('Enter a valid email').max(190),
-  phone: z.string().max(32).optional().or(z.literal('')),
-  locale: z.string().optional().or(z.literal('')),
-});
+function makeSchema(t: TFunction) {
+  return z.object({
+    name: z
+      .string()
+      .min(2, t('common.validation.minLength', { min: 2 }))
+      .max(120, t('common.validation.maxLength', { max: 120 })),
+    email: z
+      .string()
+      .min(1, t('common.validation.required'))
+      .email(t('common.validation.email'))
+      .max(190, t('common.validation.maxLength', { max: 190 })),
+    phone: z
+      .string()
+      .max(32, t('common.validation.maxLength', { max: 32 }))
+      .optional()
+      .or(z.literal('')),
+  });
+}
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<ReturnType<typeof makeSchema>>;
+
+/**
+ * What a Google-only customer types to confirm deletion. A fixed Latin word in
+ * every language: it is compared client-side and must be typeable on any
+ * keyboard layout the customer has.
+ */
+const DELETE_WORD = 'DELETE';
+
+/** Phone numbers and emails read left to right inside Arabic text. */
+const ltr = (value: string) => `⁦${value}⁩`;
 
 /**
  * Account screen.
@@ -82,6 +116,9 @@ export default function ProfileScreen() {
   const router = useRouter();
   const signedIn = useIsSignedIn();
   const promptLogin = useAuthPromptStore((s) => s.prompt);
+  const { t } = useTranslation();
+  // Rebuilt per language so validation messages follow a language switch.
+  const schema = useMemo(() => makeSchema(t), [t]);
 
   const { data: user, isLoading, isError, error, refetch } = useProfile();
   const { data: addresses } = useAddresses();
@@ -98,7 +135,7 @@ export default function ProfileScreen() {
   const deleteAccount = useDeleteAccount({
     onSuccess: () => {
       setDeleteSheetOpen(false);
-      toast.success('Your account has been deleted');
+      toast.success(t('profile.toast.accountDeleted'));
       router.replace('/(tabs)');
     },
   });
@@ -116,7 +153,7 @@ export default function ProfileScreen() {
 
   const { control, handleSubmit, reset, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', email: '', phone: '', locale: '' },
+    defaultValues: { name: '', email: '', phone: '' },
   });
 
   // Seed the form once the server's copy arrives. `reset` rather than
@@ -127,7 +164,6 @@ export default function ProfileScreen() {
       name: user.name,
       email: user.email,
       phone: user.phone ?? '',
-      locale: user.locale ?? '',
     });
   }, [user, reset]);
 
@@ -145,19 +181,16 @@ export default function ProfileScreen() {
     if (values.name !== user.name) payload.name = values.name;
     if (values.email !== user.email) payload.email = values.email;
     if ((values.phone || null) !== user.phone) payload.phone = values.phone || null;
-    if ((values.locale || null) !== user.locale && values.locale) {
-      payload.locale = values.locale;
-    }
 
     if (Object.keys(payload).length === 0) {
-      toast('Nothing to save');
+      toast(t('profile.toast.nothingToSave'));
       return;
     }
 
     updateProfile.mutate(payload, {
-      onSuccess: () => toast.success('Profile updated'),
+      onSuccess: () => toast.success(t('profile.toast.profileUpdated')),
       onError: (e) =>
-        toast.error(isApiError(e) ? e.message : 'Could not save your profile'),
+        toast.error(isApiError(e) ? e.message : t('profile.toast.profileSaveFailed')),
     });
   };
 
@@ -172,7 +205,7 @@ export default function ProfileScreen() {
       { tags: next, avoid_allergens: user.dietary_preferences?.avoid_allergens ?? [] },
       {
         onError: (e) =>
-          toast.error(isApiError(e) ? e.message : 'Could not save that preference'),
+          toast.error(isApiError(e) ? e.message : t('profile.toast.preferenceSaveFailed')),
       },
     );
   };
@@ -188,7 +221,7 @@ export default function ProfileScreen() {
       { tags: user.dietary_preferences?.tags ?? [], avoid_allergens: next },
       {
         onError: (e) =>
-          toast.error(isApiError(e) ? e.message : 'Could not save that preference'),
+          toast.error(isApiError(e) ? e.message : t('profile.toast.preferenceSaveFailed')),
       },
     );
   };
@@ -197,9 +230,9 @@ export default function ProfileScreen() {
     updateProfile.mutate(
       { default_slot_id: slotId },
       {
-        onSuccess: () => toast.success('Default meal time saved'),
+        onSuccess: () => toast.success(t('profile.toast.mealTimeSaved')),
         onError: (e) =>
-          toast.error(isApiError(e) ? e.message : 'Could not save that'),
+          toast.error(isApiError(e) ? e.message : t('profile.toast.saveFailed')),
       },
     );
   };
@@ -207,14 +240,23 @@ export default function ProfileScreen() {
   if (!signedIn) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Account" />
-        <EmptyState
-          title="Sign in to your account"
-          description="Manage your details, addresses and dietary preferences."
-          actionLabel="Sign in"
-          onAction={() => promptLogin('to manage your account')}
-          className="flex-1 justify-center"
-        />
+        <ScreenHeader title={t('profile.title')} />
+        <View className="flex-1 justify-center p-5">
+          <EmptyState
+            title={t('profile.signedOut.title')}
+            description={t('profile.signedOut.description')}
+            actionLabel={t('common.actions.signIn')}
+            onAction={() => promptLogin(t('profile.signedOut.reason'))}
+          />
+          <Card className="mt-6">
+            <View className="gap-2 p-4">
+              <Text className="text-sm font-bold text-text-primary">
+                {t('profile.appLanguage')}
+              </Text>
+              <LanguagePicker />
+            </View>
+          </Card>
+        </View>
       </SafeAreaView>
     );
   }
@@ -222,7 +264,7 @@ export default function ProfileScreen() {
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Account" />
+        <ScreenHeader title={t('profile.title')} />
         <View className="gap-4 p-5">
           <SkeletonText lines={6} />
         </View>
@@ -233,7 +275,7 @@ export default function ProfileScreen() {
   if (isError) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Account" />
+        <ScreenHeader title={t('profile.title')} />
         <ErrorState error={error} onRetry={refetch} className="flex-1 justify-center" />
       </SafeAreaView>
     );
@@ -244,7 +286,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
-      <ScreenHeader title="Account" />
+      <ScreenHeader title={t('profile.title')} />
       <OfflineBanner />
 
       <KeyboardAvoidingView
@@ -263,17 +305,20 @@ export default function ProfileScreen() {
             <Text className="mt-3 text-lg font-bold text-text-primary">
               {user?.name}
             </Text>
-            <Text className="text-sm text-text-secondary">{user?.email}</Text>
+            <Text className="text-sm text-text-secondary">{user?.email ? ltr(user.email) : ''}</Text>
 
             <View className="mt-2 flex-row gap-2">
               {user?.email_verified === false ? (
-                <Badge label="Email not verified" variant="warning" />
+                <Badge label={t('profile.badges.emailNotVerified')} variant="warning" />
               ) : null}
               {user?.phone && user.phone_verified === false ? (
-                <Badge label="Phone not verified" variant="warning" />
+                <Badge label={t('profile.badges.phoneNotVerified')} variant="warning" />
               ) : null}
               {user?.status && user.status !== 'active' ? (
-                <Badge label={user.status} variant="danger" className="capitalize" />
+                <Badge
+                  label={t(`common.status.${user.status}`, { defaultValue: humanise(user.status) })}
+                  variant="danger"
+                />
               ) : null}
             </View>
           </View>
@@ -281,18 +326,18 @@ export default function ProfileScreen() {
           {/* Shortcuts */}
           <View className="mb-6 gap-2">
             <LinkRow
-              label="Your orders"
-              hint="One-off orders and payments"
+              label={t('profile.links.orders')}
+              hint={t('profile.links.ordersHint')}
               onPress={() => router.push('/orders')}
             />
             <LinkRow
-              label="Subscription orders"
-              hint="Plans, schedules and allowances"
+              label={t('profile.links.subscriptions')}
+              hint={t('profile.links.subscriptionsHint')}
               onPress={() => router.push('/subscriptions')}
             />
             <LinkRow
-              label="Payments"
-              hint="Charges, refunds and anything outstanding"
+              label={t('profile.links.payments')}
+              hint={t('profile.links.paymentsHint')}
               onPress={() => router.push('/payments')}
             />
           </View>
@@ -304,14 +349,16 @@ export default function ProfileScreen() {
           {/* Details */}
           <Card>
             <View className="gap-4 p-5">
-              <Text className="text-sm font-bold text-text-primary">Your details</Text>
+              <Text className="text-sm font-bold text-text-primary">
+                {t('profile.yourDetails')}
+              </Text>
 
               <Controller
                 control={control}
                 name="name"
                 render={({ field: { onChange, onBlur, value }, fieldState }) => (
                   <Input
-                    label="Full name"
+                    label={t('profile.fullName')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
@@ -326,7 +373,7 @@ export default function ProfileScreen() {
                 name="email"
                 render={({ field: { onChange, onBlur, value }, fieldState }) => (
                   <Input
-                    label="Email"
+                    label={t('profile.email')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
@@ -343,8 +390,8 @@ export default function ProfileScreen() {
                 name="phone"
                 render={({ field: { onChange, onBlur, value }, fieldState }) => (
                   <Input
-                    label="Phone"
-                    hint="Changing this means verifying it again"
+                    label={t('profile.phone')}
+                    hint={t('profile.phoneHint')}
                     value={value ?? ''}
                     onChangeText={onChange}
                     onBlur={onBlur}
@@ -355,30 +402,8 @@ export default function ProfileScreen() {
                 )}
               />
 
-              <Controller
-                control={control}
-                name="locale"
-                render={({ field: { onChange, value } }) => (
-                  <View className="gap-1.5">
-                    <Text className="text-sm font-semibold text-text-primary">
-                      Language for emails
-                    </Text>
-                    <View className="flex-row gap-2">
-                      {LOCALES.map((locale) => (
-                        <Chip
-                          key={locale.value}
-                          label={locale.label}
-                          active={value === locale.value}
-                          onPress={() => onChange(locale.value)}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                )}
-              />
-
               <Button
-                label="Save changes"
+                label={t('profile.saveChanges')}
                 loading={updateProfile.isPending}
                 disabled={!formState.isDirty}
                 onPress={handleSubmit(onSubmit)}
@@ -386,29 +411,37 @@ export default function ProfileScreen() {
             </View>
           </Card>
 
+          {/* Language — display language; emails and notifications follow it. */}
+          <Card className="mt-4">
+            <View className="gap-2 p-5">
+              <Text className="text-sm font-bold text-text-primary">
+                {t('profile.appLanguage')}
+              </Text>
+              <Text className="text-xs text-text-muted">{t('profile.appLanguageHint')}</Text>
+              <LanguagePicker className="mt-1" />
+            </View>
+          </Card>
+
           {/* Dietary preferences */}
           <Card className="mt-4">
             <View className="p-5">
               <Text className="text-sm font-bold text-text-primary">
-                Dietary preferences
+                {t('profile.dietaryPreferences')}
               </Text>
-              <Text className="mt-1 text-xs text-text-muted">
-                Applied automatically when you swap a dish — anything you avoid
-                is removed from the options you&apos;re offered.
-              </Text>
+              <Text className="mt-1 text-xs text-text-muted">{t('profile.dietaryHint')}</Text>
 
               {updateDietary.isError ? (
                 <InlineError error={updateDietary.error} className="mt-3" />
               ) : null}
 
               <Text className="mt-4 text-xs font-bold uppercase text-text-muted">
-                I prefer
+                {t('profile.iPrefer')}
               </Text>
               <View className="mt-2 flex-row flex-wrap gap-2">
                 {DIETARY_TAGS.map((tag) => (
                   <Chip
                     key={tag}
-                    label={humanise(tag)}
+                    label={t(dietTagLabelKey(tag), { defaultValue: humanise(tag) })}
                     active={tags.includes(tag)}
                     disabled={updateDietary.isPending}
                     onPress={() => toggleTag(tag)}
@@ -419,13 +452,13 @@ export default function ProfileScreen() {
               <Separator className="my-4" />
 
               <Text className="text-xs font-bold uppercase text-text-muted">
-                I avoid
+                {t('profile.iAvoid')}
               </Text>
               <View className="mt-2 flex-row flex-wrap gap-2">
                 {ALLERGENS.map((allergen) => (
                   <Chip
                     key={allergen}
-                    label={humanise(allergen)}
+                    label={t(allergenLabelKey(allergen), { defaultValue: humanise(allergen) })}
                     active={avoided.includes(allergen)}
                     disabled={updateDietary.isPending}
                     tone="warning"
@@ -441,10 +474,10 @@ export default function ProfileScreen() {
             <Card className="mt-4">
               <View className="p-5">
                 <Text className="text-sm font-bold text-text-primary">
-                  Preferred meal time
+                  {t('profile.preferredMealTime')}
                 </Text>
                 <Text className="mt-1 text-xs text-text-muted">
-                  Pre-selected when you order or subscribe.
+                  {t('profile.preferredMealHint')}
                 </Text>
 
                 <View className="mt-3 flex-row flex-wrap gap-2">
@@ -466,10 +499,11 @@ export default function ProfileScreen() {
               saved addresses and typing one in all work from here too. */}
           <Card className="mt-4">
             <View className="p-5">
-              <Text className="text-sm font-bold text-text-primary">Delivery location</Text>
+              <Text className="text-sm font-bold text-text-primary">
+                {t('profile.deliveryLocation')}
+              </Text>
               <Text className="mt-1 text-xs text-text-muted">
-                Where your orders and plan meals are delivered. Moved? Update it from
-                where you are now.
+                {t('profile.deliveryLocationHint')}
               </Text>
               <LocationPill
                 location={location}
@@ -483,10 +517,12 @@ export default function ProfileScreen() {
           <Card className="mt-4">
             <View className="p-5">
               <View className="flex-row items-center justify-between gap-3">
-                <Text className="text-sm font-bold text-text-primary">Addresses</Text>
+                <Text className="text-sm font-bold text-text-primary">
+                  {t('profile.addresses.title')}
+                </Text>
                 {/* A new address starts on the map, so it always has an exact pin. */}
                 <Button
-                  label="Add"
+                  label={t('profile.addresses.add')}
                   size="sm"
                   variant="secondary"
                   fullWidth={false}
@@ -496,7 +532,7 @@ export default function ProfileScreen() {
 
               {!addresses || addresses.length === 0 ? (
                 <Text className="mt-3 text-sm text-text-secondary">
-                  No saved addresses yet. Add one so we know where to deliver.
+                  {t('profile.addresses.empty')}
                 </Text>
               ) : (
                 <View className="mt-3">
@@ -514,7 +550,9 @@ export default function ProfileScreen() {
                           </Text>
                           {address.short_address ? (
                             <Text className="mt-1 text-xs text-text-secondary">
-                              Short address: {address.short_address}
+                              {t('profile.addresses.shortAddress', {
+                                code: ltr(address.short_address),
+                              })}
                             </Text>
                           ) : null}
                           {address.instructions ? (
@@ -525,13 +563,13 @@ export default function ProfileScreen() {
                         </View>
 
                         {address.is_default ? (
-                          <Badge label="Delivery location" variant="brand" />
+                          <Badge label={t('profile.deliveryLocation')} variant="brand" />
                         ) : null}
                       </View>
 
                       <View className="mt-2 flex-row gap-2">
                         <Button
-                          label="Edit"
+                          label={t('common.actions.edit')}
                           size="sm"
                           variant="ghost"
                           fullWidth={false}
@@ -539,24 +577,24 @@ export default function ProfileScreen() {
                         />
                         {!address.is_default ? (
                           <Button
-                            label="Deliver here"
+                            label={t('profile.addresses.deliverHere')}
                             size="sm"
                             variant="ghost"
                             fullWidth={false}
                             loading={pendingAddressId === address.id}
                             onPress={() =>
                               selectAddress(address.id)
-                                .then(() => toast.success('Delivery location updated'))
+                                .then(() => toast.success(t('profile.toast.locationUpdated')))
                                 .catch((e: unknown) =>
                                   toast.error(
-                                    isApiError(e) ? e.message : 'Could not set that',
+                                    isApiError(e) ? e.message : t('profile.toast.locationFailed'),
                                   ),
                                 )
                             }
                           />
                         ) : null}
                         <Button
-                          label="Delete"
+                          label={t('common.actions.delete')}
                           size="sm"
                           variant="ghost"
                           fullWidth={false}
@@ -575,12 +613,14 @@ export default function ProfileScreen() {
 
           {user ? (
             <Card className="mt-6 border-danger/30 bg-surface p-4">
-              <Text className="text-base font-bold text-danger">Delete Account</Text>
+              <Text className="text-base font-bold text-danger">
+                {t('profile.deleteAccount.title')}
+              </Text>
               <Text className="mt-1.5 text-xs text-text-secondary leading-relaxed">
-                Permanently delete your account and personal details. Active sessions and saved delivery addresses will be wiped immediately. This action cannot be undone.
+                {t('profile.deleteAccount.description')}
               </Text>
               <Button
-                label="Delete Account"
+                label={t('profile.deleteAccount.button')}
                 variant="destructive"
                 size="sm"
                 className="mt-4 self-start"
@@ -596,7 +636,7 @@ export default function ProfileScreen() {
           ) : null}
 
           <Button
-            label="Sign out"
+            label={t('profile.logout')}
             variant="outline"
             className="mt-6"
             loading={logout.isPending}
@@ -624,19 +664,19 @@ export default function ProfileScreen() {
           deleteAddress.mutate(pendingDelete.id, {
             onSuccess: () => {
               setPendingDelete(null);
-              toast.success('Address deleted');
+              toast.success(t('profile.toast.addressDeleted'));
             },
             onError: (e) => {
               setPendingDelete(null);
               toast.error(
-                isApiError(e) ? e.message : 'That address could not be deleted',
+                isApiError(e) ? e.message : t('profile.toast.addressDeleteFailed'),
               );
             },
           });
         }}
-        title="Delete this address?"
+        title={t('profile.addresses.deleteTitle')}
         description={pendingDelete ? formatAddress(pendingDelete) : undefined}
-        confirmLabel="Delete"
+        confirmLabel={t('common.actions.delete')}
         destructive
         loading={deleteAddress.isPending}
       />
@@ -651,12 +691,12 @@ export default function ProfileScreen() {
           setDeleteReason('');
           deleteAccount.reset();
         }}
-        title="Delete your account"
-        description="This action is permanent and cannot be undone. All saved delivery addresses, preferences, and personal details will be deleted immediately."
+        title={t('profile.deleteAccount.sheetTitle')}
+        description={t('profile.deleteAccount.sheetDescription')}
         footer={
           <View className="gap-3">
             <Button
-              label="Delete account permanently"
+              label={t('profile.deleteAccount.confirmButton')}
               variant="destructive"
               size="lg"
               loading={deleteAccount.isPending}
@@ -664,7 +704,7 @@ export default function ProfileScreen() {
                 deleteAccount.isPending ||
                 (user?.has_password !== false
                   ? !deletePassword.trim()
-                  : deleteConfirmText.trim().toUpperCase() !== 'DELETE')
+                  : deleteConfirmText.trim().toUpperCase() !== DELETE_WORD)
               }
               onPress={() => {
                 deleteAccount.mutate(
@@ -678,7 +718,7 @@ export default function ProfileScreen() {
                       toast.error(
                         isApiError(e)
                           ? e.message
-                          : 'Could not delete account. Please check your credentials or try again later.',
+                          : t('profile.toast.accountDeleteFailed'),
                       );
                     },
                   },
@@ -686,7 +726,7 @@ export default function ProfileScreen() {
               }}
             />
             <Button
-              label="Cancel"
+              label={t('common.actions.cancel')}
               variant="outline"
               size="md"
               disabled={deleteAccount.isPending}
@@ -708,8 +748,8 @@ export default function ProfileScreen() {
         <View className="gap-4 pb-2">
           {user?.has_password !== false ? (
             <PasswordInput
-              label="Confirm your password"
-              placeholder="Enter your current password"
+              label={t('profile.deleteAccount.passwordLabel')}
+              placeholder={t('profile.deleteAccount.passwordPlaceholder')}
               value={deletePassword}
               onChangeText={setDeletePassword}
               editable={!deleteAccount.isPending}
@@ -719,11 +759,15 @@ export default function ProfileScreen() {
           ) : (
             <View className="gap-1.5">
               <Text className="text-xs text-text-secondary">
-                You signed in with Google. Type <Text className="font-bold text-danger">DELETE</Text> to confirm.
+                <Trans
+                  i18nKey="profile.deleteAccount.googleIntro"
+                  values={{ word: DELETE_WORD }}
+                  components={[<Text key="word" className="font-bold text-danger" />]}
+                />
               </Text>
               <Input
-                label="Type DELETE to confirm"
-                placeholder="DELETE"
+                label={t('profile.deleteAccount.typeToConfirm', { word: DELETE_WORD })}
+                placeholder={DELETE_WORD}
                 value={deleteConfirmText}
                 onChangeText={setDeleteConfirmText}
                 autoCapitalize="characters"
@@ -735,8 +779,8 @@ export default function ProfileScreen() {
           )}
 
           <Input
-            label="Reason for leaving (optional)"
-            placeholder="Tell us why you're leaving"
+            label={t('profile.deleteAccount.reasonLabel')}
+            placeholder={t('profile.deleteAccount.reasonPlaceholder')}
             value={deleteReason}
             onChangeText={setDeleteReason}
             editable={!deleteAccount.isPending}

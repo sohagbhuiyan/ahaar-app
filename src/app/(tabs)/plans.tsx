@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,7 +28,11 @@ import { shadows } from '@/lib/theme';
 import { cn, formatMoney } from '@/lib/utils';
 
 /** Promises every subscription keeps — the same claims the FAQ makes. */
-const VALUE_PROPS = ['Chef-cooked daily', 'Swap any dish', 'Skip a day, keep the meal'] as const;
+const VALUE_PROPS = [
+  'catalog.plans.valueProps.chef',
+  'catalog.plans.valueProps.swap',
+  'catalog.plans.valueProps.skip',
+] as const;
 
 /** The two questions people ask before subscribing: skipping, and changing dishes. */
 const PLAN_FAQS = FAQS.slice(1, 3);
@@ -83,6 +88,7 @@ function planInsights(plans: Plan[]) {
  */
 export default function PlansScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data: plans, isLoading, isFetching, isError, error, refetch } = usePlans();
   const { data: featuredId } = useFeaturedPlanId();
   const { data: cmsLayout, refetch: refetchHome } = useHomeLayout();
@@ -142,14 +148,14 @@ export default function PlansScreen() {
       >
         <View className="flex-row items-end justify-between gap-3 px-5 pt-4">
           <View className="flex-1">
-            <Text className="text-2xl font-bold text-text-primary">Meal Plans</Text>
+            <Text className="text-2xl font-bold text-text-primary">{t('catalog.plans.title')}</Text>
             <Text className="mt-1 text-sm text-text-secondary">
-              Subscribe once, eat well every day
+              {t('catalog.plans.subtitle')}
             </Text>
           </View>
           {plans && plans.length > 0 ? (
             <Text className="mb-0.5 text-xs font-semibold text-text-muted">
-              {plans.length} {plans.length === 1 ? 'plan' : 'plans'}
+              {t('catalog.plans.count', { count: plans.length })}
             </Text>
           ) : null}
         </View>
@@ -161,19 +167,18 @@ export default function PlansScreen() {
         >
           <BrandDecor />
           <Text className="text-[11px] font-bold uppercase tracking-widest text-white/80">
-            Subscribe &amp; save
+            {t('catalog.plans.banner.eyebrow')}
           </Text>
           <Text className="mt-1 text-2xl font-bold text-text-inverse">
-            Every meal, sorted.
+            {t('catalog.plans.banner.title')}
           </Text>
           <Text className="mt-1.5 text-sm leading-5 text-white/90">
-            Pick a plan and a start date — we cook fresh each morning and deliver on
-            schedule for as long as it runs.
+            {t('catalog.plans.banner.body')}
           </Text>
           <View className="mt-4 flex-row flex-wrap gap-2">
             {VALUE_PROPS.map((prop) => (
               <View key={prop} className="rounded-full bg-white/20 px-3 py-1.5">
-                <Text className="text-xs font-semibold text-text-inverse">✓ {prop}</Text>
+                <Text className="text-xs font-semibold text-text-inverse">✓ {t(prop)}</Text>
               </View>
             ))}
           </View>
@@ -197,7 +202,7 @@ export default function PlansScreen() {
             className="mb-4"
           >
             <FilterChip
-              label="All plans"
+              label={t('catalog.plans.allPlans')}
               active={activeDuration === null}
               onPress={() => setDuration(null)}
             />
@@ -208,7 +213,7 @@ export default function PlansScreen() {
               return (
                 <FilterChip
                   key={days}
-                  label={ambiguous ? `${days} days` : durationLabel(days)}
+                  label={ambiguous ? t('common.units.day', { count: days }) : durationLabel(days)}
                   active={activeDuration === days}
                   onPress={() => setDuration(days)}
                 />
@@ -226,9 +231,9 @@ export default function PlansScreen() {
           <ErrorState error={error} onRetry={refetch} retrying={isFetching} />
         ) : !plans || plans.length === 0 ? (
           <EmptyState
-            title="No plans available"
-            description="Check back soon for new subscription plans."
-            actionLabel="Refresh"
+            title={t('catalog.plans.emptyTitle')}
+            description={t('catalog.plans.emptyDescription')}
+            actionLabel={t('catalog.refresh')}
             onAction={refetch}
           />
         ) : (
@@ -265,8 +270,8 @@ export default function PlansScreen() {
 
         <KitchenVideosRail
           className="mt-8"
-          title="Inside our kitchen"
-          subtitle="Watch the meals in your plan being made"
+          title={t('catalog.plans.kitchenTitle')}
+          subtitle={t('catalog.plans.kitchenSubtitle')}
           limit={5}
         />
 
@@ -276,13 +281,13 @@ export default function PlansScreen() {
           <Card className="bg-surface-secondary">
             <View className="p-5">
               <Text className="text-base font-bold text-text-primary">
-                Not ready to subscribe?
+                {t('catalog.plans.notReady.title')}
               </Text>
               <Text className="mt-1 text-sm leading-5 text-text-secondary">
-                Order any dish on its own, for whichever day suits you.
+                {t('catalog.plans.notReady.body')}
               </Text>
               <Button
-                label="Browse dishes"
+                label={t('catalog.plans.notReady.cta')}
                 variant="outline"
                 className="mt-4 bg-surface"
                 onPress={() => router.push('/(tabs)/foods')}
@@ -344,32 +349,47 @@ function ComparePlans({
   featuredId: number | null;
   onOpen: (plan: Plan) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View className="mt-8 px-5">
-      <SectionHeading eyebrow="Side by side" title="Compare plans" />
+      <SectionHeading
+        eyebrow={t('catalog.plans.compare.eyebrow')}
+        title={t('catalog.plans.compare.title')}
+      />
 
       <Card>
         <View className="flex-row bg-surface-muted px-4 py-2.5">
-          <Text className="flex-1 text-[11px] font-bold uppercase text-text-muted">Plan</Text>
+          <Text className="flex-1 text-[11px] font-bold uppercase text-text-muted">
+            {t('catalog.plans.compare.plan')}
+          </Text>
           <Text className="w-12 text-right text-[11px] font-bold uppercase text-text-muted">
-            Days
+            {t('catalog.plans.compare.days')}
           </Text>
           <Text className="w-20 text-right text-[11px] font-bold uppercase text-text-muted">
-            Per day
+            {t('catalog.plans.compare.perDay')}
           </Text>
           <Text className="w-24 text-right text-[11px] font-bold uppercase text-text-muted">
-            Total
+            {t('catalog.plans.compare.total')}
           </Text>
         </View>
 
         {plans.map((plan, index) => {
           const tag =
-            plan.id === featuredId ? 'Popular' : plan.id === bestValueId ? 'Best value' : null;
+            plan.id === featuredId
+              ? t('catalog.plans.compare.popular')
+              : plan.id === bestValueId
+                ? t('catalog.plan.bestValue')
+                : null;
           return (
             <Pressable
               key={plan.id}
               accessibilityRole="button"
-              accessibilityLabel={`${plan.name}: ${plan.duration_days} days, ${formatMoney(perDayOf(plan))} a day, ${formatMoney(plan.price)} in total`}
+              accessibilityLabel={t('catalog.plans.compare.rowA11y', {
+                name: plan.name,
+                days: t('common.units.day', { count: plan.duration_days }),
+                perDay: formatMoney(perDayOf(plan)),
+                total: formatMoney(plan.price),
+              })}
               onPress={() => onOpen(plan)}
               className={cn(
                 'flex-row items-center px-4 py-3 active:bg-surface-muted',
@@ -407,9 +427,13 @@ function ComparePlans({
 }
 
 function HowItWorks() {
+  const { t } = useTranslation();
   return (
     <View className="mt-8 px-5">
-      <SectionHeading eyebrow="How it works" title="From plan to plate" />
+      <SectionHeading
+        eyebrow={t('home.howItWorks.eyebrow')}
+        title={t('catalog.plans.howItWorksTitle')}
+      />
 
       <View className="flex-row flex-wrap gap-3">
         {HOW_IT_WORKS.map((step) => (
@@ -418,9 +442,9 @@ function HowItWorks() {
               <View className="h-8 w-8 items-center justify-center rounded-full bg-brand-50">
                 <Text className="text-xs font-bold text-brand-700">{step.n}</Text>
               </View>
-              <Text className="mt-3 text-sm font-bold text-text-primary">{step.title}</Text>
+              <Text className="mt-3 text-sm font-bold text-text-primary">{t(step.title)}</Text>
               <Text numberOfLines={4} className="mt-1 text-[11px] leading-4 text-text-secondary">
-                {step.body}
+                {t(step.body)}
               </Text>
             </View>
           </Card>
@@ -432,10 +456,11 @@ function HowItWorks() {
 
 function PlanFaq() {
   const [open, setOpen] = useState<number | null>(null);
+  const { t } = useTranslation();
 
   return (
     <View className="mt-8 px-5">
-      <SectionHeading eyebrow="Good to know" title="Before you subscribe" />
+      <SectionHeading eyebrow={t('home.faq.eyebrow')} title={t('catalog.plans.faqTitle')} />
 
       <View className="gap-2">
         {PLAN_FAQS.map((faq, index) => {
@@ -449,11 +474,11 @@ function PlanFaq() {
               className="rounded-2xl border border-border bg-surface px-4 py-3.5 active:opacity-80"
             >
               <View className="flex-row items-center gap-3">
-                <Text className="flex-1 text-sm font-bold text-text-primary">{faq.q}</Text>
+                <Text className="flex-1 text-sm font-bold text-text-primary">{t(faq.q)}</Text>
                 <Text className="text-base text-text-muted">{expanded ? '−' : '+'}</Text>
               </View>
               {expanded ? (
-                <Text className="mt-2 text-xs leading-5 text-text-secondary">{faq.a}</Text>
+                <Text className="mt-2 text-xs leading-5 text-text-secondary">{t(faq.a)}</Text>
               ) : null}
             </Pressable>
           );

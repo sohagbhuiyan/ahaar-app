@@ -11,6 +11,7 @@
  * web app additionally carries legacy `*_sar` duplicates; those are not
  * reproduced here.)
  */
+import i18n from '../i18n';
 import { composeAddress } from '../location/address';
 import type {
   Address,
@@ -152,21 +153,20 @@ function normalizeScheduleSlot(raw: Raw): PlanScheduleSlot {
   };
 }
 
-const DAY_NAMES = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-];
+/**
+ * Fallback when the API omits `day_name` (it normally sends it localized):
+ * ISO weekday 1..7 → the shared weekday name in the current language.
+ */
+function dayNameFallback(dayNumber: number): string {
+  if (dayNumber < 1 || dayNumber > 7) return '';
+  return i18n.t(`common.weekdays.long.${dayNumber}`);
+}
 
 function normalizeScheduleDay(raw: Raw): PlanScheduleDay {
   const dayNumber = (raw.day_number as number) ?? 1;
   return {
     day_number: dayNumber,
-    day_name: (raw.day_name as string) ?? DAY_NAMES[dayNumber - 1] ?? '',
+    day_name: (raw.day_name as string) ?? dayNameFallback(dayNumber),
     slots: ((raw.slots as Raw[] | null) ?? []).map(normalizeScheduleSlot),
   };
 }
@@ -648,7 +648,7 @@ function normalizeScheduleDayEntry(raw: Raw): ScheduleDay {
   return {
     date: (raw.date as string) ?? '',
     day_number: dayNumber,
-    day_name: (raw.day_name as string) ?? DAY_NAMES[dayNumber - 1] ?? '',
+    day_name: (raw.day_name as string) ?? dayNameFallback(dayNumber),
     week_number: toNumber(raw.week_number) || 1,
     meals: meals.map(normalizeScheduleMeal),
   };
@@ -870,7 +870,7 @@ export function normalizeMediaComment(raw: Raw): MediaComment {
     created_at: (raw.created_at as string) ?? '',
     author: {
       id: (author.id as number | null) ?? null,
-      name: nullableText(author.name) ?? 'Ahaar customer',
+      name: nullableText(author.name) ?? i18n.t('auth.api.anonymousCustomer'),
     },
     // Only an explicit `true` — a missing flag must never offer "Delete".
     is_mine: raw.is_mine === true,

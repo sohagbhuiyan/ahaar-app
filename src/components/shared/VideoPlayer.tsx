@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useEvent, useEventListener } from 'expo';
 import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -30,7 +31,9 @@ export function PlayBadge({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
       )}
       style={size === 'sm' ? undefined : BADGE_SHADOW}
     >
-      <Svg width={glyph} height={glyph} viewBox="0 0 24 24" style={{ marginLeft: size === 'sm' ? 0 : 3 }}>
+      <Svg width={glyph} height={glyph} viewBox="0 0 24 24" // Optical centring of the play triangle. A translate, not `marginLeft`:
+        // RTL swaps left/right margins, and a play glyph points right in every language.
+        style={{ transform: [{ translateX: size === 'sm' ? 0 : 1.5 }] }}>
         <Path d="M8 5v14l11-7z" fill={size === 'sm' ? '#ffffff' : '#ff2b85'} />
       </Svg>
     </View>
@@ -81,6 +84,7 @@ export function TapToPlayVideo({
   onPlayingChange,
   className,
 }: Props) {
+  const { t } = useTranslation();
   const duration = formatDuration(durationSeconds);
   // Retrying remounts the player rather than reusing a player that errored.
   const [attempt, setAttempt] = useState(0);
@@ -98,7 +102,7 @@ export function TapToPlayVideo({
       ) : (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Play video: ${label}`}
+          accessibilityLabel={t('catalog.media.playVideo', { title: label })}
           onPress={() => onPlayingChange(true)}
           className="h-full w-full items-center justify-center active:opacity-90"
         >
@@ -140,6 +144,7 @@ function InlinePlayer({
   posterUrl?: string | null;
   onRetry: () => void;
 }) {
+  const { t } = useTranslation();
   // Mounted by the press, so starting straight away is what was asked for.
   const player = useVideoPlayer(url, (instance) => {
     // A cooking video is watched, not glanced at.
@@ -240,7 +245,7 @@ function InlinePlayer({
           ) : null}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Watch again"
+            accessibilityLabel={t('catalog.media.watchAgain')}
             onPress={replay}
             className="items-center active:opacity-80"
           >
@@ -255,7 +260,7 @@ function InlinePlayer({
                 />
               </Svg>
             </View>
-            <Text className="mt-2 text-sm font-bold text-white">Watch again</Text>
+            <Text className="mt-2 text-sm font-bold text-white">{t('catalog.media.watchAgain')}</Text>
           </Pressable>
         </View>
       ) : null}
@@ -274,17 +279,17 @@ function InlinePlayer({
             />
           ) : null}
           <Text className="text-center text-sm font-bold text-white">
-            This video couldn&apos;t be played
+            {t('catalog.media.playFailed')}
           </Text>
           <Text className="mt-1 text-center text-xs text-white/70">
-            Check your connection and try again.
+            {t('catalog.media.playFailedHint')}
           </Text>
           <Pressable
             accessibilityRole="button"
             onPress={onRetry}
             className="mt-4 rounded-full bg-white px-5 py-2 active:opacity-80"
           >
-            <Text className="text-sm font-bold text-brand-500">Try again</Text>
+            <Text className="text-sm font-bold text-brand-500">{t('common.actions.retry')}</Text>
           </Pressable>
         </View>
       ) : null}

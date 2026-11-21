@@ -1,0 +1,185 @@
+{
+  "countries": {
+    "SA": {
+      "name": "Saudi Arabia",
+      "labels": {
+        "city": "City",
+        "cityHint": "e.g. Riyadh, Jeddah, Dammam",
+        "area": "District",
+        "areaHint": "الحي — e.g. Al Olaya",
+        "street": "Street name",
+        "streetHint": "e.g. King Fahd Road",
+        "building": "Building no.",
+        "buildingHint": "4 digits",
+        "unit": "Apartment, floor",
+        "postal": "Postal code",
+        "postalHint": "5 digits"
+      },
+      "messages": {
+        "area": "District is required",
+        "street": "Street name is required",
+        "building": "Building number is 4 digits",
+        "postal": "Postal code is 5 digits"
+      }
+    },
+    "BD": {
+      "name": "Bangladesh",
+      "labels": {
+        "city": "City",
+        "cityHint": "e.g. Dhaka, Chattogram",
+        "area": "Area / Thana",
+        "areaHint": "e.g. Dhanmondi",
+        "street": "Road / street",
+        "streetHint": "e.g. Road 5",
+        "building": "House / holding no.",
+        "buildingHint": "e.g. 12 or 12/A",
+        "unit": "Flat, floor",
+        "postal": "Postcode",
+        "postalHint": "4 digits"
+      },
+      "messages": {
+        "area": "Area is required",
+        "street": "Road is required",
+        "building": "Use letters, digits, / and -",
+        "postal": "Postcode is 4 digits"
+      }
+    }
+  },
+  "common": {
+    "useCurrentLocation": "Use my current location",
+    "chooseOnMap": "Choose on the map",
+    "searchAddress": "Search for an address",
+    "openSettings": "Open settings",
+    "turnOn": "Turn on",
+    "turnOnLocation": "Turn on location",
+    "notNow": "Not now",
+    "deliverHere": "Deliver here",
+    "saveAddress": "Save address",
+    "addAddress": "Add an address",
+    "addressSaved": "Address saved",
+    "addressUpdated": "Address updated",
+    "locationUpdated": "Delivery location updated",
+    "usingSaved": "Using your saved address — {{title}}",
+    "deliveringToTitle": "Delivering to {{title}}",
+    "riderHint": "Add your building and flat so the rider finds the door.",
+    "unknownCountry": "Unknown country"
+  },
+  "picker": {
+    "close": "Close",
+    "searchPlaceholder": "Search street, building or place",
+    "backToMap": "Back to the map",
+    "clearSearch": "Clear search",
+    "newAddress": "New address",
+    "deliverTo": "Deliver to",
+    "pinnedLocation": "Pinned location",
+    "notServed": "Ahaar doesn’t deliver here yet. Move the pin to your address in Saudi Arabia.",
+    "zoomIn": "Zoom in to put the pin exactly on your building.",
+    "notAvailable": "Not available here",
+    "confirm": "Confirm location",
+    "dragHint": "Drag the map or tap your building — the pin marks the spot.",
+    "searchFailed": "Search isn’t available right now. Go back and drag the map to your address instead.",
+    "noResults": "No places found for “{{query}}”.",
+    "typeHint": "Type a street, building, district or landmark.",
+    "placeFailed": "We couldn’t open that place. Try another result.",
+    "dragInstead": "{{message}} Drag the map to your door instead.",
+    "noStreetNotice": "We couldn’t read the street at this pin — please add it.",
+    "detailsTitle": "Address details",
+    "detailsDescription": "{{country}} — add your building and flat so the rider finds the door.",
+    "deniedTitle": "Location is off for Ahaar",
+    "deniedBody": "Allow location in Settings to find where you are — or just drag the map to your door.",
+    "servicesOffTitle": "Location is switched off",
+    "servicesOffBody": "Turn on location to find where you are — or drag the map to your door."
+  },
+  "form": {
+    "editTitle": "Edit address",
+    "description": "Where should we deliver?",
+    "saveFailed": "Could not save that address",
+    "gpsHint": "Fill in the fields below automatically",
+    "pinned": "Pinned on the map — add the {{building}} and flat so the rider finds the door.",
+    "country": "Country",
+    "fromPin": "· from the map pin",
+    "optional": "Optional",
+    "optionalHint": "Optional — {{hint}}",
+    "nationalAddress": "National Address",
+    "nationalAddressHint": "Optional — from your Saudi Post (SPL) National Address, shown in the SPL app or Absher. It helps riders find you faster.",
+    "additionalNumber": "Additional no.",
+    "additionalNumberHint": "4 digits",
+    "shortAddress": "Short address",
+    "shortAddressHint": "e.g. RRRD2929",
+    "notes": "Delivery notes",
+    "notesHint": "Optional — gate, landmark, where to leave it",
+    "firstAddressNote": "Your first saved address becomes your delivery location automatically.",
+    "saveAs": "Save as",
+    "label": "Label",
+    "labelHint": "Optional — or type your own",
+    "presets": {
+      "home": "Home",
+      "work": "Work",
+      "family": "Family"
+    },
+    "errors": {
+      "cityRequired": "City is required",
+      "additionalNumber": "Additional number is 4 digits",
+      "shortAddress": "4 letters and 4 digits, e.g. RRRD2929"
+    }
+  },
+  "position": {
+    "defaultHint": "Find me on the map",
+    "waiting": "Waiting for permission…",
+    "finding": "Finding where you are…",
+    "outsideHelp": "Search for your address, or place the pin on the map instead.",
+    "problemHelp": "You can still search for your address or choose it on the map."
+  },
+  "device": {
+    "denied": "Location access wasn’t allowed.",
+    "deniedSettings": "Location access is turned off for Ahaar in your phone’s settings.",
+    "servicesOff": "Location is switched off on your phone.",
+    "unavailable": "We couldn’t find your position just now.",
+    "outsideArea": "Ahaar doesn’t deliver where you are yet — we serve Saudi Arabia.",
+    "noStreet": "We found your position but couldn’t look up the street — please add your address.",
+    "failed": "Something went wrong while finding your location."
+  },
+  "sheet": {
+    "title": "Delivery location",
+    "description": "Place the pin on your door. Menus and prices are the same everywhere.",
+    "deliveringTo": "Delivering to",
+    "searchHint": "A street, building or place",
+    "mapHint": "Drag the map until the pin is on your door",
+    "saved": "Saved addresses",
+    "current": "Current",
+    "changeFailed": "Could not change your location",
+    "cleared": "Delivery location cleared",
+    "guestNote": "No account needed. Your location is kept on this phone, and saved to your account when you sign in.",
+    "signIn": "Sign in",
+    "signInReason": "to save your delivery addresses",
+    "reset": "Reset location",
+    "typeInstead": "Type the address instead",
+    "typedTitle": "Your delivery address"
+  },
+  "pill": {
+    "deliverTo": "Deliver to",
+    "set": "Set",
+    "change": "Change",
+    "setLocation": "Set delivery location",
+    "loading": "Delivery location, loading",
+    "a11yDelivering": "Delivering to {{title}}. Change location"
+  },
+  "required": {
+    "a11y": "Set your delivery location",
+    "title": "Where should we deliver?",
+    "body": "Add your address so your plan, orders and delivery times are ready when you are.",
+    "cta": "Set delivery location"
+  },
+  "addressPicker": {
+    "empty": "No saved address yet. We'll use the one on your account if you have one.",
+    "default": "Default",
+    "addAnother": "Add another address"
+  },
+  "deliveryBlock": {
+    "title": "Delivering to"
+  },
+  "map": {
+    "unavailableTitle": "The map couldn’t load",
+    "unavailableBody": "Check your connection. You can still search for your address or use your current location."
+  }
+}

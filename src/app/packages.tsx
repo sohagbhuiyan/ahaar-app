@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -18,11 +19,12 @@ import { usePackages } from '@/lib/query/hooks';
  */
 export default function PackagesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data: packages, isLoading, isFetching, isError, error, refetch } = usePackages();
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
-      <ScreenHeader title="Meal boxes" subtitle="Complete meals at one price" />
+      <ScreenHeader title={t('home.mealBoxes.title')} subtitle={t('home.mealBoxes.subtitle')} />
       <OfflineBanner />
 
       <ScrollView
@@ -34,8 +36,7 @@ export default function PackagesScreen() {
         }
       >
         <Text className="mb-4 text-sm text-text-secondary">
-          Hand-picked combinations from our kitchen — usually cheaper than ordering
-          each dish separately. No subscription needed.
+          {t('catalog.packages.intro')}
         </Text>
 
         {isLoading ? (
@@ -47,9 +48,9 @@ export default function PackagesScreen() {
           <ErrorState error={error} onRetry={refetch} retrying={isFetching} />
         ) : !packages || packages.length === 0 ? (
           <EmptyState
-            title="No meal boxes right now"
-            description="Our kitchen is putting new boxes together — check back soon."
-            actionLabel="Browse dishes"
+            title={t('catalog.packages.emptyTitle')}
+            description={t('catalog.packages.emptyDescription')}
+            actionLabel={t('catalog.plans.notReady.cta')}
             onAction={() => router.push('/(tabs)/foods')}
           />
         ) : (

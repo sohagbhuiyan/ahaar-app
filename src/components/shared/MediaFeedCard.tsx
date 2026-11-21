@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -6,7 +7,8 @@ import { Avatar, Card, SkeletonText } from '@/components/ui';
 import type { MediaVideo } from '@/lib/api/types/media';
 import { FOOD_BLURHASH } from '@/lib/constants/images';
 import { useMediaComments } from '@/lib/query/hooks';
-import { cn, formatLongDate } from '@/lib/utils';
+import { useFormatters } from '@/lib/i18n/format';
+import { cn } from '@/lib/utils';
 
 import { commentCountLabel } from './MediaVideoCard';
 import { formatDuration, PlayBadge } from './VideoPlayer';
@@ -31,6 +33,8 @@ interface Props {
  * customer actually scrolls past.
  */
 function MediaFeedCardComponent({ video, onPlay, onOpenComments }: Props) {
+  const { t } = useTranslation();
+  const { formatDate } = useFormatters();
   const comments = useMediaComments(video.id);
   const preview = comments.data?.comments.slice(0, PREVIEW_COUNT) ?? [];
   // The comments page is fresher than the count the video list was cached with.
@@ -38,7 +42,7 @@ function MediaFeedCardComponent({ video, onPlay, onOpenComments }: Props) {
   const duration = formatDuration(video.duration_seconds);
 
   const meta = [
-    video.published_at ? formatLongDate(video.published_at.slice(0, 10)) : null,
+    video.published_at ? formatDate(video.published_at.slice(0, 10), { day: 'numeric', month: 'long', year: 'numeric' }) : null,
     commentCountLabel(total),
   ]
     .filter(Boolean)
@@ -47,17 +51,17 @@ function MediaFeedCardComponent({ video, onPlay, onOpenComments }: Props) {
   const moreLabel =
     total > preview.length
       ? total === 1
-        ? 'View the comment'
-        : `View all ${total} comments`
+        ? t('catalog.media.viewTheComment')
+        : t('catalog.media.viewAllComments', { count: total })
       : total > 0
-        ? 'Join the conversation'
-        : 'Be the first to comment';
+        ? t('catalog.media.joinConversation')
+        : t('catalog.media.beFirst');
 
   return (
     <Card>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Play video: ${video.title}`}
+        accessibilityLabel={t('catalog.media.playVideo', { title: video.title })}
         onPress={() => onPlay(video)}
         className="active:opacity-90"
       >
@@ -101,8 +105,11 @@ function MediaFeedCardComponent({ video, onPlay, onOpenComments }: Props) {
         accessibilityRole="button"
         accessibilityLabel={
           total > 0
-            ? `Read ${commentCountLabel(total)} on ${video.title}`
-            : `Comment on ${video.title}`
+            ? t('catalog.media.readComments', {
+                comments: commentCountLabel(total),
+                title: video.title,
+              })
+            : t('catalog.media.commentOn', { title: video.title })
         }
         onPress={() => onOpenComments(video)}
         className="border-t border-border px-4 py-3 active:bg-surface-muted"

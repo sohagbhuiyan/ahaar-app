@@ -1,8 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import { ScrollView, Text, View } from 'react-native';
 
 import type { PromoCode } from '@/lib/api/types/home';
 import { cmsText } from '@/lib/cms';
-import { formatLongDate } from '@/lib/utils';
+import { useFormatters } from '@/lib/i18n/format';
 
 interface Props {
   codes: PromoCode[];
@@ -20,16 +21,18 @@ interface Props {
  * clipboard module is needed.
  */
 export function PromoCodeStrip({ codes, heading, subheading, className }: Props) {
+  const { t } = useTranslation();
+  const { formatDate } = useFormatters();
   if (codes.length === 0) return null;
 
   return (
     <View className={className}>
       <View className="mb-3 px-5">
         <Text className="text-lg font-bold text-text-primary">
-          {cmsText(heading, 'Offers for you')}
+          {cmsText(heading, t('home.promoCodes.heading'))}
         </Text>
         <Text className="mt-0.5 text-sm text-text-secondary">
-          {cmsText(subheading, 'Press and hold a code to copy it')}
+          {cmsText(subheading, t('home.promoCodes.subheading'))}
         </Text>
       </View>
 
@@ -49,7 +52,7 @@ export function PromoCodeStrip({ codes, heading, subheading, className }: Props)
                 numberOfLines={3}
                 className="text-center text-sm font-bold leading-4 text-text-inverse"
               >
-                {promo.discount_label ?? 'Offer'}
+                {promo.discount_label ?? t('home.promoCodes.offer')}
               </Text>
             </View>
 
@@ -58,7 +61,7 @@ export function PromoCodeStrip({ codes, heading, subheading, className }: Props)
 
             <View className="flex-1 p-4">
               <Text numberOfLines={1} className="text-sm font-bold text-text-primary">
-                {promo.title ?? 'Promo code'}
+                {promo.title ?? t('home.promoCodes.promoCode')}
               </Text>
               {promo.description ? (
                 <Text numberOfLines={2} className="mt-0.5 text-xs text-text-secondary">
@@ -69,7 +72,7 @@ export function PromoCodeStrip({ codes, heading, subheading, className }: Props)
               <View className="mt-3 self-start rounded-xl border border-dashed border-brand-500 bg-brand-50 px-3 py-1.5">
                 <Text
                   selectable
-                  accessibilityLabel={`Promo code ${promo.code}`}
+                  accessibilityLabel={t('home.promoCodes.codeA11y', { code: promo.code })}
                   className="text-sm font-bold tracking-widest text-brand-700"
                 >
                   {promo.code}
@@ -78,7 +81,13 @@ export function PromoCodeStrip({ codes, heading, subheading, className }: Props)
 
               {promo.expires_at ? (
                 <Text className="mt-2 text-[11px] text-text-muted">
-                  Valid until {formatLongDate(promo.expires_at.slice(0, 10))}
+                  {t('home.promoCodes.validUntil', {
+                    date: formatDate(promo.expires_at.slice(0, 10), {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    }),
+                  })}
                 </Text>
               ) : null}
             </View>

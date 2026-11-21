@@ -1,0 +1,195 @@
+{
+  "greeting": {
+    "morning": "Good morning, {{name}}",
+    "afternoon": "Good afternoon, {{name}}",
+    "evening": "Good evening, {{name}}",
+    "welcome": "Welcome to Ahaar",
+    "headline": "What's cooking today?"
+  },
+  "yourAccount": "Your account",
+  "prompt": {
+    "profile": "to see your profile"
+  },
+  "today": {
+    "canChange": "Can still change",
+    "mealFallback": "Meal",
+    "itemFallback": "Item #{{id}}",
+    "todaysMeals": "Today's meals",
+    "fullSchedule": "Full schedule",
+    "noDelivery": "No delivery scheduled for today.",
+    "seeSchedule": "See your schedule"
+  },
+  "invite": {
+    "startPlan": "Start a meal plan",
+    "freshMeals": "Fresh meals, your way",
+    "body": "Subscribe for daily deliveries, or order a single dish whenever you like.",
+    "browsePlans": "Browse plans",
+    "orderOneOff": "Order a one-off"
+  },
+  "subscription": {
+    "title": "Your subscription"
+  },
+  "mealBoxes": {
+    "title": "Meal boxes",
+    "subtitle": "Complete meals at one price"
+  },
+  "categories": {
+    "title": "Explore by category",
+    "subtitle": "Something for every craving"
+  },
+  "popularDishes": {
+    "title": "Popular dishes"
+  },
+  "kitchen": {
+    "title": "From our kitchen",
+    "subtitle": "See how your meals are made",
+    "seeAllA11y": "See all kitchen videos",
+    "newBadge": "New from the kitchen"
+  },
+  "popularPlans": {
+    "title": "Popular plans",
+    "emptyTitle": "No plans yet",
+    "emptyDescription": "Check back soon."
+  },
+  "hero": {
+    "badge": "Now delivering across Saudi Arabia",
+    "title": "Fresh Food,",
+    "titleHighlight": "Delivered Daily",
+    "subtitle": "Healthy, chef-prepared meals delivered straight to your door every day across Saudi Arabia. Pick a plan and start eating better today.",
+    "primaryCta": "Browse Menu",
+    "secondaryCta": "View Plans",
+    "ratingCaption": "2,000+ reviews",
+    "imageAlt": "Freshly prepared Ahaar meal",
+    "call": "Call {{phone}}",
+    "whatsapp": "Chat on WhatsApp",
+    "stats": {
+      "mealsDelivered": "Meals delivered",
+      "averageRating": "Average rating",
+      "onTime": "On-time delivery"
+    }
+  },
+  "promo": {
+    "fallbackLabel": "Promotion"
+  },
+  "promoCodes": {
+    "heading": "Offers for you",
+    "subheading": "Press and hold a code to copy it",
+    "offer": "Offer",
+    "promoCode": "Promo code",
+    "codeA11y": "Promo code {{code}}",
+    "validUntil": "Valid until {{date}}"
+  },
+  "howItWorks": {
+    "eyebrow": "How it works",
+    "title": "Great meals in four simple steps",
+    "subtitle": "From subscription to your table — no planning, no shopping, no cleanup.",
+    "steps": {
+      "1": {
+        "title": "Choose your plan",
+        "body": "Pick a short taster or a full monthly plan. Set the meals you want and your dietary preferences."
+      },
+      "2": {
+        "title": "We cook fresh daily",
+        "body": "Our chefs prepare your meals every morning using seasonal, locally-sourced ingredients."
+      },
+      "3": {
+        "title": "Delivered to your door",
+        "body": "Insulated, eco-friendly packaging arrives in your chosen time slot — fresh and ready to eat."
+      },
+      "4": {
+        "title": "Eat, swap, adjust",
+        "body": "Trade a dish, add an extra or skip a day from your plan — you stay in full control."
+      }
+    }
+  },
+  "whyAhaar": {
+    "eyebrow": "Why AHAAR",
+    "title": "Food you look forward to, every day",
+    "subtitle": "We obsess over the details so you don't have to — from sourcing to the moment it lands at your door.",
+    "features": {
+      "chef": {
+        "title": "Chef-prepared, never frozen",
+        "body": "Real chefs, real kitchens. Cooked the same day it reaches you."
+      },
+      "balanced": {
+        "title": "Balanced & macro-counted",
+        "body": "Calories and protein on every dish, so hitting your goals is easy."
+      },
+      "swap": {
+        "title": "Swap any dish",
+        "body": "Trade a meal for another in the same week. No calls, no fees."
+      },
+      "delivery": {
+        "title": "Reliable daily delivery",
+        "body": "Pick a slot and we are there — on schedule, every day of your plan."
+      }
+    }
+  },
+  "stats": {
+    "mealsDelivered": "Meals delivered",
+    "averageRating": "Average rating",
+    "onTime": "On-time deliveries"
+  },
+  "testimonials": {
+    "eyebrow": "Loved by subscribers",
+    "title": "What our customers say",
+    "items": {
+      "1": {
+        "name": "Layla A.",
+        "quote": "AHAAR completely changed my weekdays. The food arrives fresh, on time, and tastes like a restaurant meal every single day."
+      },
+      "2": {
+        "name": "Omar K.",
+        "quote": "As someone with a packed schedule, the subscription is a lifesaver. Swapping meals is effortless and the variety keeps it exciting."
+      },
+      "3": {
+        "name": "Sara M.",
+        "quote": "Healthy, portioned and genuinely delicious. I have hit my fitness goals without ever thinking about meal prep again."
+      }
+    }
+  },
+  "cities": {
+    "riyadh": "Riyadh",
+    "jeddah": "Jeddah",
+    "dammam": "Dammam",
+    "khobar": "Khobar",
+    "mecca": "Mecca",
+    "medina": "Medina"
+  },
+  "coverage": {
+    "eyebrow": "Where we deliver",
+    "title": "Fresh food, across the Kingdom",
+    "body": "Daily delivery in these cities and the areas around them — with more added every month."
+  },
+  "faq": {
+    "eyebrow": "Good to know",
+    "title": "Frequently asked questions",
+    "items": {
+      "cities": {
+        "q": "Which cities do you deliver to?",
+        "a": "We deliver daily across Riyadh, Jeddah, Dammam and the surrounding major areas, with new cities added regularly."
+      },
+      "pause": {
+        "q": "Can I pause or skip a day?",
+        "a": "Yes. Skipping a day releases that day’s allowance and extends your plan by one day, so you never lose a meal you paid for."
+      },
+      "change": {
+        "q": "Can I change what arrives?",
+        "a": "Open your plan, tap the day, and swap a dish for another meal in the same week. Each dish can be swapped once, up to its cutoff."
+      },
+      "fresh": {
+        "q": "How is the food kept fresh?",
+        "a": "Every meal is prepared the same morning and delivered in insulated, eco-friendly packaging within hours of cooking."
+      },
+      "payment": {
+        "q": "What payment methods do you accept?",
+        "a": "All major cards and local payment methods. The full amount is shown before you confirm — no hidden fees."
+      }
+    }
+  },
+  "cta": {
+    "heading": "Ready to stop thinking about dinner?",
+    "subheading": "Pick a plan, choose your start date, and we take it from there. Pause, swap or skip whenever you need to.",
+    "label": "Browse plans"
+  }
+}

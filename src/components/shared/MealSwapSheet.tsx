@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { toast } from 'sonner-native';
 
@@ -42,6 +43,7 @@ interface Props {
  * included, so "already swapped" is visible rather than mysterious.
  */
 export function MealSwapSheet({ open, onClose, deliveryId, subscriptionId }: Props) {
+  const { t } = useTranslation();
   const { data: options, isLoading, isError, error, refetch } = useSwapOptions(
     open ? deliveryId : undefined,
   );
@@ -64,7 +66,11 @@ export function MealSwapSheet({ open, onClose, deliveryId, subscriptionId }: Pro
           setOpenItemId(null);
           onClose();
           toast.success(
-            `Swapped — ${to.name} today, and ${from.name} on ${formatShortDate(to.delivery_date)}.`,
+            t('account.swap.success', {
+              to: to.name,
+              from: from.name,
+              date: formatShortDate(to.delivery_date),
+            }),
           );
         },
         onError: (e) => toast.error(swapError(e).message),
@@ -76,8 +82,8 @@ export function MealSwapSheet({ open, onClose, deliveryId, subscriptionId }: Pro
     <Sheet
       open={open}
       onClose={handleClose}
-      title="Swap a dish"
-      description="Trade a dish with another meal in the same week of your plan. Both meals change."
+      title={t('account.swap.title')}
+      description={t('account.swap.description')}
     >
       {isLoading ? (
         <SkeletonText lines={6} />
@@ -86,13 +92,13 @@ export function MealSwapSheet({ open, onClose, deliveryId, subscriptionId }: Pro
       ) : !options ? null : !options.before_cutoff ? (
         <View className="rounded-2xl bg-surface-muted px-4 py-3">
           <Text className="text-xs text-text-secondary">
-            This meal is past its cutoff, so it can no longer be changed.
+            {t('account.swap.pastCutoff')}
           </Text>
         </View>
       ) : options.positions.length === 0 ? (
         <EmptyState
-          title="Nothing to swap"
-          description="No dish on this meal can be traded."
+          title={t('account.swap.nothingTitle')}
+          description={t('account.swap.nothingBody')}
         />
       ) : (
         <View className="gap-4 pb-2">
@@ -131,8 +137,9 @@ function PositionRow({
   onToggle: () => void;
   onPick: (target: SwapTarget) => void;
 }) {
-  const eligible = position.targets.filter((t) => t.eligible);
-  const blocked = position.targets.filter((t) => !t.eligible);
+  const { t } = useTranslation();
+  const eligible = position.targets.filter((target) => target.eligible);
+  const blocked = position.targets.filter((target) => !target.eligible);
 
   // A dish with nowhere to go is not an error — the rest of the week may simply
   // serve the same thing. Say which it is rather than showing a dead row.
@@ -143,7 +150,7 @@ function PositionRow({
     <View className="rounded-2xl border border-border">
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Swap ${position.name ?? 'this dish'}`}
+        accessibilityLabel={t('account.swap.swapA11y', { name: position.name ?? t('account.swap.thisDish') })}
         accessibilityState={{ expanded, disabled: !selectable }}
         disabled={!selectable}
         onPress={onToggle}
@@ -164,11 +171,15 @@ function PositionRow({
 
         {selectable ? (
           <Text className="text-xs font-semibold text-brand-500">
-            {expanded ? 'Cancel' : 'Swap'}
+            {expanded ? t('common.actions.cancel') : t('account.deliveries.swap')}
           </Text>
         ) : (
           <Badge
-            label={nothingToTrade ? 'Nothing to trade' : (position.blocked_message ?? 'Locked')}
+            label={
+              nothingToTrade
+                ? t('account.swap.nothingToTrade')
+                : (position.blocked_message ?? t('common.status.locked'))
+            }
             variant="muted"
           />
         )}
@@ -177,15 +188,17 @@ function PositionRow({
       {expanded ? (
         <View className="gap-2 border-t border-border px-4 py-3">
           <Text className="text-xs text-text-muted">
-            Pick the meal to trade with. {position.name} moves there, and its dish
-            comes here.
+            {t('account.swap.pickHint', { name: position.name })}
           </Text>
 
           {eligible.map((target) => (
             <Pressable
               key={target.item_id}
               accessibilityRole="button"
-              accessibilityLabel={`Trade for ${target.name} on ${formatShortDate(target.delivery_date)}`}
+              accessibilityLabel={t('account.swap.tradeA11y', {
+                name: target.name,
+                date: formatShortDate(target.delivery_date),
+              })}
               disabled={busy}
               onPress={() => onPick(target)}
               className={cn(
@@ -213,7 +226,7 @@ function PositionRow({
           {blocked.length > 0 ? (
             <View className="mt-1 gap-1">
               <Text className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                Can&apos;t trade with
+                {t('account.swap.cantTradeWith')}
               </Text>
               {blocked.map((target) => (
                 <Text key={target.item_id} className="text-[11px] text-text-muted">

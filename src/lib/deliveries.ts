@@ -14,6 +14,7 @@
  * change skip or repeat one.
  */
 import type { Delivery } from './api/types/subscription';
+import { formatDate as formatLocalized } from './i18n/format';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 /** A 12-month plan is 53 weeks; anything past this is bad data, not a plan. */
@@ -147,14 +148,9 @@ export function slotPeriod(slot: Delivery['slot']): SlotPeriod {
 
 // ── Formatting ───────────────────────────────────────────────────────────────
 
+/** Dates in the app language (Latin digits); see `lib/i18n/format`. */
 function formatDate(date: string, options: Intl.DateTimeFormatOptions): string {
-  const parsed = new Date(`${date}T00:00:00Z`);
-  if (Number.isNaN(parsed.getTime())) return date;
-  try {
-    return new Intl.DateTimeFormat(undefined, { ...options, timeZone: 'UTC' }).format(parsed);
-  } catch {
-    return date;
-  }
+  return formatLocalized(date, options) || date;
 }
 
 /** "Mon" */
@@ -163,10 +159,10 @@ export const weekdayShort = (date: string) => formatDate(date, { weekday: 'short
 /** "4" — the day of the month, without a leading zero. */
 export const dayOfMonth = (date: string) => String(Number(date.slice(8, 10)));
 
-/** "4 Jan" (order follows the device locale). */
+/** "4 Jan" (order follows the app language). */
 export const formatDayMonth = (date: string) => formatDate(date, { day: 'numeric', month: 'short' });
 
-/** "Friday, 4 January" (order follows the device locale). */
+/** "Friday, 4 January" (order follows the app language). */
 export const formatDayHeading = (date: string) =>
   formatDate(date, { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -177,18 +173,10 @@ export function formatWeekRange(from: string, to: string): string {
   return `${start} – ${formatDayMonth(to)}`;
 }
 
-/** "Thu 20:00" in the device's clock — when a meal stops accepting changes. */
+/** "Thu 20:00" in the device's clock and the app language — when a meal stops accepting changes. */
 export function formatCutoff(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return null;
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      weekday: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(at);
-  } catch {
-    return null;
-  }
+  return formatLocalized(at, { weekday: 'short', hour: '2-digit', minute: '2-digit' }) || null;
 }

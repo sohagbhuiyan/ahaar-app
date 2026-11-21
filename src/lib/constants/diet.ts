@@ -43,14 +43,25 @@ export function humanise(value: string): string {
 }
 
 /**
- * Locales `UpdateProfileRequest` accepts (`in:nl,en,ar`).
- *
- * Note this is the *account* locale the backend stores, not the app's display
- * language — the mobile app is English-only for now, and sending the value
- * keeps emails and invoices in the customer's language.
+ * Translation keys for the display labels. The values above are what the API
+ * stores; translate at render time so the label follows the app language:
+ * `t(dietTagLabelKey(tag), { defaultValue: humanise(tag) })`.
+ */
+export function dietTagLabelKey(tag: string): string {
+  return `profile.diet.tags.${tag}`;
+}
+
+export function allergenLabelKey(allergen: string): string {
+  return `profile.diet.allergens.${allergen}`;
+}
+
+/**
+ * Locales accepted across AHAAR ecosystem: English (en), Bangla (bn), Arabic (ar).
+ * Labels are endonyms (each language in its own script), so they are never
+ * translated.
  */
 export const LOCALES = [
   { value: 'en', label: 'English' },
-  { value: 'nl', label: 'Nederlands' },
+  { value: 'bn', label: 'বাংলা' },
   { value: 'ar', label: 'العربية' },
 ] as const;

@@ -1,4 +1,5 @@
 import * as WebBrowser from 'expo-web-browser';
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 import { toast } from 'sonner-native';
 
@@ -7,6 +8,7 @@ import { Button, Card, InlineError } from '@/components/ui';
 import type { User } from '@/lib/api/types/auth';
 import { googleSignInAvailable } from '@/lib/auth/google';
 import { useLinkGoogle, useUnlinkGoogle } from '@/lib/query/hooks';
+import { useAppLocale } from '@/lib/store/useLanguageStore';
 
 /** The website's reset flow: the API emails a link to its reset-password page. */
 const WEBSITE_URL = process.env.EXPO_PUBLIC_WEBSITE_URL ?? 'https://www.ahaar.store';
@@ -18,8 +20,14 @@ const WEBSITE_URL = process.env.EXPO_PUBLIC_WEBSITE_URL ?? 'https://www.ahaar.st
  * it anyway, since the customer would have no way left to sign in.
  */
 export function ConnectedAccountsCard({ user, className }: { user: User; className?: string }) {
-  const link = useLinkGoogle({ onSuccess: () => toast.success('Google connected') });
-  const unlink = useUnlinkGoogle({ onSuccess: () => toast.success('Google disconnected') });
+  const { t } = useTranslation();
+  const locale = useAppLocale();
+  const link = useLinkGoogle({
+    onSuccess: () => toast.success(t('profile.connected.googleConnected')),
+  });
+  const unlink = useUnlinkGoogle({
+    onSuccess: () => toast.success(t('profile.connected.googleDisconnected')),
+  });
 
   const linked = user.google_linked;
   // A build that can't run Google Sign-In still shows an existing connection,
@@ -32,24 +40,23 @@ export function ConnectedAccountsCard({ user, className }: { user: User; classNa
   return (
     <Card className={className}>
       <View className="p-5">
-        <Text className="text-sm font-bold text-text-primary">Connected accounts</Text>
-        <Text className="mt-1 text-xs text-text-muted">
-          Sign in with Google instead of typing a password. Your plan and orders stay on
-          this account either way.
+        <Text className="text-sm font-bold text-text-primary">
+          {t('profile.connected.title')}
         </Text>
+        <Text className="mt-1 text-xs text-text-muted">{t('profile.connected.description')}</Text>
 
         {error ? <InlineError error={error} className="mt-3" /> : null}
 
         {linked && passwordless ? (
           <Button
-            label="Set a password"
+            label={t('profile.connected.setPassword')}
             size="sm"
             variant="outline"
             className="mt-4"
-            accessibilityHint="Opens the Ahaar website to email you a link for choosing a password"
+            accessibilityHint={t('profile.connected.setPasswordHint')}
             onPress={() =>
               void WebBrowser.openBrowserAsync(
-                `${WEBSITE_URL}/en/forgot-password?email=${encodeURIComponent(user.email)}`,
+                `${WEBSITE_URL}/${locale}/forgot-password?email=${encodeURIComponent(user.email)}`,
               )
             }
           />
@@ -60,19 +67,21 @@ export function ConnectedAccountsCard({ user, className }: { user: User; classNa
             <GoogleIcon size={20} />
           </View>
           <View className="flex-1">
-            <Text className="text-sm font-semibold text-text-primary">Google</Text>
+            <Text className="text-sm font-semibold text-text-primary">
+              {t('profile.connected.google')}
+            </Text>
             <Text className="text-xs text-text-muted">
               {linked
                 ? passwordless
-                  ? 'Connected. Set a password before you can disconnect.'
-                  : 'Connected'
-                : 'Not connected'}
+                  ? t('profile.connected.connectedNeedsPassword')
+                  : t('profile.connected.connected')
+                : t('profile.connected.notConnected')}
             </Text>
           </View>
 
           {linked ? (
             <Button
-              label="Disconnect"
+              label={t('profile.connected.disconnect')}
               size="sm"
               variant="ghost"
               fullWidth={false}
@@ -86,7 +95,7 @@ export function ConnectedAccountsCard({ user, className }: { user: User; classNa
             />
           ) : (
             <Button
-              label="Connect"
+              label={t('profile.connected.connect')}
               size="sm"
               variant="secondary"
               fullWidth={false}

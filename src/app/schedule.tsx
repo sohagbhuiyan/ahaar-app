@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -22,6 +23,7 @@ import {
   useSubscription,
   useSubscriptionSchedule,
 } from '@/lib/query/hooks';
+import { formatDayMonth } from '@/lib/deliveries';
 import { useAuthHydrated, useAuthPromptStore } from '@/lib/store';
 import { formatShortDate, isToday, todayISO } from '@/lib/utils';
 
@@ -43,6 +45,7 @@ import { formatShortDate, isToday, todayISO } from '@/lib/utils';
  * a day card opens on the correct date.
  */
 export default function ScheduleScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const signedIn = useIsSignedIn();
   const promptLogin = useAuthPromptStore((s) => s.prompt);
@@ -92,10 +95,10 @@ export default function ScheduleScreen() {
     () =>
       weeks.map((w) => ({
         value: w.week_number,
-        label: `Week ${w.week_number}`,
-        sublabel: `${formatShortDate(w.starts_on).replace(/^\w+, /, '')} →`,
+        label: t('account.schedule.week', { number: w.week_number }),
+        sublabel: t('account.schedule.weekFrom', { date: formatDayMonth(w.starts_on) }),
       })),
-    [weeks],
+    [weeks, t],
   );
 
   const jumpToToday = () => {
@@ -107,12 +110,12 @@ export default function ScheduleScreen() {
   if (authHydrated && !signedIn) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="My plan" />
+        <ScreenHeader title={t('account.schedule.title')} />
         <EmptyState
-          title="Your full schedule lives here"
-          description="Sign in to see every day of your plan, meal by meal."
-          actionLabel="Sign in"
-          onAction={() => promptLogin('to see your schedule')}
+          title={t('account.schedule.signedOutTitle')}
+          description={t('account.schedule.signedOutBody')}
+          actionLabel={t('common.actions.signIn')}
+          onAction={() => promptLogin(t('account.authReason.seeSchedule'))}
           className="flex-1 justify-center"
         />
       </SafeAreaView>
@@ -123,7 +126,7 @@ export default function ScheduleScreen() {
   if (!authHydrated || currentLoading || (subscription && isLoading)) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="My plan" />
+        <ScreenHeader title={t('account.schedule.title')} />
         <View className="gap-4 p-5">
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -137,11 +140,11 @@ export default function ScheduleScreen() {
   if (!subscription) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="My plan" />
+        <ScreenHeader title={t('account.schedule.title')} />
         <EmptyState
-          title="No active plan"
-          description="Subscribe to a meal plan and your full schedule appears here."
-          actionLabel="Browse plans"
+          title={t('account.deliveries.noPlanTitle')}
+          description={t('account.schedule.noPlanBody')}
+          actionLabel={t('account.deliveries.browsePlans')}
           onAction={() => router.push('/(tabs)/plans')}
           className="flex-1 justify-center"
         />
@@ -154,8 +157,12 @@ export default function ScheduleScreen() {
   return (
     <SafeAreaView className="flex-1 bg-surface">
       <ScreenHeader
-        title={subscription.plan?.name ?? 'My plan'}
-        subtitle={meals ? `${meals}, every day` : `Subscription #${subscription.id}`}
+        title={subscription.plan?.name ?? t('account.schedule.title')}
+        subtitle={
+          meals
+            ? t('account.schedule.everyDay', { meals })
+            : t('account.subscriptionNumber', { id: subscription.id })
+        }
       />
       <OfflineBanner />
 
@@ -172,9 +179,9 @@ export default function ScheduleScreen() {
           <ErrorState error={error} onRetry={refetch} retrying={isFetching} />
         ) : weeks.length === 0 ? (
           <EmptyState
-            title="Nothing scheduled yet"
-            description="Your days appear here once your payment is confirmed."
-            actionLabel="Refresh"
+            title={t('account.schedule.emptyTitle')}
+            description={t('account.deliveries.emptyBody')}
+            actionLabel={t('account.deliveries.refresh')}
             onAction={refetch}
             className="py-16"
           />
@@ -187,18 +194,20 @@ export default function ScheduleScreen() {
                   <View className="flex-row items-start justify-between gap-3">
                     <View className="flex-1">
                       <Text className="text-xs font-bold uppercase text-brand-500">
-                        Your schedule
+                        {t('account.schedule.yourSchedule')}
                       </Text>
                       <Text className="mt-0.5 text-lg font-bold text-text-primary">
-                        {totals.total} days of meals
+                        {t('account.schedule.daysOfMeals', { count: totals.total })}
                       </Text>
                       <Text className="mt-0.5 text-xs text-text-muted">
-                        {formatShortDate(schedule!.start_date)} →{' '}
-                        {formatShortDate(schedule!.end_date)}
+                        {t('account.dateRange', {
+                          from: formatShortDate(schedule!.start_date),
+                          to: formatShortDate(schedule!.end_date),
+                        })}
                       </Text>
                     </View>
                     <Badge
-                      label={`${weeks.length} ${weeks.length === 1 ? 'week' : 'weeks'}`}
+                      label={t('common.units.week', { count: weeks.length })}
                       variant="brand"
                     />
                   </View>
@@ -213,11 +222,11 @@ export default function ScheduleScreen() {
                           off-by-one. Count down to the start instead. */}
                       <Text className="text-xs font-semibold text-text-secondary">
                         {totals.served === 0
-                          ? `Starts ${formatShortDate(schedule!.start_date)}`
-                          : `Day ${totals.served} of ${totals.total}`}
+                          ? t('account.deliveries.startsOn', { date: formatShortDate(schedule!.start_date) })
+                          : t('account.deliveries.dayOf', { day: totals.served, total: totals.total })}
                       </Text>
                       <Text className="text-xs text-text-muted">
-                        {totals.remaining} days left
+                        {t('account.daysLeft', { count: totals.remaining })}
                       </Text>
                     </View>
                     <View className="h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
@@ -236,7 +245,7 @@ export default function ScheduleScreen() {
 
                   <View className="mt-4 flex-row gap-2">
                     <Button
-                      label="Jump to today"
+                      label={t('account.calendar.jumpToday')}
                       variant="secondary"
                       size="sm"
                       fullWidth={false}
@@ -244,7 +253,7 @@ export default function ScheduleScreen() {
                       onPress={jumpToToday}
                     />
                     <Button
-                      label="Change a meal"
+                      label={t('account.schedule.changeMeal')}
                       variant="outline"
                       size="sm"
                       fullWidth={false}
@@ -272,12 +281,17 @@ export default function ScheduleScreen() {
             <View className="px-5 pt-5">
               <Text className="mb-1 text-lg font-bold text-text-primary">
                 {activeWeek
-                  ? `Week ${activeWeek.week_number}`
-                  : 'Your days'}
+                  ? t('account.schedule.week', { number: activeWeek.week_number })
+                  : t('account.schedule.yourDays')}
               </Text>
               <Text className="mb-4 text-xs text-text-muted">
                 {activeWeek
-                  ? `${formatShortDate(activeWeek.starts_on)} → ${formatShortDate(activeWeek.ends_on)} · tap a day to change a meal`
+                  ? t('account.schedule.weekHint', {
+                      range: t('account.dateRange', {
+                        from: formatShortDate(activeWeek.starts_on),
+                        to: formatShortDate(activeWeek.ends_on),
+                      }),
+                    })
                   : ''}
               </Text>
 
@@ -296,8 +310,7 @@ export default function ScheduleScreen() {
                 customer guessing whether that is the end of the plan. */}
             {activeWeek?.week_number === weeks[weeks.length - 1]?.week_number ? (
               <Text className="mt-5 px-5 text-center text-xs text-text-muted">
-                That&apos;s the end of your plan — it finishes on{' '}
-                {formatShortDate(schedule!.end_date)}.
+                {t('account.schedule.endOfPlan', { date: formatShortDate(schedule!.end_date) })}
               </Text>
             ) : null}
           </>

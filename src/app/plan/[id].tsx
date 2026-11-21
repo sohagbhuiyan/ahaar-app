@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Trans, useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -35,6 +36,7 @@ import { cn, formatMoney, isoWeekdayForDate, todayISO } from '@/lib/utils';
  */
 export default function PlanDetailScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { data: plan, isLoading, isError, error, refetch } = usePlan(id);
@@ -75,7 +77,7 @@ export default function PlanDetailScreen() {
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Plan" />
+        <ScreenHeader title={t('catalog.planDetail.title')} />
         <View className="gap-4 p-5">
           <Skeleton className="h-40 w-full" />
           <SkeletonText lines={5} />
@@ -87,14 +89,14 @@ export default function PlanDetailScreen() {
   if (isError || !plan) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Plan" />
+        <ScreenHeader title={t('catalog.planDetail.title')} />
         {isNotFound(error) ? (
           // Unpublished (or deleted) since it was listed — not a failure, so
           // no "try again", just a way back to what is on offer.
           <EmptyState
-            title="This plan is no longer available"
-            description="It has been taken off the menu. Have a look at the plans on offer now."
-            actionLabel="Browse plans"
+            title={t('catalog.planDetail.notFoundTitle')}
+            description={t('catalog.planDetail.notFoundDescription')}
+            actionLabel={t('home.invite.browsePlans')}
             onAction={() => router.replace('/(tabs)/plans')}
             className="flex-1 justify-center"
           />
@@ -112,7 +114,7 @@ export default function PlanDetailScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
-      <ScreenHeader title={plan.name} subtitle={`${plan.duration_days} days`} />
+      <ScreenHeader title={plan.name} subtitle={t('common.units.day', { count: plan.duration_days })} />
       <OfflineBanner />
 
       <ScrollView
@@ -134,19 +136,22 @@ export default function PlanDetailScreen() {
               {formatMoney(plan.price)}
             </Text>
             <Text className="mb-1 text-sm text-text-muted">
-              {formatMoney(perDay)}/day
+              {t('catalog.plan.perDay', { price: formatMoney(perDay) })}
             </Text>
           </View>
 
           <View className="mt-4 flex-row rounded-2xl border border-border">
-            <GlanceStat value={String(plan.duration_days)} label="days" />
+            <GlanceStat
+              value={String(plan.duration_days)}
+              label={t('catalog.plan.stat.days', { count: plan.duration_days })}
+            />
             <GlanceStat
               value={mealCount > 0 ? String(mealCount) : '—'}
-              label={mealCount === 1 ? 'meal a day' : 'meals a day'}
+              label={t('catalog.planDetail.mealsADay', { count: mealCount })}
             />
             <GlanceStat
               value={formatMoney(perDay).replace('SAR ', '')}
-              label="per day"
+              label={t('common.units.perDay')}
               last
             />
           </View>
@@ -174,18 +179,18 @@ export default function PlanDetailScreen() {
           <View className="mt-4 rounded-2xl bg-surface-muted px-4 py-3">
             <Text className="text-xs text-text-secondary">
               {mealCount > 1 ? (
-                <>
-                  One price covers{' '}
-                  <Text className="font-bold">all {mealCount} meals</Text> a day,
-                  every day for {plan.duration_days} days — and you can trade
-                  dishes between them once it starts.
-                </>
+                <Trans
+                  i18nKey="catalog.planDetail.coversAll"
+                  count={mealCount}
+                  values={{ days: t('common.units.day', { count: plan.duration_days }) }}
+                  components={{ b: <Text className="font-bold" /> }}
+                />
               ) : (
-                <>
-                  A subscription covers{' '}
-                  <Text className="font-bold">every meal this plan serves</Text>,
-                  every day for {plan.duration_days} days.
-                </>
+                <Trans
+                  i18nKey="catalog.planDetail.coversEvery"
+                  values={{ days: t('common.units.day', { count: plan.duration_days }) }}
+                  components={{ b: <Text className="font-bold" /> }}
+                />
               )}
             </Text>
           </View>
@@ -195,7 +200,7 @@ export default function PlanDetailScreen() {
         {schedule.length > 0 ? (
           <View className="mt-6">
             <Text className="mb-3 px-5 text-lg font-bold text-text-primary">
-              What arrives each day
+              {t('catalog.planDetail.eachDay')}
             </Text>
 
             <ScrollView
@@ -223,7 +228,10 @@ export default function PlanDetailScreen() {
                         active ? 'text-text-inverse' : 'text-text-secondary',
                       )}
                     >
-                      {day.day_name.slice(0, 3)}
+                      {/* day_number is an ISO weekday (1 = Monday). */}
+                      {t(`common.weekdays.short.${day.day_number}`, {
+                        defaultValue: day.day_name,
+                      })}
                     </Text>
                   </Pressable>
                 );
@@ -238,11 +246,10 @@ export default function PlanDetailScreen() {
         {plan.quotas && plan.quotas.length > 0 ? (
           <View className="mt-6 px-5">
             <Text className="mb-1 text-lg font-bold text-text-primary">
-              Weekly limits
+              {t('catalog.planDetail.weeklyLimits')}
             </Text>
             <Text className="mb-3 text-xs text-text-muted">
-              How many portions of each dish you may have per week, and how many
-              the plan&apos;s own menu already uses.
+              {t('catalog.planDetail.weeklyLimitsHint')}
             </Text>
 
             <Card>
@@ -252,12 +259,16 @@ export default function PlanDetailScreen() {
                     {index > 0 ? <Separator className="my-3" /> : null}
                     <View className="flex-row items-center justify-between gap-3">
                       <Text className="flex-1 text-sm font-semibold text-text-primary">
-                        {quota.menu_item?.name ?? `Item #${quota.menu_item_id}`}
+                        {quota.menu_item?.name ??
+                          t('home.today.itemFallback', { id: quota.menu_item_id })}
                       </Text>
                       <Text className="text-sm text-text-secondary">
                         {quota.default_count === null
-                          ? `${quota.weekly_limit} per week`
-                          : `${quota.default_count} of ${quota.weekly_limit} used`}
+                          ? t('catalog.planDetail.perWeek', { limit: quota.weekly_limit })
+                          : t('catalog.planDetail.used', {
+                              used: quota.default_count,
+                              limit: quota.weekly_limit,
+                            })}
                       </Text>
                     </View>
                   </View>
@@ -270,7 +281,7 @@ export default function PlanDetailScreen() {
 
       <View className="border-t border-border px-5 pb-6 pt-4">
         <Button
-          label={`Subscribe · ${formatMoney(plan.price)}`}
+          label={t('catalog.planDetail.subscribeWithPrice', { price: formatMoney(plan.price) })}
           size="lg"
           onPress={onSubscribe}
         />
@@ -287,6 +298,7 @@ function DaySchedule({
   day: PlanScheduleDay;
   onOpenDish: (menuItemId: number) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View className="mt-4 gap-3 px-5">
       {day.slots.map((slot) => (
@@ -294,7 +306,7 @@ function DaySchedule({
           <View className="p-5">
             <View className="flex-row items-center justify-between gap-3">
               <Text className="text-sm font-bold text-text-primary">
-                {slot.slot?.name ?? `Meal #${slot.slot_id}`}
+                {slot.slot?.name ?? t('catalog.planDetail.mealFallback', { id: slot.slot_id })}
               </Text>
               {slot.slot ? (
                 <Text className="text-xs text-text-muted">{slotWindow(slot.slot)}</Text>
@@ -303,7 +315,9 @@ function DaySchedule({
 
             <View className="mt-3 gap-2">
               {slot.items.length === 0 ? (
-                <Text className="text-sm text-text-muted">Nothing scheduled.</Text>
+                <Text className="text-sm text-text-muted">
+                  {t('catalog.planDetail.nothingScheduled')}
+                </Text>
               ) : (
                 slot.items.map((item) => (
                   <ScheduleLine key={item.id} item={item} onOpen={onOpenDish} />
@@ -315,11 +329,10 @@ function DaySchedule({
               <>
                 <Separator className="my-4" />
                 <Text className="text-xs font-bold uppercase text-text-muted">
-                  Available to add
+                  {t('catalog.planDetail.availableToAdd')}
                 </Text>
                 <Text className="mt-1 text-xs text-text-muted">
-                  Not delivered unless you ask for it — and it only counts
-                  against your quota once you do.
+                  {t('catalog.planDetail.addonHint')}
                 </Text>
                 <View className="mt-2 gap-2">
                   {slot.addons.map((item) => (
@@ -354,7 +367,8 @@ function ScheduleLine({
   optional?: boolean;
   onOpen: (menuItemId: number) => void;
 }) {
-  const name = item.menu_item?.name ?? `Item #${item.menu_item_id}`;
+  const { t } = useTranslation();
+  const name = item.menu_item?.name ?? t('home.today.itemFallback', { id: item.menu_item_id });
 
   return (
     <Pressable
@@ -383,10 +397,10 @@ function ScheduleLine({
         <Text className="text-xs font-semibold text-brand-500">
           {item.menu_item
             ? formatMoney(item.menu_item.base_price)
-            : 'Optional'}
+            : t('common.states.optional')}
         </Text>
       ) : item.is_addon ? (
-        <Badge label="Add-on" variant="brand" />
+        <Badge label={t('catalog.food.addon')} variant="brand" />
       ) : null}
     </Pressable>
   );

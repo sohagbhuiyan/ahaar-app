@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -30,6 +31,7 @@ import { formatMoney } from '@/lib/utils';
  */
 export default function PackageDetailScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { data: pkg, isLoading, isError, error, refetch } = usePackage(id);
@@ -40,7 +42,7 @@ export default function PackageDetailScreen() {
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Meal box" />
+        <ScreenHeader title={t('catalog.package.title')} />
         <View className="gap-4 p-5">
           <Skeleton className="h-40 w-full" />
           <SkeletonText lines={5} />
@@ -52,14 +54,14 @@ export default function PackageDetailScreen() {
   if (isError || !pkg) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Meal box" />
+        <ScreenHeader title={t('catalog.package.title')} />
         {isNotFound(error) ? (
           // Unpublished, or one of its dishes was — either way it is off the
           // shelf, which is not something "try again" can fix.
           <EmptyState
-            title="This meal box is no longer available"
-            description="It has been taken off the menu. Have a look at the boxes on offer now."
-            actionLabel="Browse meal boxes"
+            title={t('catalog.package.notFoundTitle')}
+            description={t('catalog.package.notFoundDescription')}
+            actionLabel={t('catalog.package.browse')}
             onAction={() => router.replace('/packages')}
             className="flex-1 justify-center"
           />
@@ -85,13 +87,13 @@ export default function PackageDetailScreen() {
       },
       qty,
     );
-    toast.success(`${pkg.name} added to your order`);
+    toast.success(t('catalog.package.addedToast', { name: pkg.name }));
     router.push('/order');
   };
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
-      <ScreenHeader title={pkg.name} subtitle={`${contents.length} items`} />
+      <ScreenHeader title={pkg.name} subtitle={t('common.units.item', { count: contents.length })} />
       <OfflineBanner />
 
       <ScrollView
@@ -128,7 +130,11 @@ export default function PackageDetailScreen() {
                 <Text className="mb-1 text-sm text-text-muted line-through">
                   {formatMoney(alaCarte)}
                 </Text>
-                <Badge label={`Save ${formatMoney(saving)}`} variant="paid" className="mb-1" />
+                <Badge
+                  label={t('catalog.package.save', { amount: formatMoney(saving) })}
+                  variant="paid"
+                  className="mb-1"
+                />
               </>
             ) : null}
           </View>
@@ -144,7 +150,7 @@ export default function PackageDetailScreen() {
         {contents.length > 0 ? (
           <View className="mt-6 px-5">
             <Text className="mb-3 text-lg font-bold text-text-primary">
-              What&apos;s inside
+              {t('catalog.package.whatsInside')}
             </Text>
 
             <Card>
@@ -171,8 +177,7 @@ export default function PackageDetailScreen() {
             </Card>
 
             <Text className="mt-2 text-xs text-text-muted">
-              Everything above arrives together as one box. Boxes are bought on the
-              day — they are not part of a subscription and cannot be swapped.
+              {t('catalog.package.boxNote')}
             </Text>
           </View>
         ) : null}
@@ -181,18 +186,20 @@ export default function PackageDetailScreen() {
       {/* Purchase bar */}
       <View className="border-t border-border px-5 pb-6 pt-4">
         <View className="mb-3 flex-row items-center justify-between">
-          <Text className="text-sm font-semibold text-text-secondary">Boxes</Text>
+          <Text className="text-sm font-semibold text-text-secondary">
+            {t('catalog.package.boxes')}
+          </Text>
           <Stepper
             value={qty}
             min={1}
             max={MAX_LINE_QUANTITY}
-            label={`${pkg.name} quantity`}
+            label={t('catalog.quantityOf', { name: pkg.name })}
             onChange={setQty}
           />
         </View>
 
         <Button
-          label={`Add to order · ${formatMoney(pkg.price * qty)}`}
+          label={t('catalog.package.addWithPrice', { price: formatMoney(pkg.price * qty) })}
           size="lg"
           onPress={addToOrder}
         />

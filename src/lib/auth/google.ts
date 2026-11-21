@@ -18,6 +18,7 @@
  */
 import { Platform, TurboModuleRegistry } from 'react-native';
 
+import i18n from '../i18n';
 import type { ApiError } from '../api/types/common';
 
 type GoogleSignInLib = typeof import('@react-native-google-signin/google-signin');
@@ -85,7 +86,7 @@ export class GoogleSignInError extends Error implements ApiError {
  */
 export async function requestGoogleIdToken(): Promise<string | null> {
   if (!googleSignInAvailable) {
-    throw new GoogleSignInError('Google sign-in is not available in this version of the app.');
+    throw new GoogleSignInError(i18n.t('auth.google.errors.unavailable'));
   }
 
   configure();
@@ -107,7 +108,7 @@ export async function requestGoogleIdToken(): Promise<string | null> {
     const idToken = response.data.idToken;
     if (!idToken) {
       // Only happens when webClientId is missing or wrong.
-      throw new GoogleSignInError('Google sign-in is not set up correctly. Please use your email instead.');
+      throw new GoogleSignInError(i18n.t('auth.google.errors.misconfigured'));
     }
     return idToken;
   } catch (error) {
@@ -118,15 +119,15 @@ export async function requestGoogleIdToken(): Promise<string | null> {
         case statusCodes.SIGN_IN_CANCELLED:
           return null;
         case statusCodes.IN_PROGRESS:
-          throw new GoogleSignInError('Google sign-in is already open.');
+          throw new GoogleSignInError(i18n.t('auth.google.errors.inProgress'));
         case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-          throw new GoogleSignInError('Google Play services is missing or out of date on this device.');
+          throw new GoogleSignInError(i18n.t('auth.google.errors.playServices'));
       }
     }
 
     // DEVELOPER_ERROR (code 10) on Android is almost always a SHA-1 or package
     // name that isn't registered on the Android OAuth client.
-    throw new GoogleSignInError("Couldn't sign in with Google. Please try again.");
+    throw new GoogleSignInError(i18n.t('auth.google.errors.generic'));
   }
 }
 

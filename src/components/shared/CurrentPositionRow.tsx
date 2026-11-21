@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
 
 import LocateIcon from '@/components/icons/LocateIcon';
@@ -28,8 +29,9 @@ export function CurrentPositionRow({
   onLocate,
   onTurnOn,
   onChooseOnMap,
-  hint = 'Find me on the map',
+  hint,
 }: Props) {
+  const { t } = useTranslation();
   const busy = device.status === 'requesting' || device.status === 'locating';
   const outside = device.status === 'outside_area';
   const problem =
@@ -43,7 +45,7 @@ export function CurrentPositionRow({
       <Pressable
         testID="use-current-location"
         accessibilityRole="button"
-        accessibilityLabel="Use my current location"
+        accessibilityLabel={t('location.common.useCurrentLocation')}
         accessibilityState={{ busy, disabled: busy }}
         disabled={busy}
         onPress={onLocate}
@@ -51,13 +53,15 @@ export function CurrentPositionRow({
       >
         <LocateIcon color={colors.brand[500]} size={22} />
         <View className="flex-1">
-          <Text className="text-sm font-bold text-brand-700">Use my current location</Text>
+          <Text className="text-sm font-bold text-brand-700">
+            {t('location.common.useCurrentLocation')}
+          </Text>
           <Text className="mt-0.5 text-xs text-text-secondary">
             {device.status === 'requesting'
-              ? 'Waiting for permission…'
+              ? t('location.position.waiting')
               : device.status === 'locating'
-                ? 'Finding where you are…'
-                : hint}
+                ? t('location.position.finding')
+                : (hint ?? t('location.position.defaultHint'))}
           </Text>
         </View>
         {busy ? <ActivityIndicator size="small" color={colors.brand[500]} /> : null}
@@ -68,14 +72,14 @@ export function CurrentPositionRow({
           <Text className="text-xs font-semibold text-text-primary">{device.message}</Text>
           <Text className="mt-0.5 text-xs text-text-muted">
             {outside
-              ? 'Search for your address, or place the pin on the map instead.'
-              : 'You can still search for your address or choose it on the map.'}
+              ? t('location.position.outsideHelp')
+              : t('location.position.problemHelp')}
           </Text>
 
           <View className="mt-2 flex-row flex-wrap gap-2">
             {device.status === 'denied' && !device.canAskAgain ? (
               <Button
-                label="Open settings"
+                label={t('location.common.openSettings')}
                 variant="secondary"
                 size="sm"
                 fullWidth={false}
@@ -84,7 +88,11 @@ export function CurrentPositionRow({
             ) : null}
             {device.status === 'services_off' ? (
               <Button
-                label={Platform.OS === 'android' ? 'Turn on location' : 'Open settings'}
+                label={
+                  Platform.OS === 'android'
+                    ? t('location.common.turnOnLocation')
+                    : t('location.common.openSettings')
+                }
                 variant="secondary"
                 size="sm"
                 fullWidth={false}
@@ -94,7 +102,7 @@ export function CurrentPositionRow({
             {(device.status === 'denied' && device.canAskAgain) ||
             device.status === 'unavailable' ? (
               <Button
-                label="Try again"
+                label={t('common.actions.retry')}
                 variant="ghost"
                 size="sm"
                 fullWidth={false}
@@ -104,7 +112,7 @@ export function CurrentPositionRow({
             {/* The map never needs permission — whatever went wrong, it's one tap away. */}
             {onChooseOnMap ? (
               <Button
-                label="Choose on the map"
+                label={t('location.common.chooseOnMap')}
                 variant="secondary"
                 size="sm"
                 fullWidth={false}

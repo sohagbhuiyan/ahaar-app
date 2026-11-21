@@ -1,0 +1,13 @@
+{
+  "home": "الرئيسية",
+  "plans": "الخطط",
+  "foods": "الأطباق",
+  "media": "الوسائط",
+  "menu": "الحساب",
+  "basketBadge_zero": "السلة فارغة",
+  "basketBadge_one": "عنصر واحد في السلة",
+  "basketBadge_two": "عنصران في السلة",
+  "basketBadge_few": "{{count}} عناصر في السلة",
+  "basketBadge_many": "{{count}} عنصرًا في السلة",
+  "basketBadge_other": "{{count}} عنصر في السلة"
+}

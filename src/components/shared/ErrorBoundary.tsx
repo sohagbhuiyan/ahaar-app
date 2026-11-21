@@ -3,6 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui';
+import i18n from '@/lib/i18n';
 import { captureError } from '@/lib/monitoring/sentry';
 
 interface Props {
@@ -54,10 +55,10 @@ export class ErrorBoundary extends Component<Props, State> {
           }}
         >
           <Text className="text-2xl font-bold text-text-primary">
-            Something went wrong
+            {i18n.t('ui.errorBoundary.title')}
           </Text>
           <Text className="mt-2 text-sm text-text-secondary">
-            The app hit an unexpected problem. Reporting it helps us fix it.
+            {i18n.t('ui.errorBoundary.body')}
           </Text>
 
           {/* The message is only useful to a developer, so it stays behind the
@@ -68,7 +69,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </View>
           ) : null}
 
-          <Button label="Try again" className="mt-6" onPress={this.reset} />
+          <Button label={i18n.t('common.actions.retry')} className="mt-6" onPress={this.reset} />
         </ScrollView>
       </SafeAreaView>
     );

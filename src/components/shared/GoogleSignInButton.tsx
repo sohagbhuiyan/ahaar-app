@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 import { toast } from 'sonner-native';
 
@@ -26,15 +27,20 @@ interface Props {
  */
 export function GoogleSignInButton({
   onSuccess,
-  label = 'Continue with Google',
+  label,
   size = 'lg',
   divider = false,
   className,
 }: Props) {
+  const { t } = useTranslation();
   const google = useGoogleLogin({
     onSuccess: (user, isNewUser) => {
       const first = user.name.split(' ')[0];
-      toast.success(isNewUser ? `Welcome to Ahaar, ${first}` : `Welcome back, ${first}`);
+      toast.success(
+        isNewUser
+          ? t('auth.toast.welcomeNew', { name: first })
+          : t('auth.toast.welcomeBack', { name: first }),
+      );
       onSuccess?.(user, isNewUser);
     },
   });
@@ -46,12 +52,12 @@ export function GoogleSignInButton({
       {google.isError ? <InlineError error={google.error} className="mb-3" /> : null}
 
       <Button
-        label={label}
+        label={label ?? t('auth.google.continue')}
         variant="outline"
         size={size}
         loading={google.isPending}
         left={<GoogleIcon size={20} />}
-        accessibilityHint="Opens Google to choose an account"
+        accessibilityHint={t('auth.google.hint')}
         onPress={() => {
           if (!google.isPending) google.mutate();
         }}
@@ -63,10 +69,13 @@ export function GoogleSignInButton({
 }
 
 export function OrDivider() {
+  const { t } = useTranslation();
   return (
     <View className="my-5 flex-row items-center gap-3">
       <View className="h-px flex-1 bg-border" />
-      <Text className="text-xs font-semibold uppercase tracking-wider text-text-muted">or</Text>
+      <Text className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+        {t('auth.google.or')}
+      </Text>
       <View className="h-px flex-1 bg-border" />
     </View>
   );

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import type { DeliverySlot } from '@/lib/api/types/catalog';
@@ -24,10 +25,11 @@ interface Props {
  * fish onto today's lunch only works because both plates belong to them.
  */
 export function PlanMealsIncluded({ slots, durationDays, className }: Props) {
+  const { t } = useTranslation();
   if (slots.length === 0) {
     return (
       <Text className={cn('text-sm text-text-secondary', className)}>
-        This plan has no meal times set up yet. Please contact us before subscribing.
+        {t('catalog.planMeals.none')}
       </Text>
     );
   }
@@ -49,8 +51,15 @@ export function PlanMealsIncluded({ slots, durationDays, className }: Props) {
 
       <Text className="mt-1 text-xs text-text-muted">
         {perDay === 1
-          ? `${total} deliveries — this meal, every day for ${durationDays} days.`
-          : `${perDay} meals a day × ${durationDays} days = ${total} deliveries. You can trade dishes between them once your plan starts.`}
+          ? t('catalog.planMeals.single', {
+              deliveries: t('catalog.units.delivery', { count: total }),
+              days: t('common.units.day', { count: durationDays }),
+            })
+          : t('catalog.planMeals.multiple', {
+              perDay: t('catalog.units.mealsPerDay', { count: perDay }),
+              days: t('common.units.day', { count: durationDays }),
+              deliveries: t('catalog.units.delivery', { count: total }),
+            })}
       </Text>
     </View>
   );

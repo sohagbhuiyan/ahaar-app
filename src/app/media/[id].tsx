@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -28,7 +29,7 @@ import {
   useMediaComments,
   useMediaVideo,
 } from '@/lib/query/hooks';
-import { formatLongDate } from '@/lib/utils';
+import { useFormatters } from '@/lib/i18n/format';
 
 /**
  * One kitchen video and the conversation under it.
@@ -42,6 +43,8 @@ import { formatLongDate } from '@/lib/utils';
 export default function MediaVideoScreen() {
   const { id, autoplay } = useLocalSearchParams<{ id: string; autoplay?: string }>();
 
+  const { t } = useTranslation();
+  const { formatDate } = useFormatters();
   const { data: video, isLoading, isError, error, refetch } = useMediaVideo(id);
   const comments = useMediaComments(id);
   const removeComment = useDeleteMediaComment(id ?? '');
@@ -55,7 +58,7 @@ export default function MediaVideoScreen() {
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Kitchen video" />
+        <ScreenHeader title={t('catalog.media.kitchenVideo')} />
         <Skeleton className="aspect-video w-full rounded-none" />
         <View className="gap-4 p-5">
           <SkeletonText lines={4} />
@@ -67,7 +70,7 @@ export default function MediaVideoScreen() {
   if (isError || !video) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Kitchen video" />
+        <ScreenHeader title={t('catalog.media.kitchenVideo')} />
         <ErrorState error={error} onRetry={refetch} className="flex-1 justify-center" />
       </SafeAreaView>
     );
@@ -78,11 +81,11 @@ export default function MediaVideoScreen() {
     removeComment.mutate(pendingDelete.id, {
       onSuccess: () => {
         setPendingDelete(null);
-        toast.success('Comment deleted');
+        toast.success(t('catalog.comments.deleted'));
       },
       onError: (e) => {
         setPendingDelete(null);
-        toast.error(isApiError(e) ? e.message : 'That comment could not be deleted');
+        toast.error(isApiError(e) ? e.message : t('catalog.comments.deleteFailed'));
       },
     });
   };
@@ -94,7 +97,11 @@ export default function MediaVideoScreen() {
       <Text className="text-xl font-bold text-text-primary">{video.title}</Text>
       {video.published_at ? (
         <Text className="mt-0.5 text-xs text-text-muted">
-          {formatLongDate(video.published_at.slice(0, 10))}
+          {formatDate(video.published_at.slice(0, 10), {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}
         </Text>
       ) : null}
       {video.description ? (
@@ -102,14 +109,16 @@ export default function MediaVideoScreen() {
       ) : null}
 
       <Text className="mt-6 text-base font-bold text-text-primary">
-        Comments{total > 0 ? ` · ${total}` : ''}
+        {total > 0
+          ? t('catalog.comments.headingWithCount', { count: total })
+          : t('catalog.comments.heading')}
       </Text>
     </View>
   );
 
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={['top', 'left', 'right']}>
-      <ScreenHeader title={video.title} subtitle="Kitchen video" />
+      <ScreenHeader title={video.title} subtitle={t('catalog.media.kitchenVideo')} />
       <OfflineBanner />
 
       <TapToPlayVideo
@@ -144,8 +153,8 @@ export default function MediaVideoScreen() {
               <ErrorState error={comments.error} onRetry={comments.refetch} />
             ) : (
               <EmptyState
-                title="No comments yet"
-                description="Be the first to say what you think."
+                title={t('catalog.media.noComments')}
+                description={t('catalog.comments.emptyDescription')}
               />
             )
           }
@@ -154,7 +163,7 @@ export default function MediaVideoScreen() {
               hasMore={comments.hasNextPage}
               loading={comments.isFetchingNextPage}
               onPress={() => comments.fetchNextPage()}
-              label="Load older comments"
+              label={t('catalog.comments.loadOlder')}
             />
           }
           renderItem={({ item }) => (
@@ -171,9 +180,9 @@ export default function MediaVideoScreen() {
         open={pendingDelete !== null}
         onClose={() => setPendingDelete(null)}
         onConfirm={confirmDelete}
-        title="Delete your comment?"
-        description="It will be removed for everyone. This can't be undone."
-        confirmLabel="Delete"
+        title={t('catalog.comments.deleteTitle')}
+        description={t('catalog.comments.deleteDescription')}
+        confirmLabel={t('common.actions.delete')}
         destructive
         loading={removeComment.isPending}
       />

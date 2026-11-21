@@ -82,6 +82,24 @@
           "isAndroidBackgroundLocationEnabled": false,
           "isAndroidForegroundServiceEnabled": false
         }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportsRTL": true,
+          "supportedLocales": {
+            "ios": [
+              "en",
+              "bn",
+              "ar"
+            ],
+            "android": [
+              "en",
+              "bn",
+              "ar"
+            ]
+          }
+        }
       ]
     ],
     "experiments": {
@@ -92,7 +110,8 @@
       "router": {},
       "eas": {
         "projectId": "867c988f-3ef3-46b8-be64-f361cc7072d2"
-      }
+      },
+      "supportsRTL": true
     }
   }
 }

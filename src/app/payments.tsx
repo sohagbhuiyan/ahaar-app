@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -40,6 +41,7 @@ import { formatMoney, formatShortDate } from '@/lib/utils';
  * whole reason to open this screen.
  */
 export default function PaymentsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const signedIn = useIsSignedIn();
   const promptLogin = useAuthPromptStore((s) => s.prompt);
@@ -59,12 +61,12 @@ export default function PaymentsScreen() {
   if (!signedIn) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Payments" />
+        <ScreenHeader title={t('ordering.payments.title')} />
         <EmptyState
-          title="Sign in to see your payments"
-          description="Charges, refunds and anything still outstanding."
-          actionLabel="Sign in"
-          onAction={() => promptLogin('to see your payments')}
+          title={t('ordering.payments.signInTitle')}
+          description={t('ordering.payments.signInBody')}
+          actionLabel={t('common.actions.signIn')}
+          onAction={() => promptLogin(t('ordering.authReason.seePayments'))}
           className="flex-1 justify-center"
         />
       </SafeAreaView>
@@ -79,7 +81,7 @@ export default function PaymentsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
-      <ScreenHeader title="Payments" />
+      <ScreenHeader title={t('ordering.payments.title')} />
       <OfflineBanner />
 
       <ScrollView
@@ -99,9 +101,9 @@ export default function PaymentsScreen() {
           <ErrorState error={error} onRetry={refetch} retrying={isFetching} />
         ) : !payments || payments.length === 0 ? (
           <EmptyState
-            title="No payments yet"
-            description="Charges for your orders and plans will show up here."
-            actionLabel="Browse the menu"
+            title={t('ordering.payments.emptyTitle')}
+            description={t('ordering.payments.emptyBody')}
+            actionLabel={t('ordering.browseMenu')}
             onAction={() => router.push('/(tabs)/foods')}
           />
         ) : (
@@ -110,16 +112,15 @@ export default function PaymentsScreen() {
               <Card className="mb-4 border-warning">
                 <View className="p-5">
                   <Text className="text-sm font-bold text-text-primary">
-                    {outstanding.length} payment
-                    {outstanding.length > 1 ? 's' : ''} outstanding
+                    {t('ordering.payments.outstanding', { count: outstanding.length })}
                   </Text>
                   <Text className="mt-1 text-xs text-text-secondary">
-                    Nothing is confirmed until these go through.
+                    {t('ordering.payments.outstandingHint')}
                   </Text>
                   <Button
-                    label={`Pay ${formatMoney(
-                      outstanding.reduce((sum, p) => sum + p.amount, 0),
-                    )}`}
+                    label={t('ordering.payAmount', {
+                      amount: formatMoney(outstanding.reduce((sum, p) => sum + p.amount, 0)),
+                    })}
                     className="mt-4"
                     onPress={() => openCheckout(outstanding[0].checkout_url!)}
                   />
@@ -131,14 +132,13 @@ export default function PaymentsScreen() {
               <Card className="mb-4 border-brand-500">
                 <View className="p-5">
                   <Text className="text-sm font-bold text-text-primary">
-                    {awaitingCash.length} cash{' '}
-                    {awaitingCash.length === 1 ? 'payment' : 'payments'} on the way
+                    {t('ordering.payments.cashOnTheWay', { count: awaitingCash.length })}
                   </Text>
                   <Text className="mt-1 text-xs text-text-secondary">
-                    Pay{' '}
-                    {formatMoney(awaitingCash.reduce((sum, p) => sum + p.amount, 0))}{' '}
-                    in cash when your {awaitingCash.length === 1 ? 'order arrives' : 'orders arrive'}.
-                    Nothing to do here.
+                    {t('ordering.payments.cashHint', {
+                      count: awaitingCash.length,
+                      amount: formatMoney(awaitingCash.reduce((sum, p) => sum + p.amount, 0)),
+                    })}
                   </Text>
                 </View>
               </Card>
@@ -172,7 +172,7 @@ export default function PaymentsScreen() {
 
                     {isPayable(payment) ? (
                       <Button
-                        label="Pay now"
+                        label={t('ordering.payNow')}
                         size="sm"
                         fullWidth={false}
                         className="mt-2 self-start"
@@ -188,7 +188,7 @@ export default function PaymentsScreen() {
               hasMore={hasNextPage}
               loading={isFetchingNextPage}
               onPress={() => fetchNextPage()}
-              label="Load older payments"
+              label={t('ordering.payments.loadOlder')}
               className="px-0"
             />
           </>

@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PressableScale } from '@/components/ui';
@@ -41,14 +42,18 @@ interface Props {
  */
 export function KitchenVideosRail({
   eyebrow,
-  title = 'From our kitchen',
-  subtitle = 'See how your meals are made',
+  title,
+  subtitle,
   limit = 6,
   layout = 'rail',
   featureFirst = false,
   className,
 }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
+  // `undefined` → shipped copy; an explicit '' (CMS "no sub-heading") stays empty.
+  const heading = title || t('home.kitchen.title');
+  const subheading = subtitle ?? t('home.kitchen.subtitle');
   const { data: videos } = useMediaVideos();
 
   if (!videos || videos.length === 0) return null;
@@ -72,18 +77,18 @@ export function KitchenVideosRail({
               {eyebrow}
             </Text>
           ) : null}
-          <Text className="text-lg font-bold text-text-primary">{title}</Text>
-          {subtitle ? (
-            <Text className="mt-0.5 text-sm text-text-secondary">{subtitle}</Text>
+          <Text className="text-lg font-bold text-text-primary">{heading}</Text>
+          {subheading ? (
+            <Text className="mt-0.5 text-sm text-text-secondary">{subheading}</Text>
           ) : null}
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="See all kitchen videos"
+          accessibilityLabel={t('home.kitchen.seeAllA11y')}
           onPress={() => router.navigate('/media')}
           hitSlop={8}
         >
-          <Text className="text-sm font-bold text-brand-500">See all</Text>
+          <Text className="text-sm font-bold text-brand-500">{t('common.actions.seeAll')}</Text>
         </Pressable>
       </View>
 
@@ -112,12 +117,13 @@ export function KitchenVideosRail({
 }
 
 function FeaturedVideo({ video, onPress }: { video: MediaVideo; onPress: () => void }) {
+  const { t } = useTranslation();
   const duration = formatDuration(video.duration_seconds);
 
   return (
     <PressableScale
       accessibilityRole="button"
-      accessibilityLabel={`Play video: ${video.title}`}
+      accessibilityLabel={t('catalog.media.playVideo', { title: video.title })}
       onPress={onPress}
       className="mx-5 overflow-hidden rounded-3xl bg-brand-900"
       style={shadows.card}
@@ -145,7 +151,7 @@ function FeaturedVideo({ video, onPress }: { video: MediaVideo; onPress: () => v
 
         <View className="absolute bottom-0 left-0 right-0 p-4">
           <Text className="text-[11px] font-bold uppercase tracking-widest text-white/80">
-            New from the kitchen
+            {t('home.kitchen.newBadge')}
           </Text>
           <Text numberOfLines={2} className="mt-0.5 text-base font-bold text-white">
             {video.title}
@@ -161,6 +167,7 @@ function FeaturedVideo({ video, onPress }: { video: MediaVideo; onPress: () => v
 
 /** A compact "up next" row: thumbnail on the left, title and meta beside it. */
 function MediaVideoRow({ video, onPress }: { video: MediaVideo; onPress: () => void }) {
+  const { t } = useTranslation();
   const duration = formatDuration(video.duration_seconds);
   const meta = [
     video.published_at ? formatRelativeTime(video.published_at) : null,
@@ -172,7 +179,7 @@ function MediaVideoRow({ video, onPress }: { video: MediaVideo; onPress: () => v
   return (
     <PressableScale
       accessibilityRole="button"
-      accessibilityLabel={`Play video: ${video.title}`}
+      accessibilityLabel={t('catalog.media.playVideo', { title: video.title })}
       onPress={onPress}
       className="flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-2.5"
       style={shadows.card}

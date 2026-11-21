@@ -20,6 +20,8 @@ import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, Platform } from 'react-native';
 
+import i18n from '@/lib/i18n';
+
 import { isCompleteDraft, type AddressDraft } from './address';
 import { lookupPlace } from './lookup';
 
@@ -130,8 +132,8 @@ export function useDeviceLocation({ timeoutMs = LOCATE_TIMEOUT_MS }: { timeoutMs
           status: 'denied',
           canAskAgain: permission.canAskAgain,
           message: permission.canAskAgain
-            ? 'Location access wasn’t allowed.'
-            : 'Location access is turned off for Ahaar in your phone’s settings.',
+            ? i18n.t('location.device.denied')
+            : i18n.t('location.device.deniedSettings'),
         });
       }
 
@@ -142,7 +144,7 @@ export function useDeviceLocation({ timeoutMs = LOCATE_TIMEOUT_MS }: { timeoutMs
         return commit({
           ...IDLE,
           status: 'services_off',
-          message: 'Location is switched off on your phone.',
+          message: i18n.t('location.device.servicesOff'),
         });
       }
 
@@ -153,7 +155,7 @@ export function useDeviceLocation({ timeoutMs = LOCATE_TIMEOUT_MS }: { timeoutMs
         return commit({
           ...IDLE,
           status: 'unavailable',
-          message: 'We couldn’t find your position just now.',
+          message: i18n.t('location.device.unavailable'),
         });
       }
 
@@ -170,7 +172,7 @@ export function useDeviceLocation({ timeoutMs = LOCATE_TIMEOUT_MS }: { timeoutMs
           draft: place.draft,
           accuracy,
           needsTyping: !isCompleteDraft(place.draft),
-          message: 'Ahaar doesn’t deliver where you are yet — we serve Saudi Arabia.',
+          message: i18n.t('location.device.outsideArea'),
         });
       }
 
@@ -182,13 +184,13 @@ export function useDeviceLocation({ timeoutMs = LOCATE_TIMEOUT_MS }: { timeoutMs
         needsTyping: !isCompleteDraft(place.draft),
         message: place.found
           ? null
-          : 'We found your position but couldn’t look up the street — please add your address.',
+          : i18n.t('location.device.noStreet'),
       });
     } catch {
       return commit({
         ...IDLE,
         status: 'unavailable',
-        message: 'Something went wrong while finding your location.',
+        message: i18n.t('location.device.failed'),
       });
     }
   }, [timeoutMs]);

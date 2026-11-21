@@ -1,6 +1,7 @@
 import { FlashList } from '@shopify/flash-list';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,6 +21,7 @@ import { queryKeys } from '@/lib/query/keys';
  */
 export default function MediaScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const {
@@ -48,10 +50,9 @@ export default function MediaScreen() {
 
   const header = (
     <View className="pb-4 pt-2">
-      <Text className="text-2xl font-bold text-text-primary">Media</Text>
+      <Text className="text-2xl font-bold text-text-primary">{t('catalog.media.title')}</Text>
       <Text className="mt-1 text-sm text-text-secondary">
-        Straight from the Ahaar kitchen — see how your meals are made, and tell us what you
-        think.
+        {t('catalog.media.subtitle')}
       </Text>
     </View>
   );
@@ -92,8 +93,8 @@ export default function MediaScreen() {
           }
           ListEmptyComponent={
             <EmptyState
-              title="No videos yet"
-              description="The kitchen hasn't posted anything yet. Check back soon."
+              title={t('catalog.media.emptyTitle')}
+              description={t('catalog.media.emptyDescription')}
             />
           }
           ListFooterComponent={
@@ -101,7 +102,7 @@ export default function MediaScreen() {
               hasMore={hasNextPage}
               loading={isFetchingNextPage}
               onPress={() => fetchNextPage()}
-              label="Load more videos"
+              label={t('catalog.media.loadMore')}
               className="px-0"
             />
           }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -56,6 +57,7 @@ const STATUS_VARIANT: Record<SubscriptionStatus, BadgeVariant> = {
  * about the subscription, not about one day's food.
  */
 export default function SubscriptionDetailScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const today = todayISO();
@@ -82,7 +84,7 @@ export default function SubscriptionDetailScreen() {
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Subscription" />
+        <ScreenHeader title={t('account.subscription.title')} />
         <View className="gap-4 p-5">
           <Skeleton className="h-40 w-full" />
           <SkeletonText lines={4} />
@@ -94,7 +96,7 @@ export default function SubscriptionDetailScreen() {
   if (isError || !subscription) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Subscription" />
+        <ScreenHeader title={t('account.subscription.title')} />
         <ErrorState
           error={error}
           onRetry={refetch}
@@ -140,8 +142,8 @@ export default function SubscriptionDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-surface">
       <ScreenHeader
-        title={subscription.plan?.name ?? `Subscription #${subscription.id}`}
-        subtitle={`#${subscription.id}${meals.length > 0 ? ` · ${meals.map((m) => m.name).join(', ')}` : ''}`}
+        title={subscription.plan?.name ?? t('account.subscriptionNumber', { id: subscription.id })}
+        subtitle={`\u2068#${subscription.id}\u2069${meals.length > 0 ? ` · ${meals.map((m) => m.name).join(', ')}` : ''}`}
       />
       <OfflineBanner />
 
@@ -159,13 +161,13 @@ export default function SubscriptionDetailScreen() {
           <Card className="mb-4 border-warning">
             <View className="p-5">
               <Text className="text-sm font-bold text-text-primary">
-                Payment not finished
+                {t('account.subscription.paymentNotFinished')}
               </Text>
               <Text className="mt-1 text-xs text-text-secondary">
-                Your deliveries are scheduled once the payment goes through.
+                {t('account.subscription.paymentNotFinishedBody')}
               </Text>
               <Button
-                label="Complete payment"
+                label={t('account.subscription.completePayment')}
                 className="mt-4"
                 onPress={() => openCheckout(subscription.payment!.checkout_url!)}
               />
@@ -179,19 +181,24 @@ export default function SubscriptionDetailScreen() {
             <View className="flex-row items-start justify-between gap-3">
               <View className="flex-1">
                 <Text className="text-lg font-bold text-text-primary">
-                  {subscription.plan?.name ?? 'Your plan'}
+                  {subscription.plan?.name ?? t('account.deliveries.yourPlan')}
                 </Text>
                 {subscription.plan ? (
                   <Text className="mt-0.5 text-xs text-text-muted">
                     {meals.length > 1
-                      ? `${meals.length} meals a day for ${subscription.plan.duration_days} days`
-                      : `Every meal in this plan, daily for ${subscription.plan.duration_days} days`}
+                      ? t('account.subscription.mealsADayFor', {
+                          meals: t('account.deliveries.mealsPerDay', { count: meals.length }),
+                          days: t('common.units.day', { count: subscription.plan.duration_days }),
+                        })
+                      : t('account.subscription.everyMealFor', {
+                          days: t('common.units.day', { count: subscription.plan.duration_days }),
+                        })}
                   </Text>
                 ) : null}
               </View>
 
               <Badge
-                label={subscription.status}
+                label={t(`common.status.${subscription.status}`, { defaultValue: subscription.status })}
                 variant={STATUS_VARIANT[subscription.status] ?? 'muted'}
                 className="capitalize"
               />
@@ -200,7 +207,7 @@ export default function SubscriptionDetailScreen() {
             <Separator className="my-4" />
 
             {meals.length === 0 ? (
-              <Row label="Meals" value="—" />
+              <Row label={t('account.subscription.meals')} value="—" />
             ) : (
               meals.map((meal) => (
                 <Row
@@ -210,24 +217,27 @@ export default function SubscriptionDetailScreen() {
                 />
               ))
             )}
-            <Row label="Starts" value={formatLongDate(subscription.start_date)} />
+            <Row label={t('account.subscription.starts')} value={formatLongDate(subscription.start_date)} />
             <Row
-              label="Ends"
+              label={t('account.subscription.ends')}
               value={
                 extendedDays > 0
-                  ? `${formatLongDate(subscription.end_date)} (+${extendedDays}d)`
+                  ? t('account.subscription.endsExtended', {
+                      date: formatLongDate(subscription.end_date),
+                      extra: t('common.units.day', { count: extendedDays }),
+                    })
                   : formatLongDate(subscription.end_date)
               }
             />
             {extendedDays > 0 ? (
               <Row
-                label="Originally ended"
+                label={t('account.subscription.originallyEnded')}
                 value={formatLongDate(subscription.original_end_date)}
               />
             ) : null}
             {subscription.activated_at ? (
               <Row
-                label="Activated"
+                label={t('account.subscription.activated')}
                 value={formatLongDate(subscription.activated_at.slice(0, 10))}
               />
             ) : null}
@@ -240,7 +250,7 @@ export default function SubscriptionDetailScreen() {
             <Separator className="my-4" />
 
             <View className="flex-row items-center justify-between">
-              <Text className="text-base font-bold text-text-primary">Paid</Text>
+              <Text className="text-base font-bold text-text-primary">{t('account.paid')}</Text>
               <Text className="text-xl font-bold text-brand-500">
                 {formatMoney(subscription.price_paid)}
               </Text>
@@ -248,11 +258,16 @@ export default function SubscriptionDetailScreen() {
 
             {subscription.payment ? (
               <View className="mt-3 gap-1">
-                <Row label="Payment status" value={subscription.payment.status} />
-                <Row label="Method" value={subscription.payment.gateway} />
+                <Row
+                  label={t('account.subscription.paymentStatus')}
+                  value={t(`common.status.${subscription.payment.status}`, {
+                    defaultValue: subscription.payment.status,
+                  })}
+                />
+                <Row label={t('account.subscription.method')} value={subscription.payment.gateway} />
                 {subscription.payment.paid_at ? (
                   <Row
-                    label="Paid on"
+                    label={t('account.subscription.paidOn')}
                     value={formatLongDate(subscription.payment.paid_at.slice(0, 10))}
                   />
                 ) : null}
@@ -272,12 +287,16 @@ export default function SubscriptionDetailScreen() {
         {/* ── This week's allowance ───────────────────────────────────────── */}
         <View className="mt-6">
           <Text className="mb-1 text-lg font-bold text-text-primary">
-            {hasStarted ? "This week's allowance" : "Your first week's allowance"}
+            {hasStarted
+              ? t('account.subscription.thisWeekAllowance')
+              : t('account.subscription.firstWeekAllowance')}
           </Text>
           <Text className="mb-3 text-xs text-text-muted">
             {hasStarted
-              ? `Week ${currentWeek} of your plan — how many times you can still have each dish.`
-              : `Your plan starts on ${formatLongDate(subscription.start_date)}. This is week 1's allowance.`}
+              ? t('account.subscription.allowanceHint', { week: currentWeek })
+              : t('account.subscription.allowanceNotStarted', {
+                  date: formatLongDate(subscription.start_date),
+                })}
           </Text>
 
           {quotaLoading ? (
@@ -286,7 +305,7 @@ export default function SubscriptionDetailScreen() {
             <Card>
               <View className="p-5">
                 <Text className="text-sm text-text-secondary">
-                  No per-item limits on this plan.
+                  {t('account.subscription.noLimits')}
                 </Text>
               </View>
             </Card>
@@ -301,11 +320,16 @@ export default function SubscriptionDetailScreen() {
 
         {/* ── Upcoming days ───────────────────────────────────────────────── */}
         <View className="mt-6">
-          <Text className="mb-1 text-lg font-bold text-text-primary">Coming up</Text>
+          <Text className="mb-1 text-lg font-bold text-text-primary">
+            {t('account.subscription.comingUp')}
+          </Text>
           <Text className="mb-3 text-xs text-text-muted">
             {upcomingDates.length > 0
-              ? `The next ${upcomingDates.length} ${upcomingDates.length === 1 ? 'day' : 'days'} of ${totalDays} — open the full schedule for the rest. Skipping a day frees its allowance and extends your plan by a day.`
-              : 'Skipping a day frees its allowance and extends your plan by a day.'}
+              ? t('account.subscription.comingUpHint', {
+                  count: upcomingDates.length,
+                  total: totalDays,
+                })
+              : t('account.subscription.skipHint')}
           </Text>
 
           {deliveriesLoading ? (
@@ -314,7 +338,7 @@ export default function SubscriptionDetailScreen() {
             <Card>
               <View className="p-5">
                 <Text className="text-sm text-text-secondary">
-                  No upcoming deliveries.
+                  {t('account.subscription.noUpcoming')}
                 </Text>
               </View>
             </Card>
@@ -347,7 +371,7 @@ export default function SubscriptionDetailScreen() {
                   >
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`Open ${formatShortDate(date)}`}
+                      accessibilityLabel={t('account.subscription.openDay', { date: formatShortDate(date) })}
                       onPress={() => router.push('/deliveries')}
                       className="flex-row items-start justify-between gap-3 active:opacity-80"
                     >
@@ -363,21 +387,21 @@ export default function SubscriptionDetailScreen() {
                             className="mt-0.5 text-xs text-text-muted"
                           >
                             <Text className="font-semibold">
-                              {meal.slot?.name ?? 'Meal'}:{' '}
+                              {t('account.subscription.mealLabel', { name: meal.slot?.name ?? t('account.meal') })}{' '}
                             </Text>
                             {(meal.items ?? [])
                               .filter((i) => !i.is_addon)
                               .map((i) => i.menu_item?.name)
                               .filter(Boolean)
-                              .join(' · ') || 'Menu to be confirmed'}
+                              .join(' · ') || t('account.menuTbc')}
                           </Text>
                         ))}
                       </View>
 
                       {paused ? (
-                        <Badge label="Skipped" variant="muted" />
+                        <Badge label={t('common.status.skipped')} variant="muted" />
                       ) : swapped ? (
-                        <Badge label="Swapped" variant="brand" />
+                        <Badge label={t('account.swapped')} variant="brand" />
                       ) : null}
                     </Pressable>
 
@@ -386,7 +410,7 @@ export default function SubscriptionDetailScreen() {
                         422s is worse than no button. */}
                     {paused || canPause ? (
                       <Button
-                        label={paused ? 'Un-skip this day' : 'Skip this day'}
+                        label={paused ? t('account.subscription.unskipDay') : t('account.subscription.skipDay')}
                         variant="ghost"
                         size="sm"
                         fullWidth={false}
@@ -399,14 +423,14 @@ export default function SubscriptionDetailScreen() {
                             resume.mutate(date, {
                               onSuccess: () => {
                                 setPendingPause(null);
-                                toast.success('Day restored');
+                                toast.success(t('account.subscription.dayRestored'));
                               },
                               onError: (e) => {
                                 setPendingPause(null);
                                 toast.error(
                                   isApiError(e)
                                     ? e.message
-                                    : 'Could not restore that day',
+                                    : t('account.subscription.restoreFailed'),
                                 );
                               },
                             });
@@ -425,7 +449,7 @@ export default function SubscriptionDetailScreen() {
 
         <View className="mt-6 gap-2">
           <Button
-            label="View full schedule"
+            label={t('account.subscription.viewSchedule')}
             onPress={() =>
               router.push({
                 pathname: '/schedule',
@@ -434,7 +458,7 @@ export default function SubscriptionDetailScreen() {
             }
           />
           <Button
-            label="Change a meal"
+            label={t('account.schedule.changeMeal')}
             variant="outline"
             onPress={() => router.push('/deliveries')}
           />
@@ -451,23 +475,23 @@ export default function SubscriptionDetailScreen() {
             {
               onSuccess: () => {
                 setPendingPause(null);
-                toast.success('Day skipped — your plan now runs a day longer');
+                toast.success(t('account.subscription.daySkipped'));
               },
               onError: (e) => {
                 setPendingPause(null);
-                toast.error(isApiError(e) ? e.message : 'Could not skip that day');
+                toast.error(isApiError(e) ? e.message : t('account.subscription.skipFailed'));
               },
             },
           );
         }}
-        title="Skip this day?"
+        title={t('account.subscription.skipTitle')}
         description={
           pendingPause
-            ? `No delivery on ${formatShortDate(pendingPause.delivery_date)}. Its allowance is released and your plan is extended by one day, so you lose nothing.`
+            ? t('account.subscription.skipBody', { date: formatShortDate(pendingPause.delivery_date) })
             : undefined
         }
-        confirmLabel="Skip it"
-        cancelLabel="Keep it"
+        confirmLabel={t('account.subscription.skipConfirm')}
+        cancelLabel={t('account.subscription.skipCancel')}
         loading={pause.isPending}
       />
     </SafeAreaView>

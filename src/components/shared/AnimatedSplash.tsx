@@ -2,6 +2,7 @@ import { useIsRestoring } from '@tanstack/react-query';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -52,7 +53,8 @@ const REDUCED_MIN_VISIBLE_MS = 400;
 const MAX_VISIBLE_MS = 5000;
 const EXIT_MS = 450;
 
-const TAGLINE = ['Fresh', 'Chef-made', 'Delivered daily'] as const;
+/** i18n keys, resolved at render time. */
+const TAGLINE = ['ui.splash.fresh', 'ui.splash.chefMade', 'ui.splash.deliveredDaily'] as const;
 
 let nativeSplashHidden = false;
 
@@ -81,6 +83,7 @@ function hideNativeSplash() {
  * is brief. Taps pass straight through while it fades out.
  */
 export function AnimatedSplash() {
+  const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
   const authHydrated = useAuthHydrated();
   const restoring = useIsRestoring();
@@ -167,7 +170,7 @@ export function AnimatedSplash() {
     <Animated.View
       accessible
       accessibilityRole="progressbar"
-      accessibilityLabel="Loading Ahaar"
+      accessibilityLabel={t('ui.splash.loading')}
       style={[
         StyleSheet.absoluteFill,
         styles.root,
@@ -243,6 +246,7 @@ function TaglineWord({
   progress: SharedValue<number>;
   last: boolean;
 }) {
+  const { t } = useTranslation();
   const style = useAnimatedStyle(() => {
     const start = index * 0.22;
     const value = interpolate(progress.value, [start, start + 0.5], [0, 1], Extrapolation.CLAMP);
@@ -251,7 +255,7 @@ function TaglineWord({
 
   return (
     <Animated.View style={[styles.wordWrap, style]}>
-      <Text style={styles.word}>{word}</Text>
+      <Text style={styles.word}>{t(word)}</Text>
       {last ? null : <View style={styles.dot} />}
     </Animated.View>
   );

@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import {
   FlatList,
+  I18nManager,
   Modal,
   Pressable,
   ScrollView,
@@ -21,6 +23,17 @@ import { FOOD_BLURHASH } from '@/lib/constants/images';
 import { cn } from '@/lib/utils';
 
 import { PlayBadge, TapToPlayVideo } from './VideoPlayer';
+
+/**
+ * Scroll position from the start edge. Scroll events report a physical offset
+ * (from the left); in RTL the first slide sits on the right, so measure from
+ * there — the conversion VirtualizedList itself applies.
+ */
+function logicalOffsetX(event: NativeSyntheticEvent<NativeScrollEvent>): number {
+  const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+  if (!I18nManager.isRTL) return contentOffset.x;
+  return Math.max(0, contentSize.width - (contentOffset.x + layoutMeasurement.width));
+}
 
 type Tile =
   | { kind: 'image'; key: string; image: MediaImage; imageIndex: number }
@@ -72,6 +85,7 @@ export function MediaGallery({
   className,
   thumbnailsInset = 0,
 }: Props) {
+  const { t } = useTranslation();
   const tiles = buildTiles(images, video);
 
   const { width: windowWidth } = useWindowDimensions();
@@ -101,7 +115,7 @@ export function MediaGallery({
   };
 
   const onMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(event.nativeEvent.contentOffset.x / Math.max(width, 1));
+    const index = Math.round(logicalOffsetX(event) / Math.max(width, 1));
     if (index !== active) select(index);
   };
 
@@ -116,7 +130,10 @@ export function MediaGallery({
     return tile.kind === 'image' ? (
       <Pressable
         accessibilityRole="imagebutton"
-        accessibilityLabel={`${tile.image.alt ?? label}, picture ${tile.imageIndex + 1}. Opens full screen`}
+        accessibilityLabel={t('catalog.gallery.pictureA11y', {
+          label: tile.image.alt ?? label,
+          n: tile.imageIndex + 1,
+        })}
         onPress={() => setViewerIndex(tile.imageIndex)}
         style={slideStyle}
       >
@@ -230,12 +247,17 @@ function Thumbnail({
   selected: boolean;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const source = tile.kind === 'image' ? tile.image.url : (tile.video.poster_url ?? cover);
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={tile.kind === 'image' ? `Show picture ${tile.imageIndex + 1}` : 'Show video'}
+      accessibilityLabel={
+        tile.kind === 'image'
+          ? t('catalog.gallery.showPicture', { n: tile.imageIndex + 1 })
+          : t('catalog.gallery.showVideo')
+      }
       accessibilityState={{ selected }}
       onPress={onPress}
       className={cn(
@@ -278,24 +300,35 @@ function ImageViewer({
   label: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [current, setCurrent] = useState(startIndex);
+  const listRef = useRef<FlatList<MediaImage>>(null);
+  const placed = useRef(false);
 
   return (
     <Modal visible animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <StatusBar style="light" />
       <View className="flex-1 bg-black">
         <FlatList
+          ref={listRef}
           data={images}
           horizontal
           pagingEnabled
           initialScrollIndex={startIndex}
+          // RTL: the initial offset is applied before the content is measured,
+          // which lands on the wrong side; re-seat it once the size is known.
+          onContentSizeChange={() => {
+            if (!I18nManager.isRTL || placed.current || startIndex === 0) return;
+            placed.current = true;
+            listRef.current?.scrollToIndex({ index: startIndex, animated: false });
+          }}
           getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
           keyExtractor={(image, index) => `${index}-${image.url}`}
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={(event) =>
-            setCurrent(Math.round(event.nativeEvent.contentOffset.x / Math.max(width, 1)))
+            setCurrent(Math.round(logicalOffsetX(event) / Math.max(width, 1)))
           }
           renderItem={({ item }) => (
             <Image
@@ -313,12 +346,14 @@ function ImageViewer({
           style={{ top: insets.top + 8 }}
         >
           <Text className="text-sm font-semibold text-white">
-            {images.length > 1 ? `${current + 1} / ${images.length}` : ''}
+            {images.length > 1
+              ? t('catalog.gallery.counter', { current: current + 1, total: images.length })
+              : ''}
           </Text>
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Close pictures"
+            accessibilityLabel={t('catalog.gallery.close')}
             onPress={onClose}
             hitSlop={12}
             className="h-10 w-10 items-center justify-center rounded-full bg-white/20 active:opacity-70"

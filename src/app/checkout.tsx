@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -53,6 +54,7 @@ const LOOKAHEAD_DAYS = 14;
  * off to the gateway before landing on the subscription screen.
  */
 export default function CheckoutScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const requireAuth = useRequireAuth();
   const signedIn = useIsSignedIn();
@@ -142,7 +144,7 @@ export default function CheckoutScreen() {
 
   const createSubscription = useCreateSubscription({
     onSuccess: async (subscription: Subscription) => {
-      toast.success('Your plan is set up');
+      toast.success(t('ordering.checkout.success'));
 
       // Deliveries are generated when the payment settles, not here — so send
       // the customer to pay before the subscription screen, which would
@@ -160,11 +162,11 @@ export default function CheckoutScreen() {
   if (!plan) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Checkout" variant="close" />
+        <ScreenHeader title={t('ordering.checkout.title')} variant="close" />
         <EmptyState
-          title="Nothing selected"
-          description="Pick a plan to get started."
-          actionLabel="Browse plans"
+          title={t('ordering.checkout.emptyTitle')}
+          description={t('ordering.checkout.emptyBody')}
+          actionLabel={t('ordering.checkout.browsePlans')}
           onAction={() => router.replace('/(tabs)/plans')}
           className="flex-1 justify-center"
         />
@@ -193,7 +195,7 @@ export default function CheckoutScreen() {
       {
         onError: (error) => {
           setSubmitError(error);
-          toast.error(isApiError(error) ? error.message : 'Checkout failed');
+          toast.error(isApiError(error) ? error.message : t('ordering.checkout.failed'));
         },
       },
     );
@@ -201,7 +203,7 @@ export default function CheckoutScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
-      <ScreenHeader title="Checkout" subtitle={plan.name} variant="close" />
+      <ScreenHeader title={t('ordering.checkout.title')} subtitle={plan.name} variant="close" />
       <OfflineBanner />
 
       <ScrollView
@@ -213,8 +215,7 @@ export default function CheckoutScreen() {
         {isStale ? (
           <View className="mx-5 mb-4 rounded-2xl bg-warning-soft px-4 py-3">
             <Text className="text-xs text-warning">
-              This selection is over a day old — the price will be confirmed by the
-              server when you continue.
+              {t('ordering.checkout.stale')}
             </Text>
           </View>
         ) : null}
@@ -229,42 +230,47 @@ export default function CheckoutScreen() {
               <Text className="text-lg font-bold text-text-primary">{plan.name}</Text>
               <Text className="mt-0.5 text-sm text-text-secondary">
                 {planSlots.length > 1
-                  ? `${planSlots.length} meals a day for ${plan.duration_days} days`
-                  : `Every meal in this plan, daily for ${plan.duration_days} days`}
+                  ? t('ordering.checkout.mealsPerDay', {
+                      meals: t('common.units.meal', { count: planSlots.length }),
+                      days: t('common.units.day', { count: plan.duration_days }),
+                    })
+                  : t('ordering.checkout.everyMealDaily', {
+                      days: t('common.units.day', { count: plan.duration_days }),
+                    })}
               </Text>
 
               <Separator className="my-4" />
 
               <Row
-                label="Starts"
-                value={startDate ? formatLongDate(startDate) : 'Choosing…'}
+                label={t('ordering.checkout.starts')}
+                value={startDate ? formatLongDate(startDate) : t('ordering.checkout.choosing')}
               />
               <Row
-                label="Meals"
+                label={t('ordering.checkout.meals')}
                 value={
                   mealsKnown
                     ? planSlots.map((s) => s.name).join(' · ')
-                    : 'Loading…'
+                    : t('common.states.loading')
                 }
               />
               <Row
-                label="Delivery to"
+                label={t('ordering.deliveryTo')}
                 value={
                   addresses?.find((a) => a.id === effectiveAddressId)?.line1 ??
-                  'Account default'
+                  t('ordering.accountDefault')
                 }
               />
 
               <Separator className="my-4" />
 
               <View className="flex-row items-center justify-between">
-                <Text className="text-base font-bold text-text-primary">Total</Text>
+                <Text className="text-base font-bold text-text-primary">{t('ordering.total')}</Text>
                 <Text className="text-xl font-bold text-brand-500">
                   {formatMoney(plan.price)}
                 </Text>
               </View>
               <Text className="mt-1 text-xs text-text-muted">
-                Charged once. The final total is confirmed at checkout.
+                {t('ordering.checkout.chargedOnce')}
               </Text>
             </View>
           </Card>
@@ -273,27 +279,28 @@ export default function CheckoutScreen() {
         {/* What's included */}
         <View className="mt-6 px-5">
           <Text className="mb-1 text-sm font-bold text-text-primary">
-            Meals included
+            {t('ordering.checkout.mealsIncluded')}
           </Text>
           <Text className="mb-3 text-xs text-text-muted">
-            Every one of these is delivered daily for the whole plan.
+            {t('ordering.checkout.mealsIncludedHint')}
           </Text>
 
           {planDetail ? (
             <PlanMealsIncluded slots={planSlots} durationDays={plan.duration_days} />
           ) : (
-            <Text className="text-sm text-text-secondary">Loading meals…</Text>
+            <Text className="text-sm text-text-secondary">
+              {t('ordering.checkout.loadingMeals')}
+            </Text>
           )}
         </View>
 
         {/* Start date */}
         <View className="mt-6">
           <Text className="mb-1 px-5 text-sm font-bold text-text-primary">
-            Start date
+            {t('ordering.checkout.startDate')}
           </Text>
           <Text className="mb-3 px-5 text-xs text-text-muted">
-            Deliveries begin on this day. A day is unavailable once any of your
-            meals has closed for it.
+            {t('ordering.checkout.startDateHint')}
           </Text>
           <DayStrip
             value={startDate}
@@ -307,14 +314,14 @@ export default function CheckoutScreen() {
         {/* Address */}
         <View className="mt-6 px-5">
           <Text className="mb-3 text-sm font-bold text-text-primary">
-            Delivery address
+            {t('ordering.deliveryAddress')}
           </Text>
           <AddressPicker
             addresses={addresses ?? []}
             value={effectiveAddressId}
             onChange={setAddress}
             onAdd={() =>
-              requireAuth(() => setAddressFormOpen(true), 'to save an address')
+              requireAuth(() => setAddressFormOpen(true), t('ordering.authReason.saveAddress'))
             }
           />
         </View>
@@ -327,13 +334,13 @@ export default function CheckoutScreen() {
         <Button
           label={
             signedIn
-              ? `Subscribe · ${formatMoney(plan.price)}`
-              : 'Sign in to start this plan'
+              ? t('ordering.checkout.subscribe', { amount: formatMoney(plan.price) })
+              : t('ordering.checkout.signInToStart')
           }
           size="lg"
           loading={createSubscription.isPending}
           disabled={signedIn ? !canSubmit : false}
-          onPress={signedIn ? submit : () => promptLogin('to start this plan')}
+          onPress={signedIn ? submit : () => promptLogin(t('ordering.authReason.startPlan'))}
         />
       </View>
 

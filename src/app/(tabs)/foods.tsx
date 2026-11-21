@@ -1,6 +1,8 @@
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import {
+  I18nManager,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -49,6 +51,7 @@ import { cn, formatMoney } from '@/lib/utils';
  */
 export default function FoodsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const searchTerm = useFilterStore((s) => s.searchTerm);
   const setSearchTerm = useFilterStore((s) => s.setSearchTerm);
@@ -96,14 +99,14 @@ export default function FoodsScreen() {
   const listHeader = (
     <View className="pb-1">
       <View className="pb-3 pt-2">
-        <Text className="text-2xl font-bold text-text-primary">Foods</Text>
+        <Text className="text-2xl font-bold text-text-primary">{t('catalog.foods.title')}</Text>
         <Text className="mt-1 text-sm text-text-secondary">
-          Everything on the Ahaar menu — order any of it for a day that suits you
+          {t('catalog.foods.subtitle')}
         </Text>
       </View>
 
       <Input
-        placeholder="Search dishes"
+        placeholder={t('catalog.foods.searchPlaceholder')}
         value={searchTerm}
         onChangeText={setSearchTerm}
         autoCapitalize="none"
@@ -121,7 +124,7 @@ export default function FoodsScreen() {
         style={{ marginHorizontal: -20 }}
         className="pb-3"
       >
-        <Chip label="All" active={!addonsOnly && !categorySlug} onPress={reset} />
+        <Chip label={t('common.all')} active={!addonsOnly && !categorySlug} onPress={reset} />
         {categories.map(({ slug, name }) => (
           <Chip
             key={slug}
@@ -131,7 +134,7 @@ export default function FoodsScreen() {
           />
         ))}
         <Chip
-          label="Add-ons"
+          label={t('catalog.foods.addons')}
           active={addonsOnly}
           onPress={() => setAddonsOnly(!addonsOnly)}
         />
@@ -143,18 +146,20 @@ export default function FoodsScreen() {
       {packages && packages.length > 0 ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Browse ${packages.length} meal boxes`}
+          accessibilityLabel={t('catalog.foods.browseMealBoxes', { count: packages.length })}
           onPress={() => router.push('/packages')}
           className="mb-3 flex-row items-center gap-3 rounded-2xl border border-border bg-surface-secondary px-4 py-3 active:opacity-80"
         >
           <Text className="text-2xl">🍱</Text>
           <View className="flex-1">
-            <Text className="text-sm font-bold text-text-primary">Meal boxes</Text>
+            <Text className="text-sm font-bold text-text-primary">
+              {t('home.mealBoxes.title')}
+            </Text>
             <Text className="text-xs text-text-muted">
-              {packages.length} complete {packages.length === 1 ? 'meal' : 'meals'} at one price
+              {t('catalog.foods.mealBoxesCount', { count: packages.length })}
             </Text>
           </View>
-          <Text className="text-lg text-text-muted">›</Text>
+          <Text className="text-lg text-text-muted">{I18nManager.isRTL ? '‹' : '›'}</Text>
         </Pressable>
       ) : null}
     </View>
@@ -194,15 +199,15 @@ export default function FoodsScreen() {
             }
             ListEmptyComponent={
               <EmptyState
-                title={hasFilters ? 'No matches' : 'Nothing on the menu yet'}
+                title={hasFilters ? t('catalog.foods.noMatches') : t('catalog.foods.emptyTitle')}
                 description={
                   searchTerm
-                    ? `Nothing matches “${searchTerm}”.`
+                    ? t('catalog.foods.nothingMatches', { term: searchTerm })
                     : hasFilters
-                      ? 'Try a different category.'
-                      : 'Check back soon for new dishes.'
+                      ? t('catalog.foods.tryCategory')
+                      : t('catalog.foods.emptyDescription')
                 }
-                actionLabel={hasFilters ? 'Clear filters' : undefined}
+                actionLabel={hasFilters ? t('catalog.foods.clearFilters') : undefined}
                 onAction={hasFilters ? reset : undefined}
               />
             }
@@ -211,7 +216,7 @@ export default function FoodsScreen() {
                 hasMore={hasNextPage}
                 loading={isFetchingNextPage}
                 onPress={() => fetchNextPage()}
-                label="Load more dishes"
+                label={t('catalog.foods.loadMore')}
                 className="px-0"
               />
             }
@@ -229,12 +234,12 @@ export default function FoodsScreen() {
                         size="sm"
                         value={quantity}
                         min={1}
-                        label={`${item.name} quantity`}
+                        label={t('catalog.quantityOf', { name: item.name })}
                         onChange={(next) => setQuantity(item.id, next)}
                       />
                     ) : (
                       <Button
-                        label="Add"
+                        label={t('common.actions.add')}
                         size="sm"
                         variant="secondary"
                         fullWidth={false}
@@ -265,6 +270,7 @@ function BasketBar({ onPress }: { onPress: () => void }) {
   // badge and the order screen's total can never disagree — counting only
   // `lines` here hid a basket that held nothing but meal boxes, and the
   // customer had no route to the order screen at all.
+  const { t } = useTranslation();
   const count = useInstantOrderCount();
   const total = useInstantOrderTotal();
 
@@ -274,7 +280,10 @@ function BasketBar({ onPress }: { onPress: () => void }) {
     <View className="absolute inset-x-4 bottom-[76px]">
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`View basket, ${count} items, ${formatMoney(total)}`}
+        accessibilityLabel={t('catalog.basket.a11y', {
+          items: t('common.units.item', { count }),
+          total: formatMoney(total),
+        })}
         onPress={onPress}
         className="flex-row items-center justify-between rounded-2xl bg-brand-500 px-5 py-3.5 active:opacity-90"
         style={{
@@ -289,7 +298,7 @@ function BasketBar({ onPress }: { onPress: () => void }) {
           <View className="h-6 min-w-6 items-center justify-center rounded-full bg-white/25 px-1.5">
             <Text className="text-xs font-bold text-text-inverse">{count}</Text>
           </View>
-          <Text className="text-sm font-bold text-text-inverse">View basket</Text>
+          <Text className="text-sm font-bold text-text-inverse">{t('catalog.basket.view')}</Text>
         </View>
 
         <Text className="text-sm font-bold text-text-inverse">

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useInstantOrderCount } from "../lib/store";
 import { colors, navTint } from "../lib/theme";
@@ -77,6 +78,7 @@ function TabItem({
   // React Compiler (enabled for this app in app.json) refuses to optimise
   // around. The lazy state initialiser runs once and returns the same instance
   // for the life of the tab, which is what the animation needs anyway.
+  const { t } = useTranslation();
   const [scaleAnim] = useState(() => new Animated.Value(1));
   const [labelOpacity] = useState(() => new Animated.Value(isFocused ? 1 : 0));
   const [pillScale] = useState(() => new Animated.Value(isFocused ? 1 : 0));
@@ -177,7 +179,7 @@ function TabItem({
               but Foods, and a half-built order is easy to forget about. */}
           {badge > 0 && (
             <View
-              accessibilityLabel={`${badge} in basket`}
+              accessibilityLabel={t("tabs.basketBadge", { count: badge })}
               style={{
                 position: "absolute",
                 top: -6,

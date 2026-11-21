@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import { cn } from '@/lib/utils';
@@ -33,6 +34,7 @@ function initialsOf(name?: string | null): string {
 }
 
 export function Avatar({ uri, name, size = 'md', className }: Props) {
+  const { t } = useTranslation();
   const base = cn(
     'items-center justify-center overflow-hidden rounded-full bg-brand-50',
     SIZE[size],
@@ -50,14 +52,14 @@ export function Avatar({ uri, name, size = 'md', className }: Props) {
           // instead of flashing an empty circle.
           placeholder={{ blurhash: 'L6PZfSjE.AyE_3t7t7R**0o#DgR4' }}
           style={{ width: '100%', height: '100%' }}
-          accessibilityLabel={name ?? 'Avatar'}
+          accessibilityLabel={name ?? t('ui.avatar')}
         />
       </View>
     );
   }
 
   return (
-    <View className={base} accessibilityLabel={name ?? 'Avatar'}>
+    <View className={base} accessibilityLabel={name ?? t('ui.avatar')}>
       <Text className={cn('font-bold text-brand-700', TEXT[size])}>
         {initialsOf(name)}
       </Text>

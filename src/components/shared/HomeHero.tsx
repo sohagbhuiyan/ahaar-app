@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
@@ -20,30 +21,26 @@ import { cn } from '@/lib/utils';
 /**
  * The copy the website's hero ships with, kept word for word so a customer who
  * read the site sees the same pitch here. Only used for a field the CMS leaves
- * empty — see `cmsText`.
+ * empty — see `cmsText`. Copy lives in `home.json → hero.*`; the values
+ * below are the non-translatable defaults.
  */
 const DEFAULTS = {
-  badge: 'Now delivering across Saudi Arabia',
-  title: 'Fresh Food,',
-  titleHighlight: 'Delivered Daily',
-  subtitle:
-    'Healthy, chef-prepared meals delivered straight to your door every day across Saudi Arabia. Pick a plan and start eating better today.',
   image:
     'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=75',
-  primaryCtaLabel: 'Browse Menu',
   primaryCtaUrl: '/menu',
-  secondaryCtaLabel: 'View Plans',
   secondaryCtaUrl: '/plans',
   phone: '+966500000000',
   whatsapp: '966500000000',
   ratingValue: '4.9 / 5',
-  ratingCaption: '2,000+ reviews',
   stats: [
-    { value: '120K+', label: 'Meals delivered' },
-    { value: '4.9', label: 'Average rating' },
-    { value: '98%', label: 'On-time delivery' },
+    { value: '120K+', label: 'home.hero.stats.mealsDelivered' },
+    { value: '4.9', label: 'home.hero.stats.averageRating' },
+    { value: '98%', label: 'home.hero.stats.onTime' },
   ],
 };
+
+/** Left-to-right mark: keeps a leading "+" on the left of a phone number in RTL. */
+const LRM = '\u200E';
 
 interface Props {
   /** `GET /home` hero content. `null` renders the shipped copy throughout. */
@@ -62,17 +59,18 @@ interface Props {
  */
 export function HomeHero({ content, className }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
 
-  const badge = cmsText(content?.badge, DEFAULTS.badge);
-  const title = cmsText(content?.title, DEFAULTS.title);
-  const highlight = cmsText(content?.title_highlight, DEFAULTS.titleHighlight);
-  const subtitle = cmsText(content?.subtitle, DEFAULTS.subtitle);
+  const badge = cmsText(content?.badge, t('home.hero.badge'));
+  const title = cmsText(content?.title, t('home.hero.title'));
+  const highlight = cmsText(content?.title_highlight, t('home.hero.titleHighlight'));
+  const subtitle = cmsText(content?.subtitle, t('home.hero.subtitle'));
   const image = resolveCmsImage(content?.image_url, content?.image_path) ?? DEFAULTS.image;
 
   const primaryUrl = cmsText(content?.primary_cta_url, DEFAULTS.primaryCtaUrl);
   const secondaryUrl = cmsText(content?.secondary_cta_url, DEFAULTS.secondaryCtaUrl);
-  const primaryLabel = cmsText(content?.primary_cta_label, DEFAULTS.primaryCtaLabel);
-  const secondaryLabel = cmsText(content?.secondary_cta_label, DEFAULTS.secondaryCtaLabel);
+  const primaryLabel = cmsText(content?.primary_cta_label, t('home.hero.primaryCta'));
+  const secondaryLabel = cmsText(content?.secondary_cta_label, t('home.hero.secondaryCta'));
   // A link this app has no screen for hides its button rather than dead-ending.
   const showPrimary = Boolean(primaryLabel && resolveCmsLink(primaryUrl));
   const showSecondary = Boolean(secondaryLabel && resolveCmsLink(secondaryUrl));
@@ -82,11 +80,15 @@ export function HomeHero({ content, className }: Props) {
   const whatsapp = whatsappHref(cmsText(content?.whatsapp, DEFAULTS.whatsapp));
 
   const ratingValue = cmsText(content?.rating_value, DEFAULTS.ratingValue);
-  const ratingCaption = cmsText(content?.rating_caption, DEFAULTS.ratingCaption);
+  const ratingCaption = cmsText(content?.rating_caption, t('home.hero.ratingCaption'));
 
   // An admin can clear the stat band on purpose: an empty array hides it, which
   // is why this is `??` on the array and not a length check.
-  const stats = (content?.stats ?? DEFAULTS.stats).filter((s) => s.value && s.label).slice(0, 4);
+  const stats = (
+    content?.stats ?? DEFAULTS.stats.map((s) => ({ value: s.value, label: t(s.label) }))
+  )
+    .filter((s) => s.value && s.label)
+    .slice(0, 4);
 
   return (
     <View className={cn('px-5', className)}>
@@ -99,7 +101,7 @@ export function HomeHero({ content, className }: Props) {
             transition={250}
             cachePolicy="memory-disk"
             style={{ width: '100%', height: '100%' }}
-            accessibilityLabel="Freshly prepared Ahaar meal"
+            accessibilityLabel={t('home.hero.imageAlt')}
           />
 
           {ratingValue ? (
@@ -167,15 +169,15 @@ export function HomeHero({ content, className }: Props) {
             <View className="mt-3 flex-row flex-wrap gap-2">
               {phoneLink ? (
                 <ContactChip
-                  label={phone}
-                  accessibilityLabel={`Call ${phone}`}
+                  label={`${LRM}${phone}`}
+                  accessibilityLabel={t('home.hero.call', { phone })}
                   onPress={() => openCmsLink(phoneLink, router)}
                   icon={<PhoneGlyph />}
                 />
               ) : null}
               {whatsapp ? (
                 <ContactChip
-                  label="Chat on WhatsApp"
+                  label={t('home.hero.whatsapp')}
                   onPress={() => openCmsLink(whatsapp, router)}
                   icon={<WhatsAppGlyph />}
                   tone="whatsapp"

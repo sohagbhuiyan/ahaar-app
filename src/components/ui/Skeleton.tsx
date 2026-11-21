@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import Animated, {
   Easing,
@@ -26,6 +27,7 @@ interface Props {
  * while JS is busy parsing the response that will replace it.
  */
 export function Skeleton({ className }: Props) {
+  const { t } = useTranslation();
   const opacity = useSharedValue(0.4);
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export function Skeleton({ className }: Props) {
   return (
     <Animated.View
       accessibilityRole="progressbar"
-      accessibilityLabel="Loading"
+      accessibilityLabel={t('common.states.loading')}
       style={style}
       className={cn('rounded-2xl bg-surface-muted', className)}
     />

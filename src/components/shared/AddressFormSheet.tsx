@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { Controller, useForm, useWatch } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { toast } from 'sonner-native';
 import { z } from 'zod';
@@ -27,6 +28,7 @@ import {
   normalizeShortAddress,
   splitStreetLine,
 } from '@/lib/location/countries';
+import { countryLabels, countryMessageKey, countryName } from '@/lib/location/labels';
 import { useDeviceLocation } from '@/lib/location/useDeviceLocation';
 import { useCreateAddress, useUpdateAddress } from '@/lib/query/hooks';
 import { draftToPayload } from '@/lib/query/hooks/useLocation';
@@ -40,51 +42,58 @@ import { CurrentPositionRow } from './CurrentPositionRow';
  * required district and street, the shape of the building number and postal
  * code, the Saudi-only codes — are applied for the country the form is in.
  * All checks run together, so every problem shows at once.
+ *
+ * Messages are i18n keys, translated where the error is shown (`Field`), so
+ * they follow the app language. `MAX_LENGTH` feeds the `{{max}}` placeholder.
  */
+const MAX_LENGTH = { label: 60, line2: 190, instructions: 500 } as const;
+
 const schema = z
   .object({
     country: z.string(),
-    label: z.string().max(60).optional(),
+    label: z.string().max(MAX_LENGTH.label, 'common.validation.maxLength').optional(),
     city: z.string(),
     area: z.string().optional(),
     street: z.string().optional(),
     building_number: z.string().optional(),
-    line2: z.string().max(190).optional(),
+    line2: z.string().max(MAX_LENGTH.line2, 'common.validation.maxLength').optional(),
     postal_code: z.string().optional(),
     additional_number: z.string().optional(),
     short_address: z.string().optional(),
-    instructions: z.string().max(500).optional(),
+    instructions: z.string().max(MAX_LENGTH.instructions, 'common.validation.maxLength').optional(),
   })
   .superRefine((values, ctx) => {
     const rules = countryRules(values.country);
+    const key = (field: Parameters<typeof countryMessageKey>[1]) =>
+      countryMessageKey(values.country, field);
     const issue = (path: string, message: string) =>
       ctx.addIssue({ code: 'custom', path: [path], message });
     const filled = (value?: string) => Boolean(value?.trim());
 
-    if (!filled(values.city)) issue('city', 'City is required');
-    if (!filled(values.area)) issue('area', rules.messages.area);
-    if (!filled(values.street)) issue('street', rules.messages.street);
+    if (!filled(values.city)) issue('city', 'location.form.errors.cityRequired');
+    if (!filled(values.area)) issue('area', key('area'));
+    if (!filled(values.street)) issue('street', key('street'));
     if (
       filled(values.building_number) &&
       !rules.buildingPattern.test(normalizeBuilding(values.country, values.building_number))
     ) {
-      issue('building_number', rules.messages.building);
+      issue('building_number', key('building'));
     }
     if (filled(values.postal_code) && !rules.postalPattern.test(normalizeNumber(values.postal_code))) {
-      issue('postal_code', rules.messages.postal);
+      issue('postal_code', key('postal'));
     }
     if (rules.nationalAddress) {
       if (
         filled(values.additional_number) &&
         !ADDITIONAL_NUMBER_PATTERN.test(normalizeNumber(values.additional_number))
       ) {
-        issue('additional_number', 'Additional number is 4 digits');
+        issue('additional_number', 'location.form.errors.additionalNumber');
       }
       if (
         filled(values.short_address) &&
         !SHORT_ADDRESS_PATTERN.test(normalizeShortAddress(values.short_address))
       ) {
-        issue('short_address', '4 letters and 4 digits, e.g. RRRD2929');
+        issue('short_address', 'location.form.errors.shortAddress');
       }
     }
   });
@@ -131,7 +140,8 @@ const BLANK: FormValues = {
   instructions: '',
 };
 
-const LABEL_PRESETS = ['Home', 'Work', 'Family'] as const;
+/** Preset label keys — the chip saves the label in the language it is shown in. */
+const LABEL_PRESETS = ['home', 'work', 'family'] as const;
 
 function toValues(source: Source): FormValues {
   if (!source) return BLANK;
@@ -213,6 +223,7 @@ export function AddressFormSheet({
   submitLabel,
   notice,
 }: Props) {
+  const { t } = useTranslation();
   const isEdit = Boolean(address);
 
   const create = useCreateAddress();
@@ -249,6 +260,7 @@ export function AddressFormSheet({
 
   const country = useWatch({ control, name: 'country' }) ?? DEFAULT_COUNTRY;
   const rules = countryRules(country);
+  const labels = countryLabels(country);
 
   // Seed on open rather than on mount: the sheet stays mounted between edits,
   // so a stale form would show the previously-edited address.
@@ -290,7 +302,7 @@ export function AddressFormSheet({
   const shownNotice = located?.notice ?? notice;
 
   const fail = (e: unknown) =>
-    toast.error(isApiError(e) ? e.message : 'Could not save that address');
+    toast.error(isApiError(e) ? e.message : t('location.form.saveFailed'));
 
   const onSubmit = (values: FormValues) => {
     if (pending) return;
@@ -301,7 +313,7 @@ export function AddressFormSheet({
     }
 
     const done = (saved: Address) => {
-      toast.success(isEdit ? 'Address updated' : 'Address saved');
+      toast.success(isEdit ? t('location.common.addressUpdated') : t('location.common.addressSaved'));
       onSaved?.(saved);
       close();
     };
@@ -323,11 +335,11 @@ export function AddressFormSheet({
     <Sheet
       open={open}
       onClose={close}
-      title={title ?? (isEdit ? 'Edit address' : 'Add an address')}
-      description={description ?? 'Where should we deliver?'}
+      title={title ?? (isEdit ? t('location.form.editTitle') : t('location.common.addAddress'))}
+      description={description ?? t('location.form.description')}
       footer={
         <Button
-          label={submitLabel ?? (isEdit ? 'Save changes' : 'Save address')}
+          label={submitLabel ?? (isEdit ? t('common.actions.saveChanges') : t('location.common.saveAddress'))}
           size="lg"
           loading={pending}
           onPress={handleSubmit(onSubmit)}
@@ -342,7 +354,7 @@ export function AddressFormSheet({
             device={device}
             onLocate={locateMe}
             onTurnOn={turnOnLocation}
-            hint="Fill in the fields below automatically"
+            hint={t('location.form.gpsHint')}
           />
         </View>
       ) : null}
@@ -354,8 +366,7 @@ export function AddressFormSheet({
         >
           <PinIcon color={colors.brand[500]} size={16} filled />
           <Text className="flex-1 text-xs text-brand-700">
-            Pinned on the map — add the {rules.labels.building.toLowerCase()} and flat so the rider
-            finds the door.
+            {t('location.form.pinned', { building: labels.building.toLowerCase() })}
           </Text>
         </View>
       ) : null}
@@ -374,16 +385,16 @@ export function AddressFormSheet({
           name="country"
           render={({ field: { onChange, value } }) => (
             <View className="gap-2">
-              <Text className="text-sm font-semibold text-text-primary">Country</Text>
+              <Text className="text-sm font-semibold text-text-primary">{t('location.form.country')}</Text>
               {pin ? (
                 <View
                   testID="address-country"
                   className="flex-row items-center gap-1.5 self-start rounded-xl bg-surface-muted px-3 py-1.5"
                 >
                   <Text className="text-xs font-bold text-text-primary">
-                    {countryRules(value).flag} {countryRules(value).name}
+                    {countryRules(value).flag} {countryName(value)}
                   </Text>
-                  <Text className="text-xs text-text-muted">· from the map pin</Text>
+                  <Text className="text-xs text-text-muted">{t('location.form.fromPin')}</Text>
                 </View>
               ) : (
                 <View className="flex-row flex-wrap gap-2">
@@ -393,7 +404,7 @@ export function AddressFormSheet({
                       <Pressable
                         key={code}
                         accessibilityRole="radio"
-                        accessibilityLabel={COUNTRIES[code].name}
+                        accessibilityLabel={countryName(code)}
                         accessibilityState={{ selected: active }}
                         onPress={() => onChange(code)}
                         className={cn(
@@ -407,7 +418,7 @@ export function AddressFormSheet({
                             active ? 'text-brand-700' : 'text-text-secondary',
                           )}
                         >
-                          {COUNTRIES[code].flag} {COUNTRIES[code].name}
+                          {COUNTRIES[code].flag} {countryName(code)}
                         </Text>
                       </Pressable>
                     );
@@ -418,21 +429,21 @@ export function AddressFormSheet({
           )}
         />
 
-        <Field control={control} name="city" label={rules.labels.city} hint={rules.labels.cityHint} />
-        <Field control={control} name="area" label={rules.labels.area} hint={rules.labels.areaHint} />
+        <Field control={control} name="city" label={labels.city} hint={labels.cityHint} />
+        <Field control={control} name="area" label={labels.area} hint={labels.areaHint} />
         <Field
           control={control}
           name="street"
-          label={rules.labels.street}
-          hint={rules.labels.streetHint}
+          label={labels.street}
+          hint={labels.streetHint}
         />
 
         <View className="flex-row gap-3">
           <Field
             control={control}
             name="building_number"
-            label={rules.labels.building}
-            hint={rules.labels.buildingHint}
+            label={labels.building}
+            hint={labels.buildingHint}
             keyboardType={rules.nationalAddress ? 'number-pad' : 'default'}
             maxLength={rules.nationalAddress ? 4 : 20}
             containerClassName="flex-1"
@@ -440,18 +451,17 @@ export function AddressFormSheet({
           <Field
             control={control}
             name="line2"
-            label={rules.labels.unit}
-            hint="Optional"
+            label={labels.unit}
+            hint={t('location.form.optional')}
             containerClassName="flex-1"
           />
         </View>
 
         {rules.nationalAddress ? (
           <View testID="national-address" className="rounded-2xl border border-border px-4 py-3">
-            <Text className="text-sm font-bold text-text-primary">National Address</Text>
+            <Text className="text-sm font-bold text-text-primary">{t('location.form.nationalAddress')}</Text>
             <Text className="mt-0.5 text-xs text-text-muted">
-              Optional — from your Saudi Post (SPL) National Address, shown in the SPL app or
-              Absher. It helps riders find you faster.
+              {t('location.form.nationalAddressHint')}
             </Text>
 
             <View className="mt-3 gap-4">
@@ -459,8 +469,8 @@ export function AddressFormSheet({
                 <Field
                   control={control}
                   name="postal_code"
-                  label={rules.labels.postal}
-                  hint={rules.labels.postalHint}
+                  label={labels.postal}
+                  hint={labels.postalHint}
                   keyboardType="number-pad"
                   maxLength={5}
                   containerClassName="flex-1"
@@ -468,8 +478,8 @@ export function AddressFormSheet({
                 <Field
                   control={control}
                   name="additional_number"
-                  label="Additional no."
-                  hint="4 digits"
+                  label={t('location.form.additionalNumber')}
+                  hint={t('location.form.additionalNumberHint')}
                   keyboardType="number-pad"
                   maxLength={4}
                   containerClassName="flex-1"
@@ -478,8 +488,8 @@ export function AddressFormSheet({
               <Field
                 control={control}
                 name="short_address"
-                label="Short address"
-                hint="e.g. RRRD2929"
+                label={t('location.form.shortAddress')}
+                hint={t('location.form.shortAddressHint')}
                 autoCapitalize="characters"
                 autoCorrect={false}
                 maxLength={9}
@@ -490,8 +500,8 @@ export function AddressFormSheet({
           <Field
             control={control}
             name="postal_code"
-            label={rules.labels.postal}
-            hint={`Optional — ${rules.labels.postalHint}`}
+            label={labels.postal}
+            hint={t('location.form.optionalHint', { hint: labels.postalHint })}
             keyboardType="number-pad"
             maxLength={4}
           />
@@ -500,8 +510,8 @@ export function AddressFormSheet({
         <Field
           control={control}
           name="instructions"
-          label="Delivery notes"
-          hint="Optional — gate, landmark, where to leave it"
+          label={t('location.form.notes')}
+          hint={t('location.form.notesHint')}
           multiline
         />
 
@@ -509,7 +519,7 @@ export function AddressFormSheet({
 
         {onSubmitDraft ? null : (
           <Text className="text-xs text-text-muted">
-            Your first saved address becomes your delivery location automatically.
+            {t('location.form.firstAddressNote')}
           </Text>
         )}
       </View>
@@ -534,6 +544,8 @@ function Field({
   hint?: string;
   containerClassName?: string;
 } & React.ComponentProps<typeof Input>) {
+  const { t } = useTranslation();
+  const max = name in MAX_LENGTH ? MAX_LENGTH[name as keyof typeof MAX_LENGTH] : undefined;
   return (
     <Controller
       control={control}
@@ -545,7 +557,7 @@ function Field({
           value={value ?? ''}
           onChangeText={onChange}
           onBlur={onBlur}
-          error={fieldState.error?.message}
+          error={fieldState.error?.message ? t(fieldState.error.message, { max }) : undefined}
           containerClassName={containerClassName}
           {...inputProps}
         />
@@ -556,19 +568,21 @@ function Field({
 
 /** Home / Work / Family in one tap, or a label of the customer's own. */
 function LabelField({ control }: { control: FormControl }) {
+  const { t } = useTranslation();
   return (
     <Controller
       control={control}
       name="label"
       render={({ field: { onChange, onBlur, value }, fieldState }) => (
         <View className="gap-2">
-          <Text className="text-sm font-semibold text-text-primary">Save as</Text>
+          <Text className="text-sm font-semibold text-text-primary">{t('location.form.saveAs')}</Text>
           <View className="flex-row flex-wrap gap-2">
-            {LABEL_PRESETS.map((preset) => {
+            {LABEL_PRESETS.map((presetKey) => {
+              const preset = t(`location.form.presets.${presetKey}`);
               const active = (value ?? '').trim().toLowerCase() === preset.toLowerCase();
               return (
                 <Pressable
-                  key={preset}
+                  key={presetKey}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: active }}
                   onPress={() => onChange(active ? '' : preset)}
@@ -590,12 +604,16 @@ function LabelField({ control }: { control: FormControl }) {
             })}
           </View>
           <Input
-            label="Label"
-            hint="Optional — or type your own"
+            label={t('location.form.label')}
+            hint={t('location.form.labelHint')}
             value={value ?? ''}
             onChangeText={onChange}
             onBlur={onBlur}
-            error={fieldState.error?.message}
+            error={
+              fieldState.error?.message
+                ? t(fieldState.error.message, { max: MAX_LENGTH.label })
+                : undefined
+            }
           />
         </View>
       )}

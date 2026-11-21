@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import { Badge, Card, type BadgeVariant } from '@/components/ui';
@@ -15,11 +16,11 @@ interface Props {
   action?: React.ReactNode;
 }
 
-/** What each order type is, in the customer's words rather than the API's. */
+/** What each order type is, in the customer's words rather than the API's (translation keys). */
 const TYPE_LABEL: Record<Order['type'], string> = {
-  instant: 'One-off order',
-  extra: 'Extra items',
-  guest: 'Guest portions',
+  instant: 'ordering.orderType.instant',
+  extra: 'ordering.orderType.extra',
+  guest: 'ordering.orderType.guest',
 };
 
 const STATUS_VARIANT: Record<OrderStatus, BadgeVariant> = {
@@ -39,6 +40,7 @@ const STATUS_VARIANT: Record<OrderStatus, BadgeVariant> = {
  * the tone come from `lib/payments` so every screen says the same thing.
  */
 function OrderCardComponent({ order, slotName, onPress, action }: Props) {
+  const { t } = useTranslation();
   const itemCount = (order.items ?? []).reduce((sum, i) => sum + i.quantity, 0);
 
   return (
@@ -47,29 +49,28 @@ function OrderCardComponent({ order, slotName, onPress, action }: Props) {
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
             <Text className="text-sm font-bold text-text-primary">
-              {TYPE_LABEL[order.type] ?? 'Order'} · #{order.id}
+              {t(TYPE_LABEL[order.type] ?? 'ordering.orderType.order')} · #{order.id}
             </Text>
             <Text className="mt-0.5 text-xs text-text-muted">
               {formatShortDate(order.delivery_date)}
               {slotName ? ` · ${slotName}` : ''}
               {order.type === 'guest' && order.guests_count
-                ? ` · ${order.guests_count} guest${order.guests_count > 1 ? 's' : ''}`
+                ? ` · ${t('ordering.guests', { count: order.guests_count })}`
                 : ''}
             </Text>
           </View>
 
           <Badge
-            label={order.status}
+            label={t(`common.status.${order.status}`, { defaultValue: order.status })}
             variant={STATUS_VARIANT[order.status] ?? 'muted'}
-            className="capitalize"
           />
         </View>
 
         {itemCount > 0 ? (
           <Text numberOfLines={2} className="mt-2 text-xs text-text-secondary">
             {(order.items ?? [])
-              .map((i) => `${i.quantity}× ${i.name}`)
-              .join(', ')}
+              .map((i) => t('ordering.itemQty', { qty: i.quantity, name: i.name }))
+              .join(t('ordering.listSeparator'))}
           </Text>
         ) : null}
 

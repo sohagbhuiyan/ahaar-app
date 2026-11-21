@@ -1,0 +1,211 @@
+{
+  "free": "Free",
+  "refresh": "Refresh",
+  "addToOrder": "Add to order",
+  "addToBasket": "Add to basket",
+  "goToBasket": "Go to basket",
+  "addedToast": "{{name}} added",
+  "quantityOf": "{{name}} quantity",
+  "prompt": {
+    "toComment": "to join the conversation"
+  },
+  "units": {
+    "delivery_one": "{{count}} delivery",
+    "delivery_other": "{{count}} deliveries",
+    "mealsPerDay_one": "{{count}} meal a day",
+    "mealsPerDay_other": "{{count}} meals a day"
+  },
+  "duration": {
+    "weekly": "Weekly",
+    "biWeekly": "Bi-Weekly",
+    "monthly": "Monthly",
+    "days_one": "{{count}} Day",
+    "days_other": "{{count}} Days"
+  },
+  "category": {
+    "a11y": "{{name}}, {{dishes}}"
+  },
+  "basket": {
+    "view": "View basket",
+    "a11y": "View basket, {{items}}, {{total}}"
+  },
+  "foods": {
+    "title": "Foods",
+    "subtitle": "Everything on the Ahaar menu — order any of it for a day that suits you",
+    "searchPlaceholder": "Search dishes",
+    "addons": "Add-ons",
+    "browseMealBoxes_one": "Browse {{count}} meal box",
+    "browseMealBoxes_other": "Browse {{count}} meal boxes",
+    "mealBoxesCount_one": "{{count}} complete meal at one price",
+    "mealBoxesCount_other": "{{count}} complete meals at one price",
+    "noMatches": "No matches",
+    "emptyTitle": "Nothing on the menu yet",
+    "nothingMatches": "Nothing matches “{{term}}”.",
+    "tryCategory": "Try a different category.",
+    "emptyDescription": "Check back soon for new dishes.",
+    "clearFilters": "Clear filters",
+    "loadMore": "Load more dishes"
+  },
+  "food": {
+    "notFoundTitle": "This dish is no longer on the menu",
+    "notFoundDescription": "It has been taken off the menu for now. Have a look at what the kitchen is serving.",
+    "browseMenu": "Browse the menu",
+    "addon": "Add-on",
+    "dietary": "Dietary",
+    "allergens": "Allergens",
+    "oneOffHint": "Order this on its own for any day whose meal time is still open — no subscription needed."
+  },
+  "package": {
+    "title": "Meal box",
+    "mealBoxCount": "Meal box · {{items}}",
+    "save": "Save {{amount}}",
+    "more": "+ {{count}} more",
+    "notFoundTitle": "This meal box is no longer available",
+    "notFoundDescription": "It has been taken off the menu. Have a look at the boxes on offer now.",
+    "browse": "Browse meal boxes",
+    "addedToast": "{{name}} added to your order",
+    "whatsInside": "What's inside",
+    "boxNote": "Everything above arrives together as one box. Boxes are bought on the day — they are not part of a subscription and cannot be swapped.",
+    "boxes": "Boxes",
+    "addWithPrice": "Add to order · {{price}}"
+  },
+  "packages": {
+    "intro": "Hand-picked combinations from our kitchen — usually cheaper than ordering each dish separately. No subscription needed.",
+    "emptyTitle": "No meal boxes right now",
+    "emptyDescription": "Our kitchen is putting new boxes together — check back soon."
+  },
+  "plan": {
+    "mostPopular": "Most popular",
+    "bestValue": "Best value",
+    "a11y": "{{name}}, {{days}}, {{price}}",
+    "savePercent": "Save {{percent}}%",
+    "perDay": "{{price}}/day",
+    "stat": {
+      "days_one": "day",
+      "days_other": "days",
+      "mealsPerDay_one": "meal / day",
+      "mealsPerDay_other": "meals / day",
+      "totalMeals_one": "meal in total",
+      "totalMeals_other": "meals in total"
+    },
+    "included": {
+      "fresh": "Cooked fresh and delivered every day",
+      "swap": "Swap dishes up to each cutoff",
+      "skip": "Skip a day and your plan extends"
+    },
+    "viewMenu": "View menu",
+    "selected": "Selected",
+    "choose": "Choose plan"
+  },
+  "planMeals": {
+    "none": "This plan has no meal times set up yet. Please contact us before subscribing.",
+    "single": "{{deliveries}} — this meal, every day for {{days}}.",
+    "multiple": "{{perDay}} × {{days}} = {{deliveries}}. You can trade dishes between them once your plan starts."
+  },
+  "plans": {
+    "title": "Meal Plans",
+    "subtitle": "Subscribe once, eat well every day",
+    "count_one": "{{count}} plan",
+    "count_other": "{{count}} plans",
+    "banner": {
+      "eyebrow": "Subscribe & save",
+      "title": "Every meal, sorted.",
+      "body": "Pick a plan and a start date — we cook fresh each morning and deliver on schedule for as long as it runs."
+    },
+    "valueProps": {
+      "chef": "Chef-cooked daily",
+      "swap": "Swap any dish",
+      "skip": "Skip a day, keep the meal"
+    },
+    "allPlans": "All plans",
+    "emptyTitle": "No plans available",
+    "emptyDescription": "Check back soon for new subscription plans.",
+    "kitchenTitle": "Inside our kitchen",
+    "kitchenSubtitle": "Watch the meals in your plan being made",
+    "notReady": {
+      "title": "Not ready to subscribe?",
+      "body": "Order any dish on its own, for whichever day suits you.",
+      "cta": "Browse dishes"
+    },
+    "compare": {
+      "eyebrow": "Side by side",
+      "title": "Compare plans",
+      "plan": "Plan",
+      "days": "Days",
+      "perDay": "Per day",
+      "total": "Total",
+      "popular": "Popular",
+      "rowA11y": "{{name}}: {{days}}, {{perDay}} a day, {{total}} in total"
+    },
+    "howItWorksTitle": "From plan to plate",
+    "faqTitle": "Before you subscribe"
+  },
+  "planDetail": {
+    "title": "Plan",
+    "notFoundTitle": "This plan is no longer available",
+    "notFoundDescription": "It has been taken off the menu. Have a look at the plans on offer now.",
+    "mealsADay_one": "meal a day",
+    "mealsADay_other": "meals a day",
+    "coversAll_one": "One price covers <b>all {{count}} meal</b> a day, every day for {{days}} — and you can trade dishes between them once it starts.",
+    "coversAll_other": "One price covers <b>all {{count}} meals</b> a day, every day for {{days}} — and you can trade dishes between them once it starts.",
+    "coversEvery": "A subscription covers <b>every meal this plan serves</b>, every day for {{days}}.",
+    "eachDay": "What arrives each day",
+    "weeklyLimits": "Weekly limits",
+    "weeklyLimitsHint": "How many portions of each dish you may have per week, and how many the plan's own menu already uses.",
+    "perWeek": "{{limit}} per week",
+    "used": "{{used}} of {{limit}} used",
+    "subscribeWithPrice": "Subscribe · {{price}}",
+    "mealFallback": "Meal #{{id}}",
+    "nothingScheduled": "Nothing scheduled.",
+    "availableToAdd": "Available to add",
+    "addonHint": "Not delivered unless you ask for it — and it only counts against your quota once you do."
+  },
+  "media": {
+    "title": "Media",
+    "subtitle": "Straight from the Ahaar kitchen — see how your meals are made, and tell us what you think.",
+    "emptyTitle": "No videos yet",
+    "emptyDescription": "The kitchen hasn't posted anything yet. Check back soon.",
+    "loadMore": "Load more videos",
+    "kitchenVideo": "Kitchen video",
+    "playVideo": "Play video: {{title}}",
+    "watchAgain": "Watch again",
+    "playFailed": "This video couldn't be played",
+    "playFailedHint": "Check your connection and try again.",
+    "noComments": "No comments yet",
+    "comments_one": "{{count}} comment",
+    "comments_other": "{{count}} comments",
+    "viewTheComment": "View the comment",
+    "viewAllComments_one": "View all {{count}} comment",
+    "viewAllComments_other": "View all {{count}} comments",
+    "joinConversation": "Join the conversation",
+    "beFirst": "Be the first to comment",
+    "readComments": "Read {{comments}} on {{title}}",
+    "commentOn": "Comment on {{title}}"
+  },
+  "comments": {
+    "heading": "Comments",
+    "headingWithCount": "Comments · {{count}}",
+    "emptyDescription": "Be the first to say what you think.",
+    "loadOlder": "Load older comments",
+    "deleteTitle": "Delete your comment?",
+    "deleteDescription": "It will be removed for everyone. This can't be undone.",
+    "deleted": "Comment deleted",
+    "deleteFailed": "That comment could not be deleted",
+    "deleteA11y": "Delete your comment",
+    "postFailed": "Your comment could not be posted. Please try again.",
+    "posted": "Comment posted",
+    "signInA11y": "Sign in to comment",
+    "signInPlaceholder": "Sign in to add a comment…",
+    "placeholder": "Add a comment…",
+    "inputA11y": "Comment",
+    "post": "Post",
+    "postA11y": "Post comment"
+  },
+  "gallery": {
+    "pictureA11y": "{{label}}, picture {{n}}. Opens full screen",
+    "showPicture": "Show picture {{n}}",
+    "showVideo": "Show video",
+    "counter": "{{current}} / {{total}}",
+    "close": "Close pictures"
+  }
+}

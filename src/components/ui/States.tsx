@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import { Button } from './Button';
@@ -79,14 +80,15 @@ export function ErrorState({
   retrying = false,
   className,
 }: ErrorStateProps) {
+  const { t } = useTranslation();
   const offline = isApiError(error) && error.code === 'network';
 
   const heading =
-    title ?? (offline ? "You're offline" : 'Something went wrong');
+    title ?? (offline ? t('ui.errorState.offline') : t('common.states.error'));
 
   const message = isApiError(error)
     ? error.message
-    : 'Please try again in a moment.';
+    : t('ui.errorState.tryLater');
 
   return (
     <View className={cn('items-center px-8 py-12', className)}>
@@ -100,7 +102,7 @@ export function ErrorState({
 
       {onRetry ? (
         <Button
-          label="Try again"
+          label={t('common.actions.retry')}
           variant="secondary"
           size="sm"
           onPress={onRetry}
@@ -123,9 +125,10 @@ export function InlineError({
   error?: unknown;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const message = isApiError(error)
     ? error.message
-    : 'Something went wrong. Please try again.';
+    : t('common.states.errorRetry');
 
   return (
     <View

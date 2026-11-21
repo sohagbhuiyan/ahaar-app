@@ -1,4 +1,5 @@
 import { forwardRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, type TextInput } from 'react-native';
 
 import EyeIcon from '@/components/icons/EyeIcon';
@@ -17,6 +18,7 @@ type Props = Omit<React.ComponentProps<typeof Input>, 'secureTextEntry' | 'right
  * `Input` underneath, which picks the sheet-aware field itself.
  */
 export const PasswordInput = forwardRef<TextInput, Props>(function PasswordInput(props, ref) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   return (
@@ -30,7 +32,7 @@ export const PasswordInput = forwardRef<TextInput, Props>(function PasswordInput
       right={
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={visible ? 'Hide password' : 'Show password'}
+          accessibilityLabel={visible ? t('ui.password.hide') : t('ui.password.show')}
           onPress={() => setVisible((v) => !v)}
           hitSlop={10}
           className="-mr-1 h-9 w-9 items-center justify-center rounded-full active:bg-surface-muted"

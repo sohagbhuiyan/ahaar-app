@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -21,8 +22,8 @@ import { Button, InlineError, Input, PasswordInput } from '@/components/ui';
 import { useLogin } from '@/lib/query/hooks';
 
 const schema = z.object({
-  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().min(1, 'common.validation.required').email('common.validation.email'),
+  password: z.string().min(1, 'common.validation.required'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -38,6 +39,7 @@ type FormValues = z.infer<typeof schema>;
  * Home then asks for a delivery location if the account has none.
  */
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const passwordRef = useRef<TextInput>(null);
 
@@ -47,7 +49,7 @@ export default function LoginScreen() {
   };
 
   const login = useLogin({
-    onSuccess: (user) => toast.success(`Welcome back, ${user.name.split(' ')[0]}`),
+    onSuccess: (user) => toast.success(t('auth.toast.welcomeBack', { name: user.name.split(' ')[0] })),
   });
 
   const { control, handleSubmit } = useForm<FormValues>({
@@ -84,9 +86,9 @@ export default function LoginScreen() {
             entering={FadeInDown.delay(80).duration(500)}
             className="mb-8 mt-6 items-center"
           >
-            <Text className="text-3xl font-bold text-text-primary">Welcome back</Text>
+            <Text className="text-3xl font-bold text-text-primary">{t('auth.login.title')}</Text>
             <Text className="mt-1.5 text-center text-sm text-text-secondary">
-              Sign in to manage your meals, plan and deliveries
+              {t('auth.login.subtitle')}
             </Text>
           </Animated.View>
 
@@ -104,16 +106,16 @@ export default function LoginScreen() {
                 name="email"
                 render={({ field: { onChange, onBlur, value }, fieldState }) => (
                   <Input
-                    label="Email"
+                    label={t('auth.fields.email')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    error={fieldState.error?.message}
+                    error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
                     autoCapitalize="none"
                     autoComplete="email"
                     keyboardType="email-address"
                     textContentType="emailAddress"
-                    placeholder="you@example.com"
+                    placeholder={t('auth.fields.emailPlaceholder')}
                     returnKeyType="next"
                     submitBehavior="submit"
                     onSubmitEditing={() => passwordRef.current?.focus()}
@@ -127,11 +129,11 @@ export default function LoginScreen() {
                 render={({ field: { onChange, onBlur, value }, fieldState }) => (
                   <PasswordInput
                     ref={passwordRef}
-                    label="Password"
+                    label={t('auth.fields.password')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    error={fieldState.error?.message}
+                    error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
                     autoComplete="current-password"
                     textContentType="password"
                     placeholder="••••••••"
@@ -143,7 +145,7 @@ export default function LoginScreen() {
             </View>
 
             <Button
-              label="Sign in"
+              label={t('auth.login.submit')}
               size="lg"
               className="mt-6"
               loading={login.isPending}
@@ -155,13 +157,13 @@ export default function LoginScreen() {
             <View className="flex-row items-center gap-3">
               <View className="h-px flex-1 bg-border" />
               <Text className="text-xs font-semibold uppercase tracking-wider text-text-muted">
-                New to Ahaar?
+                {t('auth.login.newHere')}
               </Text>
               <View className="h-px flex-1 bg-border" />
             </View>
 
             <Button
-              label="Create an account"
+              label={t('auth.login.createAccount')}
               variant="outline"
               size="lg"
               className="mt-4"
@@ -169,7 +171,7 @@ export default function LoginScreen() {
             />
 
             {/* An account is only needed to order — never to look around. */}
-            <Button label="Keep browsing" variant="ghost" className="mt-2" onPress={leave} />
+            <Button label={t('auth.login.keepBrowsing')} variant="ghost" className="mt-2" onPress={leave} />
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>

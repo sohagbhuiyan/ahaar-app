@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import { Checkbox } from '@/components/ui';
@@ -42,13 +43,14 @@ export function CashOnDeliveryCheckbox({
   disabled = false,
   className,
 }: Props) {
+  const { t } = useTranslation();
   const overCap = total !== undefined && !isCashAllowedForAmount(total);
   const isDisabled = disabled || overCap;
 
   const payLine =
     total !== undefined
-      ? `Pay ${formatMoney(total)} in cash to the rider when your food arrives.`
-      : 'Pay in cash to the rider when your food arrives.';
+      ? t('ordering.cod.payAmount', { amount: formatMoney(total) })
+      : t('ordering.cod.pay');
 
   return (
     <View className={cn('gap-2', className)}>
@@ -56,21 +58,21 @@ export function CashOnDeliveryCheckbox({
         checked={checked && !overCap}
         onChange={onChange}
         disabled={isDisabled}
-        label="Cash on Delivery"
+        label={t('ordering.cod.label')}
         description={
           overCap
-            ? `Cash is only available on orders up to ${formatMoney(CASH_MAX_AMOUNT)}. This order will be paid by card.`
+            ? t('ordering.cod.overCap', { amount: formatMoney(CASH_MAX_AMOUNT) })
             : payLine
         }
       />
 
       {!checked || overCap ? (
         <Text className="px-1 text-xs leading-5 text-text-muted">
-          Leave this unticked to pay securely by card now.
+          {t('ordering.cod.cardHint')}
         </Text>
       ) : (
         <Text className="px-1 text-xs leading-5 text-text-muted">
-          Please have the exact amount ready — riders may not carry change.
+          {t('ordering.cod.exactChange')}
         </Text>
       )}
     </View>

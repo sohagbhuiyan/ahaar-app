@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Keyboard, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -23,6 +25,7 @@ export function MediaCommentItem({
   /** Offered only on the customer's own comments. */
   onDelete?: (comment: MediaComment) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View className="flex-row gap-3 py-3">
       <Avatar name={comment.author.name} size="sm" />
@@ -38,12 +41,12 @@ export function MediaCommentItem({
         {comment.is_mine && onDelete ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Delete your comment"
+            accessibilityLabel={t('catalog.comments.deleteA11y')}
             onPress={() => onDelete(comment)}
             hitSlop={8}
             className="mt-1 self-start active:opacity-70"
           >
-            <Text className="text-xs font-semibold text-danger">Delete</Text>
+            <Text className="text-xs font-semibold text-danger">{t('common.actions.delete')}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -52,9 +55,9 @@ export function MediaCommentItem({
 }
 
 /** The API's own sentence: a 422 names the broken rule, a 429 says slow down. */
-function commentError(error: unknown): string | null {
+function commentError(error: unknown, t: TFunction): string | null {
   if (!error) return null;
-  if (!isApiError(error)) return 'Your comment could not be posted. Please try again.';
+  if (!isApiError(error)) return t('catalog.comments.postFailed');
   return error.errors?.body?.[0] ?? error.message;
 }
 
@@ -69,6 +72,7 @@ function commentError(error: unknown): string | null {
  */
 export function MediaCommentComposer({ videoId }: { videoId: number }) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const signedIn = useIsSignedIn();
   const requireAuth = useRequireAuth();
   const create = useCreateMediaComment(videoId);
@@ -78,7 +82,7 @@ export function MediaCommentComposer({ videoId }: { videoId: number }) {
   const keyboardOpen = useKeyboardOpen();
 
   const trimmed = body.trim();
-  const error = commentError(create.error);
+  const error = commentError(create.error, t);
   const bottomPadding = (keyboardOpen ? 0 : insets.bottom) + 12;
 
   const submit = () => {
@@ -86,7 +90,7 @@ export function MediaCommentComposer({ videoId }: { videoId: number }) {
     create.mutate(trimmed, {
       onSuccess: () => {
         setBody('');
-        toast.success('Comment posted');
+        toast.success(t('catalog.comments.posted'));
       },
     });
   };
@@ -99,11 +103,13 @@ export function MediaCommentComposer({ videoId }: { videoId: number }) {
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Sign in to comment"
-          onPress={() => requireAuth(() => setFocusOnMount(true), 'to join the conversation')}
+          accessibilityLabel={t('catalog.comments.signInA11y')}
+          onPress={() =>
+            requireAuth(() => setFocusOnMount(true), t('catalog.prompt.toComment'))
+          }
           className="rounded-2xl border border-border px-4 py-3.5 active:opacity-70"
         >
-          <Text className="text-base text-text-muted">Sign in to add a comment…</Text>
+          <Text className="text-base text-text-muted">{t('catalog.comments.signInPlaceholder')}</Text>
         </Pressable>
       </View>
     );
@@ -123,9 +129,9 @@ export function MediaCommentComposer({ videoId }: { videoId: number }) {
             setBody(text);
             if (create.isError) create.reset();
           }}
-          placeholder="Add a comment…"
+          placeholder={t('catalog.comments.placeholder')}
           placeholderTextColor={colors.text.muted}
-          accessibilityLabel="Comment"
+          accessibilityLabel={t('catalog.comments.inputA11y')}
           autoFocus={focusOnMount}
           multiline
           maxLength={COMMENT_MAX_LENGTH}
@@ -133,8 +139,8 @@ export function MediaCommentComposer({ videoId }: { videoId: number }) {
         />
 
         <Button
-          label="Post"
-          accessibilityLabel="Post comment"
+          label={t('catalog.comments.post')}
+          accessibilityLabel={t('catalog.comments.postA11y')}
           fullWidth={false}
           loading={create.isPending}
           disabled={trimmed.length < COMMENT_MIN_LENGTH}

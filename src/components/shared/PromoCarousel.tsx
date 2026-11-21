@@ -1,7 +1,9 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
+  I18nManager,
   Pressable,
   ScrollView,
   Text,
@@ -66,7 +68,14 @@ export function PromoCarousel({ banners, heading, aspectRatio = 16 / 9, classNam
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       if (width <= 0) return;
-      setIndex(Math.round(e.nativeEvent.contentOffset.x / width));
+      const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+      // RTL: the offset is physical (from the left edge) while the first banner
+      // sits on the right, so count pages from the right — the same conversion
+      // VirtualizedList applies.
+      const logical = I18nManager.isRTL
+        ? contentSize.width - (contentOffset.x + layoutMeasurement.width)
+        : contentOffset.x;
+      setIndex(Math.round(logical / width));
     },
     [width],
   );
@@ -129,6 +138,7 @@ function PromoCard({
   aspectRatio: number;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const hasCopy = Boolean(banner.title || banner.subtitle || banner.cta_label);
   // A banner whose link goes nowhere this app can open is shown as a plain
   // image — a press that silently does nothing is worse than no press target.
@@ -149,7 +159,7 @@ function PromoCard({
           transition={200}
           cachePolicy="memory-disk"
           style={{ width: '100%', height: '100%' }}
-          accessibilityLabel={banner.alt_text ?? banner.title ?? 'Promotion'}
+          accessibilityLabel={banner.alt_text ?? banner.title ?? t('home.promo.fallbackLabel')}
         />
       ) : null}
 
@@ -184,7 +194,7 @@ function PromoCard({
       {pressable ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={banner.title ?? banner.alt_text ?? 'Promotion'}
+          accessibilityLabel={banner.title ?? banner.alt_text ?? t('home.promo.fallbackLabel')}
           onPress={onPress}
           className="active:opacity-90"
         >

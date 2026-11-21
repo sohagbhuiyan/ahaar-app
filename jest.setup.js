@@ -77,3 +77,7 @@ jest.mock('sonner-native', () => ({
   toast: { success: jest.fn(), error: jest.fn(), info: jest.fn() },
   Toaster: () => null,
 }));
+
+// Real English copy in tests: components call useTranslation(), and without an
+// initialised i18next instance they would render bare keys.
+require('./src/lib/i18n');

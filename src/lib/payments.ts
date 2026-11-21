@@ -16,6 +16,8 @@
  */
 import * as WebBrowser from 'expo-web-browser';
 
+import i18n from './i18n';
+
 import { colors } from './theme';
 import type { Payment, PaymentGateway, PaymentStatus } from './api/types/order';
 
@@ -70,11 +72,11 @@ export function isAwaitingCash(payment: Payment | null | undefined): boolean {
 }
 
 const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
-  pending: 'Awaiting payment',
-  succeeded: 'Paid',
-  failed: 'Payment failed',
-  refunded: 'Refunded',
-  partially_refunded: 'Partly refunded',
+  pending: 'ordering.paymentStatus.pending',
+  succeeded: 'ordering.paymentStatus.succeeded',
+  failed: 'ordering.paymentStatus.failed',
+  refunded: 'ordering.paymentStatus.refunded',
+  partially_refunded: 'ordering.paymentStatus.partially_refunded',
 };
 
 /**
@@ -90,8 +92,12 @@ const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
  */
 export function paymentStatusLabel(payment: Payment | null | undefined): string {
   if (!payment) return '';
-  if (isAwaitingCash(payment)) return 'Pay on delivery';
-  return PAYMENT_STATUS_LABEL[payment.status] ?? payment.status;
+  if (isAwaitingCash(payment)) return i18n.t('ordering.paymentStatus.payOnDelivery');
+  // Keys resolved at call time, so the label follows the app language.
+  const key = PAYMENT_STATUS_LABEL[payment.status];
+  return key
+    ? i18n.t(key)
+    : i18n.t(`common.status.${payment.status}`, { defaultValue: payment.status });
 }
 
 /**
@@ -122,7 +128,7 @@ export function paymentStatusTone(
 /** How the money is being taken, for a summary row. */
 export function paymentMethodLabel(payment: Payment | null | undefined): string {
   if (!payment) return '—';
-  if (isCashOnDelivery(payment)) return 'Cash on delivery';
+  if (isCashOnDelivery(payment)) return i18n.t('ordering.paymentMethod.cash');
   return payment.gateway;
 }
 

@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import { Badge, Button, Card } from '@/components/ui';
@@ -24,6 +25,7 @@ interface Props {
  * reason to choose one, so both are on the card rather than a tap away.
  */
 function PackageCardComponent({ pkg, onPress, onAdd, className }: Props) {
+  const { t } = useTranslation();
   const alaCarte = pkg.a_la_carte_price ?? 0;
   // Only a real saving earns a badge. A box sized for several people can
   // legitimately cost more than one portion of each dish.
@@ -47,12 +49,14 @@ function PackageCardComponent({ pkg, onPress, onAdd, className }: Props) {
               {pkg.name}
             </Text>
             <Text className="mt-0.5 text-[11px] font-semibold uppercase text-text-muted">
-              Meal box · {contents.length} {contents.length === 1 ? 'item' : 'items'}
+              {t('catalog.package.mealBoxCount', {
+                items: t('common.units.item', { count: contents.length }),
+              })}
             </Text>
           </View>
 
           {saving > 0 ? (
-            <Badge label={`Save ${formatMoney(saving)}`} variant="paid" />
+            <Badge label={t('catalog.package.save', { amount: formatMoney(saving) })} variant="paid" />
           ) : null}
         </View>
 
@@ -71,7 +75,7 @@ function PackageCardComponent({ pkg, onPress, onAdd, className }: Props) {
             ))}
             {contents.length > 3 ? (
               <Text className="ml-3 text-xs text-text-muted">
-                + {contents.length - 3} more
+                {t('catalog.package.more', { count: contents.length - 3 })}
               </Text>
             ) : null}
           </View>
@@ -90,7 +94,7 @@ function PackageCardComponent({ pkg, onPress, onAdd, className }: Props) {
 
         {onAdd ? (
           <Button
-            label="Add to order"
+            label={t('catalog.addToOrder')}
             size="sm"
             className="mt-3"
             onPress={() => onAdd(pkg)}

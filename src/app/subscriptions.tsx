@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -38,6 +39,7 @@ const STATUS_VARIANT: Record<SubscriptionStatus, BadgeVariant> = {
  * payment eager-loaded, so a row can be rendered without a second request.
  */
 export default function SubscriptionsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const signedIn = useIsSignedIn();
   const promptLogin = useAuthPromptStore((s) => s.prompt);
@@ -61,12 +63,12 @@ export default function SubscriptionsScreen() {
   if (!signedIn) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Subscription orders" />
+        <ScreenHeader title={t('account.subscriptions.title')} />
         <EmptyState
-          title="Sign in to see your plans"
-          description="Every plan you've bought, with its schedule and payment."
-          actionLabel="Sign in"
-          onAction={() => promptLogin('to see your subscriptions')}
+          title={t('account.subscriptions.signedOutTitle')}
+          description={t('account.subscriptions.signedOutBody')}
+          actionLabel={t('common.actions.signIn')}
+          onAction={() => promptLogin(t('account.authReason.seeSubscriptions'))}
           className="flex-1 justify-center"
         />
       </SafeAreaView>
@@ -75,7 +77,7 @@ export default function SubscriptionsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
-      <ScreenHeader title="Subscription orders" />
+      <ScreenHeader title={t('account.subscriptions.title')} />
       <OfflineBanner />
 
       <ScrollView
@@ -95,9 +97,9 @@ export default function SubscriptionsScreen() {
           <ErrorState error={error} onRetry={refetch} retrying={isFetching} />
         ) : !subscriptions || subscriptions.length === 0 ? (
           <EmptyState
-            title="No subscriptions yet"
-            description="Subscribe to a meal plan and it will appear here."
-            actionLabel="Browse plans"
+            title={t('account.subscriptions.emptyTitle')}
+            description={t('account.subscriptions.emptyBody')}
+            actionLabel={t('account.deliveries.browsePlans')}
             onAction={() => router.push('/(tabs)/plans')}
           />
         ) : (
@@ -114,27 +116,29 @@ export default function SubscriptionsScreen() {
                     <View className="flex-row items-start justify-between gap-3">
                       <View className="flex-1">
                         <Text className="text-sm font-bold text-text-primary">
-                          {subscription.plan?.name ?? `Plan #${subscription.id}`}
+                          {subscription.plan?.name ?? t('account.planNumber', { id: subscription.id })}
                         </Text>
                         <Text className="mt-0.5 text-xs text-text-muted">
-                          #{subscription.id}
+                          {'\u2068'}#{subscription.id}{'\u2069'}
                           {meals ? ` · ${meals}` : ''}
                           {subscription.plan
-                            ? ` · ${subscription.plan.duration_days} days`
+                            ? ` · ${t('common.units.day', { count: subscription.plan.duration_days })}`
                             : ''}
                         </Text>
                       </View>
 
                       <Badge
-                        label={subscription.status}
+                        label={t(`common.status.${subscription.status}`, { defaultValue: subscription.status })}
                         variant={STATUS_VARIANT[subscription.status] ?? 'muted'}
                         className="capitalize"
                       />
                     </View>
 
                     <Text className="mt-2 text-xs text-text-secondary">
-                      {formatShortDate(subscription.start_date)} →{' '}
-                      {formatShortDate(subscription.end_date)}
+                      {t('account.dateRange', {
+                        from: formatShortDate(subscription.start_date),
+                        to: formatShortDate(subscription.end_date),
+                      })}
                     </Text>
 
                     <View className="mt-3 flex-row items-center justify-between gap-3">
@@ -143,9 +147,9 @@ export default function SubscriptionsScreen() {
                       </Text>
 
                       {awaitingPayment ? (
-                        <Badge label="Payment due" variant="warning" />
+                        <Badge label={t('account.subscriptions.paymentDue')} variant="warning" />
                       ) : subscription.payment?.status === 'succeeded' ? (
-                        <Badge label="Paid" variant="success" />
+                        <Badge label={t('common.status.paid')} variant="success" />
                       ) : null}
                     </View>
                   </View>
@@ -154,7 +158,7 @@ export default function SubscriptionsScreen() {
             })}
 
             <Button
-              label="Browse plans"
+              label={t('account.deliveries.browsePlans')}
               variant="outline"
               className="mt-2"
               onPress={() => router.push('/(tabs)/plans')}

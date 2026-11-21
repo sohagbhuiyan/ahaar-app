@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { I18nManager, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -63,6 +64,7 @@ import { cn, todayISO } from '@/lib/utils';
  * date's own weekday menu, so a 30-day plan cycles the same week four times.
  */
 export default function DeliveriesScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const signedIn = useIsSignedIn();
   const promptLogin = useAuthPromptStore((s) => s.prompt);
@@ -103,7 +105,7 @@ export default function DeliveriesScreen() {
   if (subLoading || isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Deliveries" />
+        <ScreenHeader title={t('account.deliveries.title')} />
         <View className="gap-4 px-5 pt-4">
           <Skeleton className="h-36 w-full rounded-3xl" />
           <Skeleton className="h-40 w-full rounded-3xl" />
@@ -119,19 +121,19 @@ export default function DeliveriesScreen() {
     // the app has never asked who they are reads as a bug.
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Deliveries" />
+        <ScreenHeader title={t('account.deliveries.title')} />
         <EmptyState
-          title={signedIn ? 'No active plan' : 'Your menu lives here'}
+          title={signedIn ? t('account.deliveries.noPlanTitle') : t('account.deliveries.signedOutTitle')}
           description={
             signedIn
-              ? 'Subscribe to a meal plan to see your day-by-day menu.'
-              : 'Sign in to see the meals scheduled for each day of your plan.'
+              ? t('account.deliveries.noPlanBody')
+              : t('account.deliveries.signedOutBody')
           }
-          actionLabel={signedIn ? 'Browse plans' : 'Sign in'}
+          actionLabel={signedIn ? t('account.deliveries.browsePlans') : t('common.actions.signIn')}
           onAction={
             signedIn
               ? () => router.push('/(tabs)/plans')
-              : () => promptLogin('to see your menu')
+              : () => promptLogin(t('account.authReason.seeMenu'))
           }
           className="flex-1 justify-center"
         />
@@ -142,11 +144,11 @@ export default function DeliveriesScreen() {
   return (
     <SafeAreaView className="flex-1 bg-surface">
       <ScreenHeader
-        title="Deliveries"
+        title={t('account.deliveries.title')}
         subtitle={subscription.plan?.name}
         right={
           <Button
-            label="Full plan"
+            label={t('account.deliveries.fullPlan')}
             variant="ghost"
             size="sm"
             fullWidth={false}
@@ -175,15 +177,15 @@ export default function DeliveriesScreen() {
           <ErrorState error={error} onRetry={refetch} retrying={isFetching} />
         ) : dates.length === 0 ? (
           <EmptyState
-            title="No deliveries scheduled"
-            description="Your days appear here once your payment is confirmed."
-            actionLabel="Refresh"
+            title={t('account.deliveries.emptyTitle')}
+            description={t('account.deliveries.emptyBody')}
+            actionLabel={t('account.deliveries.refresh')}
             onAction={refetch}
           />
         ) : (
           <>
             <Text className="mx-5 mb-3 mt-6 text-xs font-bold uppercase tracking-wider text-text-muted">
-              Pick a day
+              {t('account.deliveries.pickDay')}
             </Text>
             <DeliveryCalendar weeks={weeks} value={selectedDate} onChange={setSelectedDate} />
 
@@ -267,6 +269,7 @@ function PlanOverview({
   dates: string[];
   today: string;
 }) {
+  const { t } = useTranslation();
   const planDays = dates.length;
   const daysReached = dates.filter((date) => date <= today).length;
   const progress = planDays > 0 ? daysReached / planDays : 0;
@@ -274,12 +277,12 @@ function PlanOverview({
 
   const progressLabel =
     planDays === 0
-      ? 'Waiting for your first day'
+      ? t('account.deliveries.waitingFirstDay')
       : daysReached === 0
-        ? `Starts ${formatDayMonth(dates[0])}`
+        ? t('account.deliveries.startsOn', { date: formatDayMonth(dates[0]) })
         : daysReached >= planDays && today > dates[planDays - 1]
-          ? `All ${planDays} days complete`
-          : `Day ${daysReached} of ${planDays}`;
+          ? t('account.deliveries.allDaysComplete', { count: planDays })
+          : t('account.deliveries.dayOf', { day: daysReached, total: planDays });
 
   return (
     <View
@@ -291,18 +294,21 @@ function PlanOverview({
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1">
           <Text className="text-[11px] font-bold uppercase tracking-widest text-white/80">
-            Your plan
+            {t('account.deliveries.yourPlan')}
           </Text>
           <Text numberOfLines={1} className="mt-1 text-xl font-bold text-text-inverse">
-            {subscription.plan?.name ?? 'Meal plan'}
+            {subscription.plan?.name ?? t('account.deliveries.mealPlan')}
           </Text>
           <Text className="mt-0.5 text-xs text-white/85">
-            {formatDayMonth(subscription.start_date)} – {formatDayMonth(subscription.end_date)}
+            {t('account.dateRange', {
+              from: formatDayMonth(subscription.start_date),
+              to: formatDayMonth(subscription.end_date),
+            })}
           </Text>
         </View>
         <View className="rounded-full bg-white/20 px-3 py-1">
-          <Text className="text-xs font-bold capitalize text-text-inverse">
-            {subscription.status}
+          <Text className="text-xs font-bold text-text-inverse">
+            {t(`common.status.${subscription.status}`, { defaultValue: subscription.status })}
           </Text>
         </View>
       </View>
@@ -311,7 +317,7 @@ function PlanOverview({
         <Text className="text-sm font-bold text-text-inverse">{progressLabel}</Text>
         {mealsPerDay > 0 ? (
           <Text className="text-xs text-white/85">
-            {mealsPerDay} {mealsPerDay === 1 ? 'meal' : 'meals'} a day
+            {t('account.deliveries.mealsPerDay', { count: mealsPerDay })}
           </Text>
         ) : null}
       </View>
@@ -346,27 +352,30 @@ function DayTimeline({
   onOrderExtra: (meal: Delivery) => void;
   onOrderGuest: (meal: Delivery) => void;
 }) {
+  const { t } = useTranslation();
   const tones = meals.map(mealTone);
   const editable = tones.filter((tone) => tone === 'open').length;
   const summary =
     meals.length === 0
-      ? 'Nothing scheduled'
+      ? t('account.deliveries.nothingScheduled')
       : [
-          `${meals.length} ${meals.length === 1 ? 'meal' : 'meals'}`,
+          t('common.units.meal', { count: meals.length }),
           editable > 0
-            ? `${editable} still editable`
+            ? t('account.deliveries.stillEditable', { count: editable })
             : tones.every((tone) => tone === 'delivered')
-              ? 'all delivered'
+              ? t('account.deliveries.allDelivered')
               : tones.every((tone) => tone === 'off')
-                ? 'skipped'
-                : 'locked for changes',
+                ? t('account.deliveries.daySkipped')
+                : t('account.deliveries.lockedForChanges'),
         ].join(' · ');
 
   return (
     <Animated.View entering={FadeIn.duration(280)} className="mx-5 mt-6">
       <View className="mb-4">
         {date === today ? (
-          <Text className="text-xs font-bold uppercase tracking-wider text-brand-500">Today</Text>
+          <Text className="text-xs font-bold uppercase tracking-wider text-brand-500">
+            {t('common.time.today')}
+          </Text>
         ) : null}
         <Text accessibilityRole="header" className="text-lg font-bold text-text-primary">
           {formatDayHeading(date)}
@@ -377,7 +386,7 @@ function DayTimeline({
       {meals.length === 0 ? (
         <Card>
           <View className="p-5">
-            <Text className="text-sm text-text-secondary">Nothing scheduled for this day.</Text>
+            <Text className="text-sm text-text-secondary">{t('account.deliveries.nothingThisDay')}</Text>
           </View>
         </Card>
       ) : (
@@ -396,11 +405,12 @@ function DayTimeline({
   );
 }
 
-const TONE_BADGE: Record<MealTone, { label: string; variant: 'success' | 'muted' | 'warning' | 'brand' }> = {
-  open: { label: 'Editable', variant: 'success' },
-  locked: { label: 'Locked', variant: 'muted' },
-  delivered: { label: 'Delivered', variant: 'success' },
-  off: { label: 'Skipped', variant: 'warning' },
+/** Label keys, resolved at render so they follow the app language. */
+const TONE_BADGE: Record<MealTone, { labelKey: string; variant: 'success' | 'muted' | 'warning' | 'brand' }> = {
+  open: { labelKey: 'account.calendar.legendEditable', variant: 'success' },
+  locked: { labelKey: 'common.status.locked', variant: 'muted' },
+  delivered: { labelKey: 'common.status.delivered', variant: 'success' },
+  off: { labelKey: 'common.status.skipped', variant: 'warning' },
 };
 
 /** One meal of the day: the timeline marker, then its card. */
@@ -417,6 +427,7 @@ function MealSlot({
   onOrderExtra: () => void;
   onOrderGuest: () => void;
 }) {
+  const { t } = useTranslation();
   const tone = mealTone(delivery);
   const items = delivery.items ?? [];
   const dishes = items.filter((i) => !i.is_addon);
@@ -425,13 +436,13 @@ function MealSlot({
   // `can_swap`, so this is a read rather than a re-derivation.
   const canSwapSomething = items.some((i) => i.can_swap);
 
-  const slotName = delivery.slot?.name ?? 'Meal';
+  const slotName = delivery.slot?.name ?? t('account.meal');
   const window = delivery.slot ? slotWindow(delivery.slot) : '';
   const cutoff = formatCutoff(delivery.cutoff_at);
   const badge =
     tone === 'off' && delivery.status === 'paused'
-      ? { label: 'Paused', variant: 'warning' as const }
-      : TONE_BADGE[tone];
+      ? { label: t('common.status.paused'), variant: 'warning' as const }
+      : { label: t(TONE_BADGE[tone].labelKey), variant: TONE_BADGE[tone].variant };
 
   return (
     <View className="flex-row gap-3">
@@ -459,13 +470,13 @@ function MealSlot({
                 <Text className="text-base font-bold text-text-primary">{slotName}</Text>
                 {window ? (
                   <Text className="mt-0.5 text-xs font-semibold text-text-muted">
-                    Delivered {window}
+                    {t('account.deliveries.deliveredWindow', { window })}
                   </Text>
                 ) : null}
               </View>
               <View className="items-end gap-1.5">
                 <Badge label={badge.label} variant={badge.variant} />
-                {delivery.is_customized ? <Badge label="Swapped" variant="brand" /> : null}
+                {delivery.is_customized ? <Badge label={t('account.swapped')} variant="brand" /> : null}
               </View>
             </View>
 
@@ -475,21 +486,21 @@ function MealSlot({
               <Text className="flex-1 text-xs text-text-secondary">
                 {tone === 'open'
                   ? cutoff
-                    ? `Changes open until ${cutoff}`
-                    : 'Open for changes'
+                    ? t('account.deliveries.openUntil', { time: cutoff })
+                    : t('account.deliveries.openForChanges')
                   : tone === 'locked'
-                    ? 'Locked — the kitchen is already preparing this meal'
+                    ? t('account.deliveries.lockedNote')
                     : tone === 'delivered'
-                      ? 'Delivered — enjoy your meal'
+                      ? t('account.deliveries.deliveredNote')
                       : delivery.status === 'paused'
-                        ? 'Paused — nothing arrives for this meal'
-                        : 'Skipped — nothing arrives for this meal'}
+                        ? t('account.deliveries.pausedNote')
+                        : t('account.deliveries.skippedNote')}
               </Text>
             </View>
 
             <View className="mt-3 gap-2">
               {dishes.length === 0 ? (
-                <Text className="text-sm text-text-muted">No dishes scheduled.</Text>
+                <Text className="text-sm text-text-muted">{t('account.deliveries.noDishes')}</Text>
               ) : (
                 dishes.map((item) => <ItemRow key={item.id} item={item} />)
               )}
@@ -498,7 +509,7 @@ function MealSlot({
             {extras.length > 0 ? (
               <View className="mt-3 gap-2">
                 <Text className="text-xs font-bold uppercase tracking-wider text-text-muted">
-                  Extras
+                  {t('account.extras')}
                 </Text>
                 {extras.map((item) => (
                   <ItemRow key={item.id} item={item} />
@@ -509,8 +520,8 @@ function MealSlot({
             {delivery.before_cutoff ? (
               <View className="mt-4 flex-row gap-2">
                 <Button
-                  label="Swap"
-                  accessibilityLabel={`Swap a dish in ${slotName}`}
+                  label={t('account.deliveries.swap')}
+                  accessibilityLabel={t('account.deliveries.swapA11y', { slot: slotName })}
                   size="sm"
                   fullWidth={false}
                   className="flex-1"
@@ -518,8 +529,8 @@ function MealSlot({
                   onPress={onSwap}
                 />
                 <Button
-                  label="Add extra"
-                  accessibilityLabel={`Order something extra with ${slotName}`}
+                  label={t('account.deliveries.addExtra')}
+                  accessibilityLabel={t('account.deliveries.addExtraA11y', { slot: slotName })}
                   variant="secondary"
                   size="sm"
                   fullWidth={false}
@@ -527,8 +538,8 @@ function MealSlot({
                   onPress={onOrderExtra}
                 />
                 <Button
-                  label="Guests"
-                  accessibilityLabel={`Add guest portions to ${slotName}`}
+                  label={t('account.deliveries.guests')}
+                  accessibilityLabel={t('account.deliveries.guestsA11y', { slot: slotName })}
                   variant="outline"
                   size="sm"
                   fullWidth={false}
@@ -545,6 +556,7 @@ function MealSlot({
 }
 
 function ItemRow({ item }: { item: DeliveryItem }) {
+  const { t } = useTranslation();
   return (
     <View className="flex-row items-center gap-3 rounded-2xl bg-surface-muted py-2 pl-2 pr-3">
       <FoodImage
@@ -556,12 +568,12 @@ function ItemRow({ item }: { item: DeliveryItem }) {
       <View className="flex-1">
         <Text numberOfLines={2} className="text-sm font-semibold text-text-primary">
           {item.quantity > 1 ? `${item.quantity} × ` : ''}
-          {item.menu_item?.name ?? `Item #${item.id}`}
+          {item.menu_item?.name ?? t('account.itemFallback', { id: item.id })}
         </Text>
 
         {item.was_swapped && item.swapped_from ? (
           <Text className="mt-0.5 text-[11px] text-brand-500">
-            swapped from {item.swapped_from}
+            {t('account.deliveries.swappedFrom', { name: item.swapped_from })}
           </Text>
         ) : null}
       </View>
@@ -569,11 +581,11 @@ function ItemRow({ item }: { item: DeliveryItem }) {
       {item.package ? (
         <Badge label={item.package.name} variant="muted" />
       ) : item.is_free_addon ? (
-        <Badge label="Free" variant="free" />
+        <Badge label={t('account.free')} variant="free" />
       ) : item.source === 'extra' || item.source === 'guest' ? (
-        <Badge label="Paid" variant="paid" />
+        <Badge label={t('account.paid')} variant="paid" />
       ) : item.swap_locked ? (
-        <Badge label="Settled" variant="muted" />
+        <Badge label={t('account.deliveries.settled')} variant="muted" />
       ) : null}
     </View>
   );
@@ -589,14 +601,18 @@ function DayNavigator({
   next: string | null;
   onChange: (date: string) => void;
 }) {
+  const { t } = useTranslation();
   if (!previous && !next) return null;
+  // The previous button sits at the start edge, so its chevron points there.
+  const back = I18nManager.isRTL ? '›' : '‹';
+  const forward = I18nManager.isRTL ? '‹' : '›';
 
   return (
     <View className="mx-5 mt-4 flex-row gap-3">
       {previous ? (
         <DayNavButton
-          accessibilityLabel={`Previous day, ${formatDayHeading(previous)}`}
-          label={`‹  ${weekdayShort(previous)} ${dayOfMonth(previous)}`}
+          accessibilityLabel={t('account.deliveries.previousDay', { date: formatDayHeading(previous) })}
+          label={`${back}  ${weekdayShort(previous)} ${dayOfMonth(previous)}`}
           onPress={() => onChange(previous)}
         />
       ) : (
@@ -604,8 +620,8 @@ function DayNavigator({
       )}
       {next ? (
         <DayNavButton
-          accessibilityLabel={`Next day, ${formatDayHeading(next)}`}
-          label={`${weekdayShort(next)} ${dayOfMonth(next)}  ›`}
+          accessibilityLabel={t('account.deliveries.nextDay', { date: formatDayHeading(next) })}
+          label={`${weekdayShort(next)} ${dayOfMonth(next)}  ${forward}`}
           onPress={() => onChange(next)}
         />
       ) : (

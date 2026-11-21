@@ -60,7 +60,7 @@ function isSystem(url: string): boolean {
 /** Strips a locale prefix the web app may have stored (`/en/plans`). */
 function normalizePath(url: string): string {
   const path = url.startsWith('/') ? url : `/${url}`;
-  return path.replace(/^\/(en|ar)(?=\/|$)/, '') || '/';
+  return path.replace(/^\/(en|bn|ar)(?=\/|$)/, '') || '/';
 }
 
 export type CmsLink =

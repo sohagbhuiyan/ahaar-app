@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 
 import { Badge } from '@/components/ui';
@@ -21,6 +22,7 @@ interface Props {
  * kitchen doesn't serve at all.
  */
 export function SlotPicker({ options, value, onChange, className }: Props) {
+  const { t } = useTranslation();
   return (
     <View className={cn('gap-2', className)}>
       {options.map(({ slot, isBookable, hint }) => {
@@ -31,7 +33,7 @@ export function SlotPicker({ options, value, onChange, className }: Props) {
             key={slot.id}
             accessibilityRole="radio"
             accessibilityState={{ selected, disabled: !isBookable }}
-            accessibilityLabel={`${slot.name}, ${hint}`}
+            accessibilityLabel={t('ordering.slots.a11y', { name: slot.name, hint })}
             disabled={!isBookable}
             onPress={() => onChange(slot.id)}
             className={cn(

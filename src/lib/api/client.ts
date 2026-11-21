@@ -16,6 +16,8 @@ import axios, {
 import * as SecureStore from 'expo-secure-store';
 
 import type { ApiEnvelope, ApiError, ApiErrorCode } from './types/common';
+import i18n from '../i18n';
+import { getActiveLocale } from '../store/useLanguageStore';
 
 /** SecureStore key. Also used by `useAuthStore`'s storage adapter. */
 export const AUTH_TOKEN_KEY = 'ahaar.auth.token';
@@ -97,6 +99,7 @@ apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) =>
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  config.headers['Accept-Language'] = getActiveLocale();
   return config;
 });
 
@@ -137,7 +140,7 @@ function codeForStatus(status: number): ApiErrorCode {
 export function normalizeError(error: AxiosError): ApiError {
   if (error.code === 'ECONNABORTED') {
     return {
-      message: 'That took too long. Check your connection and try again.',
+      message: i18n.t('auth.api.timeout'),
       status: 0,
       code: 'timeout',
     };
@@ -145,7 +148,7 @@ export function normalizeError(error: AxiosError): ApiError {
 
   if (!error.response) {
     return {
-      message: "Can't reach Ahaar right now. Check your connection and try again.",
+      message: i18n.t('auth.api.network'),
       status: 0,
       code: 'network',
     };
@@ -169,17 +172,17 @@ export function normalizeError(error: AxiosError): ApiError {
 function fallbackMessage(code: ApiErrorCode): string {
   switch (code) {
     case 'unauthorized':
-      return 'Please sign in again.';
+      return i18n.t('auth.api.unauthorized');
     case 'forbidden':
-      return "You don't have access to that.";
+      return i18n.t('auth.api.forbidden');
     case 'not_found':
-      return "We couldn't find that.";
+      return i18n.t('auth.api.notFound');
     case 'rate_limited':
-      return 'Too many attempts. Please wait a moment.';
+      return i18n.t('auth.api.rateLimited');
     case 'server':
-      return 'Something went wrong on our end. Please try again.';
+      return i18n.t('auth.api.server');
     default:
-      return 'Something went wrong. Please try again.';
+      return i18n.t('auth.api.generic');
   }
 }
 

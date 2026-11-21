@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Badge, Card } from '@/components/ui';
@@ -48,10 +49,11 @@ export function HowItWorksSection({
   content?: HeadingContent | null;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const copy = cmsHeading(content, {
-    eyebrow: 'How it works',
-    title: 'Great meals in four simple steps',
-    subtitle: 'From subscription to your table — no planning, no shopping, no cleanup.',
+    eyebrow: t('home.howItWorks.eyebrow'),
+    title: t('home.howItWorks.title'),
+    subtitle: t('home.howItWorks.subtitle'),
   });
 
   return (
@@ -73,8 +75,8 @@ export function HowItWorksSection({
             </View>
 
             <View className="flex-1 pb-4">
-              <Text className="text-sm font-bold text-text-primary">{step.title}</Text>
-              <Text className="mt-1 text-xs leading-5 text-text-secondary">{step.body}</Text>
+              <Text className="text-sm font-bold text-text-primary">{t(step.title)}</Text>
+              <Text className="mt-1 text-xs leading-5 text-text-secondary">{t(step.body)}</Text>
             </View>
           </View>
         ))}
@@ -92,11 +94,11 @@ export function WhyAhaarSection({
   content?: HeadingContent | null;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const copy = cmsHeading(content, {
-    eyebrow: 'Why AHAAR',
-    title: 'Food you look forward to, every day',
-    subtitle:
-      "We obsess over the details so you don't have to — from sourcing to the moment it lands at your door.",
+    eyebrow: t('home.whyAhaar.eyebrow'),
+    title: t('home.whyAhaar.title'),
+    subtitle: t('home.whyAhaar.subtitle'),
   });
 
   return (
@@ -115,9 +117,9 @@ export function WhyAhaarSection({
           >
             <View className="p-4">
               <Text className="text-2xl">{feature.glyph}</Text>
-              <Text className="mt-2 text-xs font-bold text-text-primary">{feature.title}</Text>
+              <Text className="mt-2 text-xs font-bold text-text-primary">{t(feature.title)}</Text>
               <Text className="mt-1 text-[11px] leading-4 text-text-secondary">
-                {feature.body}
+                {t(feature.body)}
               </Text>
             </View>
           </Card>
@@ -136,9 +138,10 @@ export function TestimonialsSection({
   content?: TestimonialsContent | null;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const copy = cmsHeading(content, {
-    eyebrow: 'Loved by subscribers',
-    title: 'What our customers say',
+    eyebrow: t('home.testimonials.eyebrow'),
+    title: t('home.testimonials.title'),
   });
 
   // An admin removing every testimonial hides the section (the panel says so);
@@ -152,7 +155,14 @@ export function TestimonialsSection({
         quote: item.quote,
         avatar: resolveCmsImage(item.avatar_url, item.avatar_path),
       }))
-    : TESTIMONIALS.map((t) => ({ ...t, id: String(t.id), avatar: null as string | null }));
+    : TESTIMONIALS.map((item) => ({
+        id: String(item.id),
+        name: t(item.name),
+        city: t(item.city),
+        rating: item.rating,
+        quote: t(item.quote),
+        avatar: null as string | null,
+      }));
 
   if (items.length === 0) return null;
 
@@ -209,24 +219,24 @@ export function TestimonialsSection({
 
 /** Not a CMS section: Home pins it after the testimonials. */
 export function DeliveryCoverage({ className }: { className?: string }) {
+  const { t } = useTranslation();
   return (
     <View className={cn('px-5', className)}>
       <Card>
         <View className="p-5">
           <Text className="text-xs font-bold uppercase tracking-wider text-brand-500">
-            Where we deliver
+            {t('home.coverage.eyebrow')}
           </Text>
           <Text className="mt-1 text-base font-bold text-text-primary">
-            Fresh food, across the Kingdom
+            {t('home.coverage.title')}
           </Text>
           <Text className="mt-1 text-xs text-text-secondary">
-            Daily delivery in these cities and the areas around them — with more added every
-            month.
+            {t('home.coverage.body')}
           </Text>
 
           <View className="mt-3 flex-row flex-wrap gap-2">
             {DELIVERY_CITIES.map((city) => (
-              <Badge key={city} label={city} variant="muted" />
+              <Badge key={city} label={t(city)} variant="muted" />
             ))}
           </View>
         </View>
@@ -247,15 +257,16 @@ export function FaqSection({
   // One open at a time: an accordion that lets every panel stand open turns
   // into a wall of text and loses the scannable list of questions.
   const [open, setOpen] = useState<number | null>(0);
+  const { t } = useTranslation();
 
   const copy = cmsHeading(content, {
-    eyebrow: 'Good to know',
-    title: 'Frequently asked questions',
+    eyebrow: t('home.faq.eyebrow'),
+    title: t('home.faq.title'),
   });
 
   const items = Array.isArray(content?.items)
     ? content.items.map((item) => ({ q: item.question, a: item.answer }))
-    : FAQS;
+    : FAQS.map((faq) => ({ q: t(faq.q), a: t(faq.a) }));
 
   if (items.length === 0) return null;
 
@@ -276,7 +287,9 @@ export function FaqSection({
             >
               <View className="flex-row items-center gap-3">
                 <Text className="flex-1 text-sm font-bold text-text-primary">{faq.q}</Text>
-                <Text className="text-base text-text-muted">{expanded ? '−' : '+'}</Text>
+                <Text className="text-base text-text-muted" importantForAccessibility="no">
+                  {expanded ? '−' : '+'}
+                </Text>
               </View>
 
               {expanded ? (
@@ -300,15 +313,14 @@ export function ClosingCta({
   className?: string;
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
 
-  const heading = cmsText(content?.heading, 'Ready to stop thinking about dinner?');
+  const heading = cmsText(content?.heading, t('home.cta.heading'));
   const subheading = cmsText(
     content?.subheading,
-    content?.heading
-      ? ''
-      : 'Pick a plan, choose your start date, and we take it from there. Pause, swap or skip whenever you need to.',
+    content?.heading ? '' : t('home.cta.subheading'),
   );
-  const label = cmsText(content?.cta_label, 'Browse plans');
+  const label = cmsText(content?.cta_label, t('home.cta.label'));
   const url = cmsText(content?.cta_url, '/plans');
   const actionable = resolveCmsLink(url) !== null;
 

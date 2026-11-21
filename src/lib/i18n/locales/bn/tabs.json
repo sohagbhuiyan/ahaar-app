@@ -1,0 +1,9 @@
+{
+  "home": "হোম",
+  "plans": "প্ল্যান",
+  "foods": "খাবার",
+  "media": "মিডিয়া",
+  "menu": "অ্যাকাউন্ট",
+  "basketBadge_one": "ঝুড়িতে {{count}}টি আইটেম",
+  "basketBadge_other": "ঝুড়িতে {{count}}টি আইটেম"
+}

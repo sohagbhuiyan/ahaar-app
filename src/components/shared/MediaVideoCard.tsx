@@ -1,18 +1,24 @@
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
 import { Text, View } from 'react-native';
 
 import { Card } from '@/components/ui';
+import i18n from '@/lib/i18n';
 import type { MediaVideo } from '@/lib/api/types/media';
 import { FOOD_BLURHASH } from '@/lib/constants/images';
 import { cn } from '@/lib/utils';
 
 import { PlayBadge, formatDuration } from './VideoPlayer';
 
-/** "No comments yet" / "1 comment" / "12 comments". */
+/**
+ * "No comments yet" / "1 comment" / "12 comments", in the active language.
+ * Called during render by components that also subscribe via `useTranslation`,
+ * so it follows a language change.
+ */
 export function commentCountLabel(count: number): string {
-  if (count <= 0) return 'No comments yet';
-  return count === 1 ? '1 comment' : `${count} comments`;
+  if (count <= 0) return i18n.t('catalog.media.noComments');
+  return i18n.t('catalog.media.comments', { count });
 }
 
 interface Props {
@@ -26,6 +32,7 @@ interface Props {
  * much conversation it has. Pressing opens the video; nothing plays in a list.
  */
 function MediaVideoCardComponent({ video, onPress, className }: Props) {
+  useTranslation(); // re-render on language change (commentCountLabel)
   const duration = formatDuration(video.duration_seconds);
 
   return (

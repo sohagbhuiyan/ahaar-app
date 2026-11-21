@@ -1,0 +1,9 @@
+{
+  "home": "Home",
+  "plans": "Plans",
+  "foods": "Foods",
+  "media": "Media",
+  "menu": "Account",
+  "basketBadge_one": "{{count}} item in basket",
+  "basketBadge_other": "{{count}} items in basket"
+}

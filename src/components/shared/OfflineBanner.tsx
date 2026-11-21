@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import { useIsOffline, useNetworkStore } from '@/lib/store';
@@ -18,6 +20,7 @@ interface Props {
  * broken.
  */
 export function OfflineBanner({ className }: Props) {
+  const { t } = useTranslation();
   const offline = useIsOffline();
   const lastSyncedAt = useNetworkStore((s) => s.lastSyncedAt);
 
@@ -29,23 +32,24 @@ export function OfflineBanner({ className }: Props) {
       className={cn('bg-warning-soft px-5 py-2.5', className)}
     >
       <Text className="text-center text-xs font-semibold text-warning">
-        You&apos;re offline — showing saved data
-        {lastSyncedAt ? ` from ${formatSince(lastSyncedAt)}` : ''}
+        {lastSyncedAt
+          ? t('ui.offline.withTime', { since: formatSince(lastSyncedAt, t) })
+          : t('ui.offline.message')}
       </Text>
     </View>
   );
 }
 
 /** Coarse relative time; precision beyond "a while ago" isn't useful here. */
-function formatSince(timestamp: number): string {
+function formatSince(timestamp: number, t: TFunction): string {
   const minutes = Math.floor((Date.now() - timestamp) / 60_000);
 
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return t('ui.offline.justNow');
+  if (minutes < 60) return t('ui.offline.minutesAgo', { count: minutes });
 
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t('ui.offline.hoursAgo', { count: hours });
 
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return t('ui.offline.daysAgo', { count: days });
 }

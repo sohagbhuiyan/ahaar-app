@@ -1,7 +1,9 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Tabs, type TabItem } from "@/components/ui";
 import type { Delivery } from "@/lib/api/types/subscription";
+import { useFormatters } from "@/lib/i18n/format";
 import { isToday } from "@/lib/utils";
 
 interface Props {
@@ -11,8 +13,6 @@ interface Props {
   onChange: (date: string) => void;
   className?: string;
 }
-
-const WEEKDAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 /**
  * Day selector across a subscription's deliveries.
@@ -30,6 +30,8 @@ const WEEKDAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
  * never shifts a delivery onto the wrong weekday.
  */
 export function MenuDayTabs({ deliveries, value, onChange, className }: Props) {
+  const { t } = useTranslation();
+  const { formatDate } = useFormatters();
   const items = useMemo<TabItem<string>[]>(() => {
     const byDate = new Map<string, Delivery[]>();
     for (const delivery of deliveries) {
@@ -42,21 +44,20 @@ export function MenuDayTabs({ deliveries, value, onChange, className }: Props) {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, meals]) => {
         const parsed = new Date(`${date}T00:00:00Z`);
-        const weekdayIndex =
-          parsed.getUTCDay() === 0 ? 6 : parsed.getUTCDay() - 1;
-        const monthShort = new Intl.DateTimeFormat(undefined, {
-          month: "short",
-          timeZone: "UTC",
-        }).format(parsed);
+        // ISO weekday, 1 = Monday … 7 = Sunday (common.weekdays.short.<n>).
+        const isoWeekday = parsed.getUTCDay() === 0 ? 7 : parsed.getUTCDay();
 
         return {
           value: date,
-          label: isToday(date) ? "Today" : WEEKDAY_SHORT[weekdayIndex],
-          sublabel: `${parsed.getUTCDate()}, ${monthShort}`, 
+          label: isToday(date)
+            ? t("common.time.today")
+            : t(`common.weekdays.short.${isoWeekday}`),
+          // A bare YYYY-MM-DD is parsed as a local calendar day by formatDate.
+          sublabel: formatDate(date, { day: "numeric", month: "short" }),
           disabled: meals.every((m) => m.status === "skipped"),
         };
       });
-  }, [deliveries]);
+  }, [deliveries, t, formatDate]);
 
   return (
     <Tabs

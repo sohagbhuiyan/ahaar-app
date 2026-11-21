@@ -1,6 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useRouter } from 'expo-router';
+import type { TFunction } from 'i18next';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,18 +21,29 @@ import { useRegister } from '@/lib/query/hooks';
  */
 const schema = z
   .object({
-    name: z.string().min(2, 'Enter your name').max(120),
-    email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-    phone: z.string().max(32).optional().or(z.literal('')),
-    password: z.string().min(8, 'At least 8 characters'),
-    password_confirmation: z.string().min(1, 'Confirm your password'),
+    name: z.string().min(2, 'minLength:2').max(120, 'maxLength:120'),
+    email: z.string().min(1, 'required').email('email'),
+    phone: z.string().max(32, 'maxLength:32').optional().or(z.literal('')),
+    password: z.string().min(8, 'minLength:8'),
+    password_confirmation: z.string().min(1, 'required'),
   })
   .refine((data) => data.password === data.password_confirmation, {
-    message: "Passwords don't match",
+    message: 'passwordMismatch',
     path: ['password_confirmation'],
   });
 
 type FormValues = z.infer<typeof schema>;
+
+/**
+ * Schema messages are `common.validation` keys, optionally `key:n` for the
+ * length rules, resolved at render time so they follow the app language.
+ */
+function validationMessage(t: TFunction, message?: string) {
+  if (!message) return undefined;
+  const [key, n] = message.split(':');
+  const value = n === undefined ? undefined : Number(n);
+  return t(`common.validation.${key}`, { min: value, max: value });
+}
 
 /**
  * Create an account.
@@ -39,6 +52,7 @@ type FormValues = z.infer<typeof schema>;
  * — `AuthGate` does the navigating once the token exists.
  */
 export default function RegisterScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   const leave = () => {
@@ -47,7 +61,7 @@ export default function RegisterScreen() {
   };
 
   const register = useRegister({
-    onSuccess: (user) => toast.success(`Welcome to Ahaar, ${user.name.split(' ')[0]}`),
+    onSuccess: (user) => toast.success(t('auth.toast.welcomeNew', { name: user.name.split(' ')[0] })),
   });
 
   const { control, handleSubmit } = useForm<FormValues>({
@@ -88,16 +102,16 @@ export default function RegisterScreen() {
         >
           <Animated.View entering={FadeInDown.duration(500)} className="mb-8 items-center">
             <AhaarLogo height={64} />
-            <Text className="mt-5 text-3xl font-bold text-text-primary">Create account</Text>
+            <Text className="mt-5 text-3xl font-bold text-text-primary">{t('auth.register.title')}</Text>
             <Text className="mt-1.5 text-center text-sm text-text-secondary">
-              Fresh meals, delivered on your schedule
+              {t('auth.register.subtitle')}
             </Text>
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(100).duration(500)}>
             {/* No form to fill: Google vouches for the email, and an existing
                 account with it is connected rather than duplicated. */}
-            <GoogleSignInButton label="Sign up with Google" divider />
+            <GoogleSignInButton label={t('auth.register.googleLabel')} divider />
 
             {register.isError ? (
               <InlineError error={register.error} className="mb-4" />
@@ -109,14 +123,14 @@ export default function RegisterScreen() {
                 name="name"
                 render={({ field: { onChange, onBlur, value }, fieldState }) => (
                   <Input
-                    label="Full name"
+                    label={t('auth.fields.fullName')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    error={fieldState.error?.message}
+                    error={validationMessage(t, fieldState.error?.message)}
                     autoComplete="name"
                     textContentType="name"
-                    placeholder="Your name"
+                    placeholder={t('auth.fields.namePlaceholder')}
                   />
                 )}
               />
@@ -126,16 +140,16 @@ export default function RegisterScreen() {
                 name="email"
                 render={({ field: { onChange, onBlur, value }, fieldState }) => (
                   <Input
-                    label="Email"
+                    label={t('auth.fields.email')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    error={fieldState.error?.message}
+                    error={validationMessage(t, fieldState.error?.message)}
                     autoCapitalize="none"
                     autoComplete="email"
                     keyboardType="email-address"
                     textContentType="emailAddress"
-                    placeholder="you@example.com"
+                    placeholder={t('auth.fields.emailPlaceholder')}
                   />
                 )}
               />
@@ -145,12 +159,12 @@ export default function RegisterScreen() {
                 name="phone"
                 render={({ field: { onChange, onBlur, value }, fieldState }) => (
                   <Input
-                    label="Phone"
-                    hint="Optional"
+                    label={t('auth.fields.phone')}
+                    hint={t('common.states.optional')}
                     value={value ?? ''}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    error={fieldState.error?.message}
+                    error={validationMessage(t, fieldState.error?.message)}
                     keyboardType="phone-pad"
                     autoComplete="tel"
                     textContentType="telephoneNumber"
@@ -163,12 +177,12 @@ export default function RegisterScreen() {
                 name="password"
                 render={({ field: { onChange, onBlur, value }, fieldState }) => (
                   <PasswordInput
-                    label="Password"
+                    label={t('auth.fields.password')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    error={fieldState.error?.message}
-                    hint="At least 8 characters"
+                    error={validationMessage(t, fieldState.error?.message)}
+                    hint={t('auth.fields.passwordHint')}
                     autoComplete="new-password"
                     textContentType="newPassword"
                   />
@@ -180,11 +194,11 @@ export default function RegisterScreen() {
                 name="password_confirmation"
                 render={({ field: { onChange, onBlur, value }, fieldState }) => (
                   <PasswordInput
-                    label="Confirm password"
+                    label={t('auth.fields.confirmPassword')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    error={fieldState.error?.message}
+                    error={validationMessage(t, fieldState.error?.message)}
                     autoComplete="new-password"
                     textContentType="newPassword"
                     onSubmitEditing={handleSubmit(onSubmit)}
@@ -195,7 +209,7 @@ export default function RegisterScreen() {
             </View>
 
             <Button
-              label="Create account"
+              label={t('auth.register.submit')}
               size="lg"
               className="mt-6"
               loading={register.isPending}
@@ -203,13 +217,13 @@ export default function RegisterScreen() {
             />
 
             <View className="mt-6 flex-row items-center justify-center gap-1.5">
-              <Text className="text-sm text-text-secondary">Already have an account?</Text>
+              <Text className="text-sm text-text-secondary">{t('auth.register.haveAccount')}</Text>
               <Link href="/(auth)/login" className="text-sm font-bold text-brand-500">
-                Sign in
+                {t('auth.register.signInLink')}
               </Link>
             </View>
 
-            <Button label="Keep browsing" variant="ghost" className="mt-2" onPress={leave} />
+            <Button label={t('auth.register.keepBrowsing')} variant="ghost" className="mt-2" onPress={leave} />
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>

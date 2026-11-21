@@ -16,6 +16,8 @@
  * the server would reject.
  */
 import type { DeliverySlot, PlanSlot } from './api/types/catalog';
+import i18n from './i18n';
+import { formatDate, formatTime } from './i18n/format';
 import { toISODate } from './utils';
 
 /** `"12:00:00"` | `"12:00"` → `"12:00"`. Empty string when unparseable. */
@@ -95,23 +97,12 @@ function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
-/** `"09:00"` when the cutoff is today, otherwise `"22 Jul, 09:00"`. */
+/** `"09:00"` when the cutoff is today, otherwise `"22 Jul, 09:00"` — in the app language. */
 function formatCutoff(cutoffAt: Date, now: Date): string {
-  const time = `${String(cutoffAt.getHours()).padStart(2, '0')}:${String(
-    cutoffAt.getMinutes(),
-  ).padStart(2, '0')}`;
-
+  const time = formatTime(cutoffAt);
   if (isSameDay(cutoffAt, now)) return time;
-
-  try {
-    const day = new Intl.DateTimeFormat(undefined, {
-      day: 'numeric',
-      month: 'short',
-    }).format(cutoffAt);
-    return `${day}, ${time}`;
-  } catch {
-    return time;
-  }
+  const day = formatDate(cutoffAt, { day: 'numeric', month: 'short' });
+  return day ? i18n.t('ordering.slots.dayTime', { day, time }) : time;
 }
 
 /** Whether `slot` can still be booked for `date`, and why not when it can't. */
@@ -130,7 +121,7 @@ export function slotAvailability(
       startAt,
       cutoffAt,
       reason: 'invalid',
-      hint: 'Unavailable',
+      hint: i18n.t('common.states.unavailable'),
     };
   }
 
@@ -141,7 +132,7 @@ export function slotAvailability(
       startAt,
       cutoffAt,
       reason: 'cutoff',
-      hint: `Closed ${formatCutoff(cutoffAt, now)}`,
+      hint: i18n.t('ordering.slots.closedAt', { time: formatCutoff(cutoffAt, now) }),
     };
   }
 
@@ -150,7 +141,7 @@ export function slotAvailability(
     isBookable: true,
     startAt,
     cutoffAt,
-    hint: `Order by ${formatCutoff(cutoffAt, now)}`,
+    hint: i18n.t('ordering.slots.orderBy', { time: formatCutoff(cutoffAt, now) }),
   };
 }
 

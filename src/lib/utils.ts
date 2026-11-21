@@ -7,6 +7,9 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+import i18n from '@/lib/i18n';
+import { formatDate } from '@/lib/i18n/format';
+
 /**
  * Merge class names, with later Tailwind utilities winning over earlier
  * conflicting ones. NativeWind resolves a `className` string through the same
@@ -66,38 +69,17 @@ export function formatMoney(amount: number | string | null | undefined): string 
   return `${CURRENCY_CODE} ${formatted}`;
 }
 
-/** "Mon, 14 Aug" — the compact form used on delivery cards and day tabs. */
+/**
+ * "Mon, 14 Aug" — the compact form used on delivery cards and day tabs.
+ * Month/weekday names follow the app language; digits stay Latin.
+ */
 export function formatShortDate(isoDate: string): string {
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) return isoDate;
-
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      timeZone: 'UTC',
-    }).format(date);
-  } catch {
-    return isoDate;
-  }
+  return formatDate(isoDate, { weekday: 'short', day: 'numeric', month: 'short' }) || isoDate;
 }
 
-/** "14 August 2026" — for detail screens and summaries. */
+/** "14 August 2026" — for detail screens and summaries, in the app language. */
 export function formatLongDate(isoDate: string): string {
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) return isoDate;
-
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC',
-    }).format(date);
-  } catch {
-    return isoDate;
-  }
+  return formatDate(isoDate, { day: 'numeric', month: 'long', year: 'numeric' }) || isoDate;
 }
 
 /** A `Date` as YYYY-MM-DD in the device's timezone. */
@@ -145,14 +127,14 @@ export function formatRelativeTime(iso: string, now: Date = new Date()): string 
   if (Number.isNaN(date.getTime())) return '';
 
   const minutes = Math.floor(Math.max(0, now.getTime() - date.getTime()) / 60_000);
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return i18n.t('account.relativeTime.justNow');
+  if (minutes < 60) return i18n.t('account.relativeTime.minutes', { count: minutes });
 
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return i18n.t('account.relativeTime.hours', { count: hours });
 
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
+  if (days < 7) return i18n.t('account.relativeTime.days', { count: days });
 
   return formatShortDate(toISODate(date));
 }

@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useState } from 'react';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -67,7 +68,8 @@ import {
 } from '@/lib/query/hooks';
 import { useAuthPromptStore, useCurrentUser, useFilterStore } from '@/lib/store';
 import { cmsHeading, cmsText } from '@/lib/cms';
-import { formatLongDate, todayISO } from '@/lib/utils';
+import { useFormatters } from '@/lib/i18n/format';
+import { todayISO } from '@/lib/utils';
 
 /**
  * Where the sections that are not CMS types go. Each rides directly behind the
@@ -111,6 +113,8 @@ function anchorOf(sections: HomeSection[], candidates: AppSectionType[]): AppSec
  */
 export default function HomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { formatDate } = useFormatters();
   const today = todayISO();
 
   const signedIn = useIsSignedIn();
@@ -188,9 +192,9 @@ export default function HomeScreen() {
     packages && packages.length > 0 ? (
       <View className="mt-6">
         <SectionHeader
-          title="Meal boxes"
-          subtitle="Complete meals at one price"
-          actionLabel="See all"
+          title={t('home.mealBoxes.title')}
+          subtitle={t('home.mealBoxes.subtitle')}
+          actionLabel={t('common.actions.seeAll')}
           onAction={() => router.push('/packages')}
         />
 
@@ -252,14 +256,14 @@ export default function HomeScreen() {
       case 'category_showcase': {
         if (categories.length === 0) return null;
         const copy = cmsHeading(section.content as HeadingContent | null, {
-          title: 'Explore by category',
-          subtitle: 'Something for every craving',
+          title: t('home.categories.title'),
+          subtitle: t('home.categories.subtitle'),
         });
         return (
           <View className="mt-6">
             <SectionHeader
               {...copy}
-              actionLabel="See all"
+              actionLabel={t('common.actions.seeAll')}
               onAction={() => router.push('/(tabs)/foods')}
             />
             <CategoryRail categories={categories} onSelect={openCategory} />
@@ -272,12 +276,12 @@ export default function HomeScreen() {
         const content = section.content as CatalogSectionContent | null;
         const items = (foods?.items ?? []).slice(0, content?.limit ?? 6);
         if (items.length === 0) return null;
-        const copy = cmsHeading(content, { title: 'Popular dishes' });
+        const copy = cmsHeading(content, { title: t('home.popularDishes.title') });
         return (
           <View className="mt-6">
             <SectionHeader
               {...copy}
-              actionLabel="See all"
+              actionLabel={t('common.actions.seeAll')}
               onAction={() => router.push('/(tabs)/foods')}
             />
 
@@ -306,8 +310,8 @@ export default function HomeScreen() {
       case 'media_videos': {
         const content = section.content as CatalogSectionContent | null;
         const copy = cmsHeading(content, {
-          title: 'From our kitchen',
-          subtitle: 'See how your meals are made',
+          title: t('home.kitchen.title'),
+          subtitle: t('home.kitchen.subtitle'),
         });
         return (
           <KitchenVideosRail
@@ -322,12 +326,12 @@ export default function HomeScreen() {
       case 'plans': {
         const content = section.content as CatalogSectionContent | null;
         const promoted = (plans ?? []).slice(0, content?.limit ?? 2);
-        const copy = cmsHeading(content, { title: 'Popular plans' });
+        const copy = cmsHeading(content, { title: t('home.popularPlans.title') });
         return (
           <View className="mt-6">
             <SectionHeader
               {...copy}
-              actionLabel="See all"
+              actionLabel={t('common.actions.seeAll')}
               onAction={() => router.push('/(tabs)/plans')}
             />
 
@@ -338,7 +342,10 @@ export default function HomeScreen() {
                   <SkeletonCard />
                 </>
               ) : promoted.length === 0 ? (
-                <EmptyState title="No plans yet" description="Check back soon." />
+                <EmptyState
+                  title={t('home.popularPlans.emptyTitle')}
+                  description={t('home.popularPlans.emptyDescription')}
+                />
               ) : (
                 promoted.map((plan) => (
                   <PlanCard
@@ -422,20 +429,22 @@ export default function HomeScreen() {
         >
           <View className="flex-1">
             <Text className="text-sm text-text-secondary">
-              {firstName ? `${greetingForNow()}, ${firstName}` : 'Welcome to Ahaar'}
+              {firstName
+                ? t(greetingKeyForNow(), { name: firstName })
+                : t('home.greeting.welcome')}
             </Text>
             <Text className="text-2xl font-bold text-text-primary">
-              What&apos;s cooking today?
+              {t('home.greeting.headline')}
             </Text>
           </View>
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={signedIn ? 'Your account' : 'Sign in'}
+            accessibilityLabel={signedIn ? t('home.yourAccount') : t('common.actions.signIn')}
             onPress={() =>
               signedIn
                 ? router.push('/profile')
-                : promptLogin('to see your profile')
+                : promptLogin(t('home.prompt.profile'))
             }
             className="active:opacity-70"
           >
@@ -461,10 +470,14 @@ export default function HomeScreen() {
                 <View className="flex-row items-start justify-between gap-3">
                   <View className="flex-1">
                     <Text className="text-xs font-bold uppercase text-brand-500">
-                      Today
+                      {t('common.time.today')}
                     </Text>
                     <Text className="mt-0.5 text-base font-bold text-text-primary">
-                      {formatLongDate(todaysMeals[0].delivery_date)}
+                      {formatDate(todaysMeals[0].delivery_date, {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
                     </Text>
                   </View>
 
@@ -473,8 +486,8 @@ export default function HomeScreen() {
                   <Badge
                     label={
                       todaysMeals.some((m) => m.before_cutoff)
-                        ? 'Can still change'
-                        : 'Locked'
+                        ? t('home.today.canChange')
+                        : t('common.status.locked')
                     }
                     variant={
                       todaysMeals.some((m) => m.before_cutoff) ? 'success' : 'muted'
@@ -488,7 +501,7 @@ export default function HomeScreen() {
                   {todaysMeals.map((meal) => (
                     <View key={meal.id}>
                       <Text className="text-xs font-semibold uppercase text-text-muted">
-                        {meal.slot?.name ?? 'Meal'}
+                        {meal.slot?.name ?? t('home.today.mealFallback')}
                       </Text>
                       {(meal.items ?? [])
                         .filter((item) => !item.is_addon)
@@ -500,7 +513,7 @@ export default function HomeScreen() {
                               className="h-8 w-8 rounded-lg"
                             />
                             <Text numberOfLines={1} className="flex-1 text-sm text-text-secondary">
-                              {item.menu_item?.name ?? `Item #${item.id}`}
+                              {item.menu_item?.name ?? t('home.today.itemFallback', { id: item.id })}
                             </Text>
                           </View>
                         ))}
@@ -510,7 +523,7 @@ export default function HomeScreen() {
 
                 <View className="mt-4 flex-row gap-2">
                   <Button
-                    label="Today's meals"
+                    label={t('home.today.todaysMeals')}
                     variant="secondary"
                     size="sm"
                     fullWidth={false}
@@ -518,7 +531,7 @@ export default function HomeScreen() {
                     onPress={() => router.push('/deliveries')}
                   />
                   <Button
-                    label="Full schedule"
+                    label={t('home.today.fullSchedule')}
                     variant="outline"
                     size="sm"
                     fullWidth={false}
@@ -532,10 +545,10 @@ export default function HomeScreen() {
             <Card>
               <View className="p-5">
                 <Text className="text-sm text-text-secondary">
-                  No delivery scheduled for today.
+                  {t('home.today.noDelivery')}
                 </Text>
                 <Button
-                  label="See your schedule"
+                  label={t('home.today.seeSchedule')}
                   variant="secondary"
                   size="sm"
                   className="mt-3"
@@ -548,19 +561,18 @@ export default function HomeScreen() {
               <View className="items-center p-5">
                 <BannerIllustration width={200} height={100} />
                 <Text className="mt-3 text-center text-base font-bold text-text-primary">
-                  {signedIn ? 'Start a meal plan' : 'Fresh meals, your way'}
+                  {signedIn ? t('home.invite.startPlan') : t('home.invite.freshMeals')}
                 </Text>
                 <Text className="mt-1 text-center text-sm text-text-secondary">
-                  Subscribe for daily deliveries, or order a single dish whenever
-                  you like.
+                  {t('home.invite.body')}
                 </Text>
                 <View className="mt-4 w-full gap-2">
                   <Button
-                    label="Browse plans"
+                    label={t('home.invite.browsePlans')}
                     onPress={() => router.push('/(tabs)/plans')}
                   />
                   <Button
-                    label="Order a one-off"
+                    label={t('home.invite.orderOneOff')}
                     variant="outline"
                     onPress={() => router.push('/(tabs)/foods')}
                   />
@@ -574,19 +586,19 @@ export default function HomeScreen() {
         {subscription ? (
           <View className="mt-6 px-5">
             <Text className="mb-3 text-lg font-bold text-text-primary">
-              Your subscription
+              {t('home.subscription.title')}
             </Text>
             <SubscriptionSummaryCard subscription={subscription}>
               <View className="flex-row gap-2">
                 <Button
-                  label="Full schedule"
+                  label={t('home.today.fullSchedule')}
                   size="sm"
                   fullWidth={false}
                   className="flex-1"
                   onPress={() => router.push('/schedule')}
                 />
                 <Button
-                  label="Manage"
+                  label={t('common.actions.manage')}
                   variant="outline"
                   size="sm"
                   fullWidth={false}
@@ -619,12 +631,12 @@ export default function HomeScreen() {
   );
 }
 
-/** "Good morning" / "Good afternoon" / "Good evening", by the device clock. */
-function greetingForNow(): string {
+/** "Good morning" / "Good afternoon" / "Good evening" key, by the device clock. */
+function greetingKeyForNow(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return 'home.greeting.morning';
+  if (hour < 17) return 'home.greeting.afternoon';
+  return 'home.greeting.evening';
 }
 
 function SectionHeader({

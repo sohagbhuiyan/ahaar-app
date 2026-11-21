@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View, type TextInput } from 'react-native';
 import { toast } from 'sonner-native';
 import { z } from 'zod';
@@ -13,8 +14,8 @@ import { useAuthPromptStore } from '@/lib/store';
 import { GoogleSignInButton } from './GoogleSignInButton';
 
 const schema = z.object({
-  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().min(1, 'common.validation.required').email('common.validation.email'),
+  password: z.string().min(1, 'common.validation.required'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -35,6 +36,7 @@ type FormValues = z.infer<typeof schema>;
  * Mounted once, from the root layout.
  */
 export function LoginPrompt() {
+  const { t } = useTranslation();
   const router = useRouter();
   const passwordRef = useRef<TextInput>(null);
 
@@ -51,7 +53,7 @@ export function LoginPrompt() {
   const login = useLogin({
     onSuccess: (user) => {
       reset();
-      toast.success(`Welcome back, ${user.name.split(' ')[0]}`);
+      toast.success(t('auth.toast.welcomeBack', { name: user.name.split(' ')[0] }));
       resolve();
     },
   });
@@ -82,26 +84,28 @@ export function LoginPrompt() {
     <Sheet
       open={open}
       onClose={handleClose}
-      title="Sign in to continue"
+      title={t('auth.prompt.title')}
       description={
         reason
-          ? `You need an account ${reason}.`
-          : 'Browsing is open to everyone — ordering needs an account.'
+          ? // `reason` is an already-translated purpose phrase ("to place this
+            // order"); each language's template puts it where its grammar wants.
+            t('auth.prompt.needAccount', { reason })
+          : t('auth.prompt.browsingOpen')
       }
       footer={
         <View className="gap-3">
           <Button
-            label="Sign in"
+            label={t('auth.login.submit')}
             size="lg"
             loading={login.isPending}
             onPress={handleSubmit(onSubmit)}
           />
 
           <View className="flex-row items-center justify-center gap-1.5">
-            <Text className="text-sm text-text-secondary">New to Ahaar?</Text>
+            <Text className="text-sm text-text-secondary">{t('auth.login.newHere')}</Text>
             <Pressable accessibilityRole="link" onPress={goToRegister}>
               <Text className="text-sm font-bold text-brand-500">
-                Create an account
+                {t('auth.login.createAccount')}
               </Text>
             </Pressable>
           </View>
@@ -127,16 +131,16 @@ export function LoginPrompt() {
           name="email"
           render={({ field: { onChange, onBlur, value }, fieldState }) => (
             <Input
-              label="Email"
+              label={t('auth.fields.email')}
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              error={fieldState.error?.message}
+              error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
               textContentType="emailAddress"
-              placeholder="you@example.com"
+              placeholder={t('auth.fields.emailPlaceholder')}
               // "Next" moves to the password without dropping the keyboard,
               // so the sheet doesn't bounce down and back up between fields.
               returnKeyType="next"
@@ -152,11 +156,11 @@ export function LoginPrompt() {
           render={({ field: { onChange, onBlur, value }, fieldState }) => (
             <PasswordInput
               ref={passwordRef}
-              label="Password"
+              label={t('auth.fields.password')}
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              error={fieldState.error?.message}
+              error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
               autoComplete="current-password"
               textContentType="password"
               placeholder="••••••••"

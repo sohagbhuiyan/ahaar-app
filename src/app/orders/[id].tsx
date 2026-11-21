@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -43,9 +44,9 @@ const STATUS_VARIANT: Record<OrderStatus, BadgeVariant> = {
 
 
 const TYPE_LABEL: Record<string, string> = {
-  instant: 'One-off order',
-  extra: 'Extra items',
-  guest: 'Guest portions',
+  instant: 'ordering.orderType.instant',
+  extra: 'ordering.orderType.extra',
+  guest: 'ordering.orderType.guest',
 };
 
 /**
@@ -57,6 +58,7 @@ const TYPE_LABEL: Record<string, string> = {
  * ninety seconds ago would answer it wrong.
  */
 export default function OrderDetailScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -69,7 +71,7 @@ export default function OrderDetailScreen() {
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Order" />
+        <ScreenHeader title={t('ordering.orderType.order')} />
         <View className="gap-4 p-5">
           <SkeletonText lines={6} />
         </View>
@@ -80,7 +82,7 @@ export default function OrderDetailScreen() {
   if (isError || !order) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Order" />
+        <ScreenHeader title={t('ordering.orderType.order')} />
         <ErrorState
           error={error}
           onRetry={refetch}
@@ -102,8 +104,8 @@ export default function OrderDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-surface">
       <ScreenHeader
-        title={`Order #${order.id}`}
-        subtitle={TYPE_LABEL[order.type] ?? 'Order'}
+        title={t('ordering.orderDetail.title', { id: order.id })}
+        subtitle={t(TYPE_LABEL[order.type] ?? 'ordering.orderType.order')}
       />
       <OfflineBanner />
 
@@ -121,7 +123,7 @@ export default function OrderDetailScreen() {
             <View className="flex-row items-center justify-between gap-3">
               <View className="flex-1">
                 <Text className="text-xs font-bold uppercase text-text-muted">
-                  Delivery
+                  {t('ordering.delivery')}
                 </Text>
                 <Text className="mt-0.5 text-base font-bold text-text-primary">
                   {formatLongDate(order.delivery_date)}
@@ -134,9 +136,8 @@ export default function OrderDetailScreen() {
               </View>
 
               <Badge
-                label={order.status}
+                label={t(`common.status.${order.status}`, { defaultValue: order.status })}
                 variant={STATUS_VARIANT[order.status] ?? 'muted'}
-                className="capitalize"
               />
             </View>
 
@@ -156,7 +157,7 @@ export default function OrderDetailScreen() {
         {order.items && order.items.length > 0 ? (
           <Card className="mt-4">
             <View className="p-5">
-              <Text className="text-sm font-bold text-text-primary">Items</Text>
+              <Text className="text-sm font-bold text-text-primary">{t('ordering.items')}</Text>
 
               <View className="mt-3">
                 {order.items.map((item, index) => (
@@ -178,8 +179,10 @@ export default function OrderDetailScreen() {
                           {item.name}
                         </Text>
                         <Text className="mt-0.5 text-xs text-text-muted">
-                          {item.quantity} ×{' '}
-                          {formatMoney(item.unit_price)}
+                          {t('ordering.unitPrice', {
+                            qty: item.quantity,
+                            price: formatMoney(item.unit_price),
+                          })}
                         </Text>
                       </View>
                       <Text className="text-sm font-semibold text-text-primary">
@@ -197,16 +200,16 @@ export default function OrderDetailScreen() {
         <Card className="mt-4">
           <View className="p-5">
             <Row
-              label="Subtotal"
+              label={t('ordering.subtotal')}
               value={formatMoney(order.subtotal)}
             />
             <Row
-              label="Tax included"
+              label={t('ordering.taxIncluded')}
               value={formatMoney(order.tax_amount)}
             />
             <Separator className="my-3" />
             <View className="flex-row items-center justify-between">
-              <Text className="text-base font-bold text-text-primary">Total</Text>
+              <Text className="text-base font-bold text-text-primary">{t('ordering.total')}</Text>
               <Text className="text-xl font-bold text-brand-500">
                 {formatMoney(order.total_amount)}
               </Text>
@@ -215,7 +218,7 @@ export default function OrderDetailScreen() {
             {order.payment ? (
               <>
                 <View className="mt-4 flex-row items-center justify-between">
-                  <Text className="text-sm text-text-secondary">Payment</Text>
+                  <Text className="text-sm text-text-secondary">{t('ordering.payment')}</Text>
                   <Badge
                     label={paymentStatusLabel(order.payment)}
                     variant={paymentStatusTone(order.payment)}
@@ -223,7 +226,7 @@ export default function OrderDetailScreen() {
                 </View>
 
                 <View className="mt-2 flex-row items-center justify-between">
-                  <Text className="text-sm text-text-secondary">Method</Text>
+                  <Text className="text-sm text-text-secondary">{t('ordering.method')}</Text>
                   <Text className="text-sm font-semibold text-text-primary">
                     {paymentMethodLabel(order.payment)}
                   </Text>
@@ -236,8 +239,7 @@ export default function OrderDetailScreen() {
                 {isAwaitingCash(order.payment) ? (
                   <View className="mt-4 rounded-2xl bg-brand-50 px-4 py-3">
                     <Text className="text-xs leading-5 text-brand-700">
-                      Have {formatMoney(order.total_amount)} in cash ready when the
-                      rider arrives. Riders may not carry change.
+                      {t('ordering.orderDetail.cashReady', { amount: formatMoney(order.total_amount) })}
                     </Text>
                   </View>
                 ) : null}
@@ -249,7 +251,7 @@ export default function OrderDetailScreen() {
         <View className="mt-6 gap-3">
           {payable ? (
             <Button
-              label="Pay now"
+              label={t('ordering.payNow')}
               size="lg"
               onPress={() => openCheckout(order.payment!.checkout_url!)}
             />
@@ -257,7 +259,7 @@ export default function OrderDetailScreen() {
 
           {payable ? (
             <Button
-              label="I've paid — refresh"
+              label={t('ordering.paidRefresh')}
               variant="outline"
               loading={isFetching}
               onPress={() => refetch()}
@@ -266,14 +268,14 @@ export default function OrderDetailScreen() {
 
           {cancellable ? (
             <Button
-              label="Cancel this order"
+              label={t('ordering.orderDetail.cancel')}
               variant="ghost"
               onPress={() => setConfirmCancel(true)}
             />
           ) : null}
 
           <Button
-            label="Back to orders"
+            label={t('ordering.orderDetail.backToOrders')}
             variant="ghost"
             onPress={() => router.replace('/orders')}
           />
@@ -289,21 +291,21 @@ export default function OrderDetailScreen() {
             {
               onSuccess: () => {
                 setConfirmCancel(false);
-                toast.success('Order cancelled');
+                toast.success(t('ordering.orderDetail.cancelled'));
               },
               onError: (e) => {
                 setConfirmCancel(false);
                 toast.error(
-                  isApiError(e) ? e.message : 'That order could not be cancelled',
+                  isApiError(e) ? e.message : t('ordering.orderDetail.cancelFailed'),
                 );
               },
             },
           )
         }
-        title="Cancel this order?"
-        description="Anything already paid is refunded by our team. Orders past their delivery cutoff can no longer be cancelled."
-        confirmLabel="Cancel order"
-        cancelLabel="Keep it"
+        title={t('ordering.orderDetail.cancelTitle')}
+        description={t('ordering.orderDetail.cancelBody')}
+        confirmLabel={t('ordering.orderDetail.cancelConfirm')}
+        cancelLabel={t('ordering.orderDetail.keep')}
         destructive
         loading={cancelOrder.isPending}
       />

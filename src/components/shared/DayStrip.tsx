@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { useFormatters } from '@/lib/i18n/format';
 import { cn, isToday, toISODate } from '@/lib/utils';
 
 interface Props {
@@ -33,6 +35,8 @@ export function DayStrip({
   isDisabled,
   className,
 }: Props) {
+  const { t } = useTranslation();
+  const { formatDate } = useFormatters();
   const dates = useMemo(() => {
     const out: string[] = [];
     // Parsed without a `Z` so the walk stays in the device's timezone and
@@ -64,7 +68,7 @@ export function DayStrip({
             key={date}
             accessibilityRole="button"
             accessibilityState={{ selected, disabled }}
-            accessibilityLabel={formatAccessible(parsed)}
+            accessibilityLabel={formatDate(parsed, { weekday: 'long', day: 'numeric', month: 'long' })}
             disabled={disabled}
             onPress={() => onChange(date)}
             className={cn(
@@ -81,7 +85,7 @@ export function DayStrip({
                 selected ? 'text-text-inverse' : 'text-text-muted',
               )}
             >
-              {isToday(date) ? 'Today' : weekday(parsed)}
+              {isToday(date) ? t('common.time.today') : formatDate(parsed, { weekday: 'short' })}
             </Text>
             <Text
               className={cn(
@@ -97,7 +101,7 @@ export function DayStrip({
                 selected ? 'text-text-inverse/80' : 'text-text-muted',
               )}
             >
-              {month(parsed)}
+              {formatDate(parsed, { month: 'short' })}
             </Text>
           </Pressable>
         );
@@ -109,30 +113,3 @@ export function DayStrip({
   );
 }
 
-function weekday(date: Date): string {
-  try {
-    return new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(date);
-  } catch {
-    return '';
-  }
-}
-
-function month(date: Date): string {
-  try {
-    return new Intl.DateTimeFormat(undefined, { month: 'short' }).format(date);
-  } catch {
-    return '';
-  }
-}
-
-function formatAccessible(date: Date): string {
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-    }).format(date);
-  } catch {
-    return date.toDateString();
-  }
-}

@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { Component, forwardRef, useImperativeHandle, useRef, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, type Region } from 'react-native-maps';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
@@ -194,11 +195,14 @@ const WebPickerMap = forwardRef<PickerMapHandle, Props>(function WebPickerMap(
 });
 
 function MapUnavailable() {
+  const { t } = useTranslation();
   return (
     <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-surface-muted px-8">
-      <Text className="text-center text-sm font-semibold text-text-primary">The map couldn’t load</Text>
+      <Text className="text-center text-sm font-semibold text-text-primary">
+        {t('location.map.unavailableTitle')}
+      </Text>
       <Text className="mt-1 text-center text-xs text-text-muted">
-        Check your connection. You can still search for your address or use your current location.
+        {t('location.map.unavailableBody')}
       </Text>
     </View>
   );

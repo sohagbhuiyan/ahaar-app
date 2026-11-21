@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 
 import { cn } from '@/lib/utils';
@@ -36,6 +37,7 @@ export function Stepper({
   label,
   className,
 }: Props) {
+  const { t } = useTranslation();
   const atMax = value >= max;
 
   return (
@@ -47,7 +49,7 @@ export function Stepper({
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Decrease"
+        accessibilityLabel={t('ui.stepper.decrease')}
         disabled={disabled}
         onPress={() => onChange(value - 1)}
         className={cn(
@@ -70,7 +72,7 @@ export function Stepper({
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Increase"
+        accessibilityLabel={t('ui.stepper.increase')}
         disabled={disabled || atMax}
         onPress={() => onChange(value + 1)}
         className={cn(

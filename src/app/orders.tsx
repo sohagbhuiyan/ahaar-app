@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,12 +12,13 @@ import { isPayable, openCheckout } from '@/lib/payments';
 import { useDeliverySlotMap, useFilteredOrders, useIsSignedIn } from '@/lib/query/hooks';
 
 /** `undefined` = every order. Mirrors `OrderFilters.status`. */
+/** `label` is a translation key, resolved at render time. */
 const FILTERS: { label: string; value: OrderStatus | undefined }[] = [
-  { label: 'All', value: undefined },
-  { label: 'Unpaid', value: 'pending' },
-  { label: 'Confirmed', value: 'confirmed' },
-  { label: 'Delivered', value: 'delivered' },
-  { label: 'Cancelled', value: 'cancelled' },
+  { label: 'common.all', value: undefined },
+  { label: 'common.status.unpaid', value: 'pending' },
+  { label: 'common.status.confirmed', value: 'confirmed' },
+  { label: 'common.status.delivered', value: 'delivered' },
+  { label: 'common.status.cancelled', value: 'cancelled' },
 ];
 
 /**
@@ -28,6 +30,7 @@ const FILTERS: { label: string; value: OrderStatus | undefined }[] = [
  * paid for — hence "Pay now" inline rather than one tap deeper.
  */
 export default function OrdersScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const signedIn = useIsSignedIn();
 
@@ -55,11 +58,11 @@ export default function OrdersScreen() {
   if (!signedIn) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Your orders" />
+        <ScreenHeader title={t('ordering.orders.title')} />
         <EmptyState
-          title="Sign in to see your orders"
-          description="Your one-off orders and their payment status live here."
-          actionLabel="Browse the menu"
+          title={t('ordering.orders.signInTitle')}
+          description={t('ordering.orders.signInBody')}
+          actionLabel={t('ordering.browseMenu')}
           onAction={() => router.replace('/(tabs)/foods')}
           className="flex-1 justify-center"
         />
@@ -69,7 +72,7 @@ export default function OrdersScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={['top', 'left', 'right']}>
-      <ScreenHeader title="Your orders" />
+      <ScreenHeader title={t('ordering.orders.title')} />
       <OfflineBanner />
 
       <ScrollView
@@ -83,7 +86,7 @@ export default function OrdersScreen() {
         {FILTERS.map((filter) => (
           <Button
             key={filter.label}
-            label={filter.label}
+            label={t(filter.label)}
             size="sm"
             fullWidth={false}
             variant={status === filter.value ? 'primary' : 'outline'}
@@ -117,13 +120,11 @@ export default function OrdersScreen() {
             }
             ListEmptyComponent={
               <EmptyState
-                title={status ? 'Nothing here' : 'No orders yet'}
+                title={status ? t('ordering.orders.emptyFilteredTitle') : t('ordering.orders.emptyTitle')}
                 description={
-                  status
-                    ? 'No orders with that status.'
-                    : 'Dishes you order outside a plan will show up here.'
+                  status ? t('ordering.orders.emptyFilteredBody') : t('ordering.orders.emptyBody')
                 }
-                actionLabel="Browse the menu"
+                actionLabel={t('ordering.browseMenu')}
                 onAction={() => router.push('/(tabs)/foods')}
               />
             }
@@ -132,7 +133,7 @@ export default function OrdersScreen() {
                 hasMore={hasNextPage}
                 loading={isFetchingNextPage}
                 onPress={() => fetchNextPage()}
-                label="Load older orders"
+                label={t('ordering.orders.loadOlder')}
                 className="px-0"
               />
             }
@@ -144,7 +145,7 @@ export default function OrdersScreen() {
                 action={
                   isPayable(item.payment) ? (
                     <Button
-                      label="Pay now"
+                      label={t('ordering.payNow')}
                       size="sm"
                       fullWidth={false}
                       onPress={() => openCheckout(item.payment!.checkout_url!)}

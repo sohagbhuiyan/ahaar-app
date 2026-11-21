@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import { Badge, Card, type BadgeVariant } from '@/components/ui';
@@ -28,6 +29,7 @@ interface Props {
  * loses the only record of what they were served.
  */
 function ScheduleDayCardComponent({ day, onOpen, className }: Props) {
+  const { t } = useTranslation();
   const today = todayISO();
   const isPast = day.date < today;
   const isCurrent = isToday(day.date);
@@ -44,9 +46,9 @@ function ScheduleDayCardComponent({ day, onOpen, className }: Props) {
                 isCurrent ? 'text-brand-500' : 'text-text-primary',
               )}
             >
-              {isCurrent ? 'Today' : day.day_name}
+              {isCurrent ? t('common.time.today') : day.day_name}
             </Text>
-            {isCurrent ? <Badge label="Today" variant="brand" /> : null}
+            {isCurrent ? <Badge label={t('common.time.today')} variant="brand" /> : null}
           </View>
           <Text className="mt-0.5 text-xs text-text-muted">
             {formatLongDate(day.date)}
@@ -54,14 +56,14 @@ function ScheduleDayCardComponent({ day, onOpen, className }: Props) {
         </View>
 
         <Text className="text-xs font-semibold text-text-muted">
-          {day.meals.length} {day.meals.length === 1 ? 'meal' : 'meals'}
+          {t('common.units.meal', { count: day.meals.length })}
         </Text>
       </View>
 
       {/* ── Meals ───────────────────────────────────────────────────────── */}
       <View className="mt-4 gap-3">
         {day.meals.length === 0 ? (
-          <Text className="text-sm text-text-muted">Nothing scheduled.</Text>
+          <Text className="text-sm text-text-muted">{t('account.scheduleDay.nothingScheduled')}</Text>
         ) : (
           day.meals.map((meal) => <MealBlock key={meal.delivery_id} meal={meal} />)
         )}
@@ -88,6 +90,8 @@ function ScheduleDayCardComponent({ day, onOpen, className }: Props) {
 // ── One meal ─────────────────────────────────────────────────────────────────
 
 function MealBlock({ meal }: { meal: ScheduleMeal }) {
+  const { t } = useTranslation();
+  const pill = statusPill(meal);
   const dishes = meal.items.filter((item) => !item.is_addon);
   const addons = meal.items.filter((item) => item.is_addon);
 
@@ -96,7 +100,7 @@ function MealBlock({ meal }: { meal: ScheduleMeal }) {
       <View className="flex-row items-center justify-between gap-2">
         <View className="flex-1 flex-row items-center gap-2">
           <Text className="text-sm font-bold text-text-primary">
-            {meal.slot.name ?? 'Meal'}
+            {meal.slot.name ?? t('account.meal')}
           </Text>
           {slotWindow(meal.slot) ? (
             <Text className="text-[11px] text-text-muted">
@@ -105,12 +109,12 @@ function MealBlock({ meal }: { meal: ScheduleMeal }) {
           ) : null}
         </View>
 
-        <Badge {...statusPill(meal)} />
+        <Badge label={t(pill.labelKey)} variant={pill.variant} />
       </View>
 
       <View className="mt-2.5 gap-1.5">
         {dishes.length === 0 ? (
-          <Text className="text-xs text-text-muted">Menu to be confirmed.</Text>
+          <Text className="text-xs text-text-muted">{t('account.scheduleDay.menuTbc')}</Text>
         ) : (
           dishes.map((dish) => <DishLine key={dish.id} dish={dish} />)
         )}
@@ -119,7 +123,7 @@ function MealBlock({ meal }: { meal: ScheduleMeal }) {
       {addons.length > 0 ? (
         <View className="mt-3 border-t border-border pt-2.5">
           <Text className="text-[11px] font-bold uppercase text-text-muted">
-            Extras
+            {t('account.extras')}
           </Text>
           <View className="mt-1.5 gap-1.5">
             {addons.map((addon) => (
@@ -139,19 +143,20 @@ function MealBlock({ meal }: { meal: ScheduleMeal }) {
  * change, so it is read rather than re-derived from `cutoff_at` and the clock —
  * a locally-computed "open" that the API then refuses is worse than no pill.
  */
-function statusPill(meal: ScheduleMeal): { label: string; variant: BadgeVariant } {
+function statusPill(meal: ScheduleMeal): { labelKey: string; variant: BadgeVariant } {
   if (meal.status === 'paused' || meal.status === 'skipped') {
-    return { label: 'Skipped', variant: 'muted' };
+    return { labelKey: 'common.status.skipped', variant: 'muted' };
   }
-  if (meal.status === 'delivered') return { label: 'Delivered', variant: 'success' };
-  if (meal.is_customized) return { label: 'Swapped', variant: 'brand' };
-  if (!meal.before_cutoff) return { label: 'Locked', variant: 'muted' };
-  return { label: 'Open', variant: 'success' };
+  if (meal.status === 'delivered') return { labelKey: 'common.status.delivered', variant: 'success' };
+  if (meal.is_customized) return { labelKey: 'account.swapped', variant: 'brand' };
+  if (!meal.before_cutoff) return { labelKey: 'common.status.locked', variant: 'muted' };
+  return { labelKey: 'account.scheduleDay.open', variant: 'success' };
 }
 
 // ── One dish ─────────────────────────────────────────────────────────────────
 
 function DishLine({ dish }: { dish: SchedulePlate }) {
+  const { t } = useTranslation();
   return (
     <View className="flex-row items-center gap-2.5">
       <FoodImage uri={dish.image_url} glyphSize="sm" className="h-9 w-9 rounded-lg" />
@@ -159,7 +164,7 @@ function DishLine({ dish }: { dish: SchedulePlate }) {
       <View className="flex-1">
         <View className="flex-row items-center gap-2">
           <Text numberOfLines={1} className="flex-1 text-sm text-text-primary">
-            {dish.name ?? `Item #${dish.menu_item_id}`}
+            {dish.name ?? t('account.itemFallback', { id: dish.menu_item_id })}
             {dish.quantity > 1 ? (
               <Text className="font-bold"> ×{dish.quantity}</Text>
             ) : null}
@@ -168,16 +173,16 @@ function DishLine({ dish }: { dish: SchedulePlate }) {
           {dish.package ? (
             <Badge label={dish.package.name} variant="muted" />
           ) : dish.is_free_addon ? (
-            <Badge label="Free" variant="free" />
+            <Badge label={t('account.free')} variant="free" />
           ) : dish.source === 'extra' || dish.source === 'guest' ? (
-            <Badge label="Paid" variant="paid" />
+            <Badge label={t('account.paid')} variant="paid" />
           ) : null}
         </View>
 
         {/* Where the dish came from, when it isn't where the plan put it. */}
         {dish.was_swapped && dish.original_name ? (
           <Text className="mt-0.5 text-[11px] text-brand-500">
-            swapped in for {dish.original_name}
+            {t('account.scheduleDay.swappedInFor', { name: dish.original_name })}
           </Text>
         ) : null}
       </View>

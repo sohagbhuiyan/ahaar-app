@@ -1,8 +1,10 @@
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 
 import { Badge } from '@/components/ui';
 import type { MenuItem } from '@/lib/api/types/catalog';
+import { dietTagLabelKey, humanise } from '@/lib/constants/diet';
 import { shadows } from '@/lib/theme';
 import { cn, formatMoney } from '@/lib/utils';
 
@@ -35,6 +37,7 @@ function FoodCardComponent({
   layout = 'row',
   className,
 }: Props) {
+  const { t } = useTranslation();
   const isRow = layout === 'row';
 
   // `is_free` is undefined until the backend ships the flag — only badge an
@@ -52,7 +55,7 @@ function FoodCardComponent({
         {soldOut ? (
           <View className="absolute inset-0 items-center justify-center bg-black/45">
             <Text className="text-[11px] font-bold uppercase text-text-inverse">
-              Sold out
+              {t('common.states.soldOut')}
             </Text>
           </View>
         ) : null}
@@ -67,7 +70,7 @@ function FoodCardComponent({
             {item.name}
           </Text>
 
-          {freeAddon ? <Badge label="Free" variant="free" /> : null}
+          {freeAddon ? <Badge label={t('catalog.free')} variant="free" /> : null}
         </View>
 
         {item.description ? (
@@ -82,7 +85,7 @@ function FoodCardComponent({
               <Badge
                 key={tag}
                 // Backend stores snake_case ("high_protein").
-                label={tag.replace(/_/g, ' ')}
+                label={t(dietTagLabelKey(tag), { defaultValue: humanise(tag) })}
                 variant="muted"
               />
             ))}
@@ -91,7 +94,7 @@ function FoodCardComponent({
 
         <View className="mt-2 flex-row items-center justify-between">
           <Text className="text-sm font-bold text-brand-500">
-            {freeAddon ? 'Free' : formatMoney(item.base_price)}
+            {freeAddon ? t('catalog.free') : formatMoney(item.base_price)}
           </Text>
 
           {action}

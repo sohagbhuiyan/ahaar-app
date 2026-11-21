@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { I18nManager, Pressable, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { colors } from '@/lib/theme';
@@ -34,6 +35,7 @@ export function ScreenHeader({
   className,
 }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const handleBack =
     onBack === null
@@ -55,7 +57,7 @@ export function ScreenHeader({
       {handleBack ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={variant === 'close' ? 'Close' : 'Go back'}
+          accessibilityLabel={variant === 'close' ? t('common.actions.close') : t('ui.goBack')}
           onPress={handleBack}
           // Generous hit area: the glyph itself is well under the 44pt minimum.
           hitSlop={12}
@@ -71,7 +73,14 @@ export function ScreenHeader({
               />
             </Svg>
           ) : (
-            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+            <Svg
+              width={18}
+              height={18}
+              viewBox="0 0 24 24"
+              fill="none"
+              // "Back" points toward the reading start: right in RTL.
+              style={{ transform: [{ scaleX: I18nManager.isRTL ? -1 : 1 }] }}
+            >
               <Path
                 d="M15 19l-7-7 7-7"
                 stroke={colors.text.primary}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -61,6 +62,7 @@ const LOOKAHEAD_DAYS = 14;
  * immediately rather than claiming success.
  */
 export default function InstantOrderScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const requireAuth = useRequireAuth();
   const signedIn = useIsSignedIn();
@@ -230,8 +232,8 @@ export default function InstantOrderScreen() {
           // the customer's only prompt to have the money ready.
           toast.success(
             useCash
-              ? `Order #${order.id} confirmed · pay cash on delivery`
-              : `Order #${order.id} placed`,
+              ? t('ordering.order.confirmedCash', { id: order.id })
+              : t('ordering.order.placed', { id: order.id }),
           );
 
           if (isPayable(order.payment)) {
@@ -242,7 +244,7 @@ export default function InstantOrderScreen() {
         onError: (error) => {
           setSubmitError(error);
           toast.error(
-            isApiError(error) ? error.message : 'That order could not be placed',
+            isApiError(error) ? error.message : t('ordering.order.failed'),
           );
         },
       },
@@ -259,11 +261,11 @@ export default function InstantOrderScreen() {
   if (isEmpty) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <ScreenHeader title="Your order" variant="close" />
+        <ScreenHeader title={t('ordering.order.title')} variant="close" />
         <EmptyState
-          title="Your basket is empty"
-          description="Add a dish from the menu and pick a day for it."
-          actionLabel="Browse the menu"
+          title={t('ordering.order.emptyTitle')}
+          description={t('ordering.order.emptyBody')}
+          actionLabel={t('ordering.browseMenu')}
           onAction={() => router.replace('/(tabs)/foods')}
           className="flex-1 justify-center"
         />
@@ -273,7 +275,11 @@ export default function InstantOrderScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
-      <ScreenHeader title="Your order" subtitle="One-off delivery" variant="close" />
+      <ScreenHeader
+        title={t('ordering.order.title')}
+        subtitle={t('ordering.order.subtitle')}
+        variant="close"
+      />
       <OfflineBanner />
 
       <ScrollView
@@ -309,7 +315,7 @@ export default function InstantOrderScreen() {
                         {line.name}
                       </Text>
                       <Text className="mt-0.5 text-xs text-text-muted">
-                        {formatMoney(line.unit_price)} each
+                        {t('ordering.order.each', { price: formatMoney(line.unit_price) })}
                       </Text>
                     </View>
 
@@ -317,7 +323,7 @@ export default function InstantOrderScreen() {
                       size="sm"
                       value={line.quantity}
                       min={1}
-                      label={`${line.name} quantity`}
+                      label={t('ordering.a11y.quantity', { name: line.name })}
                       onChange={(next) => setQuantity(line.menu_item_id, next)}
                     />
                   </View>
@@ -352,11 +358,11 @@ export default function InstantOrderScreen() {
                           >
                             {line.name}
                           </Text>
-                          <Badge label="Box" variant="brand" />
+                          <Badge label={t('ordering.order.box')} variant="brand" />
                         </View>
                         <Text className="mt-0.5 text-xs text-text-muted">
                           {formatMoney(line.unit_price)} ·{' '}
-                          {line.item_count} {line.item_count === 1 ? 'item' : 'items'}
+                          {t('common.units.item', { count: line.item_count })}
                         </Text>
                       </View>
 
@@ -364,7 +370,7 @@ export default function InstantOrderScreen() {
                         size="sm"
                         value={line.quantity}
                         min={1}
-                        label={`${line.name} quantity`}
+                        label={t('ordering.a11y.quantity', { name: line.name })}
                         onChange={(next) => setPackageQuantity(line.package_id, next)}
                       />
                     </View>
@@ -377,7 +383,7 @@ export default function InstantOrderScreen() {
 
         {/* Day */}
         <View className="mt-6">
-          <StepLabel n={1} label="Delivery day" className="px-5" />
+          <StepLabel n={1} label={t('ordering.order.deliveryDay')} className="px-5" />
           <DayStrip
             value={deliveryDate}
             onChange={setDeliveryDate}
@@ -389,15 +395,16 @@ export default function InstantOrderScreen() {
 
         {/* Slot */}
         <View className="mt-6 px-5">
-          <StepLabel n={2} label="Meal time" />
+          <StepLabel n={2} label={t('ordering.mealTime')} />
 
           {slotOptions.length === 0 ? (
-            <Text className="text-sm text-text-secondary">Loading meal times…</Text>
+            <Text className="text-sm text-text-secondary">
+              {t('ordering.order.loadingSlots')}
+            </Text>
           ) : !hasBookableSlot ? (
             <View className="rounded-2xl bg-warning-soft px-4 py-3">
               <Text className="text-xs text-warning">
-                Every meal time for {formatLongDate(deliveryDate ?? '')} has closed.
-                Pick a later day.
+                {t('ordering.order.allClosed', { date: formatLongDate(deliveryDate ?? '') })}
               </Text>
             </View>
           ) : (
@@ -407,20 +414,20 @@ export default function InstantOrderScreen() {
 
         {/* Address */}
         <View className="mt-6 px-5">
-          <StepLabel n={3} label="Delivery address" />
+          <StepLabel n={3} label={t('ordering.deliveryAddress')} />
           <AddressPicker
             addresses={addresses ?? []}
             value={effectiveAddressId}
             onChange={setAddress}
             onAdd={() =>
-              requireAuth(() => setAddressFormOpen(true), 'to save an address')
+              requireAuth(() => setAddressFormOpen(true), t('ordering.authReason.saveAddress'))
             }
           />
         </View>
 
         {/* Payment method */}
         <View className="mt-6 px-5">
-          <StepLabel n={4} label="How would you like to pay?" />
+          <StepLabel n={4} label={t('ordering.order.howToPay')} />
           <CashOnDeliveryCheckbox
             checked={payWithCash}
             onChange={setPayWithCash}
@@ -433,7 +440,7 @@ export default function InstantOrderScreen() {
           <Card>
             <View className="p-5">
               <View className="flex-row items-center justify-between">
-                <Text className="text-base font-bold text-text-primary">Total</Text>
+                <Text className="text-base font-bold text-text-primary">{t('ordering.total')}</Text>
                 <Text className="text-xl font-bold text-brand-500">
                   {formatMoney(total)}
                 </Text>
@@ -442,40 +449,38 @@ export default function InstantOrderScreen() {
 
               <View className="gap-1">
                 <SummaryRow
-                  label="Arriving"
+                  label={t('ordering.order.arriving')}
                   value={
-                    deliveryDate
-                      ? formatLongDate(deliveryDate)
-                      : 'Pick a day above'
+                    deliveryDate ? formatLongDate(deliveryDate) : t('ordering.order.pickDay')
                   }
                 />
                 <SummaryRow
-                  label="Meal time"
+                  label={t('ordering.mealTime')}
                   value={
                     slotOptions.find((o) => o.slot.id === slotId)?.slot.name ??
-                    'Pick a meal time'
+                    t('ordering.order.pickSlot')
                   }
                 />
                 <SummaryRow
-                  label="Delivering to"
+                  label={t('ordering.order.deliveringTo')}
                   value={
                     addresses?.find((a) => a.id === effectiveAddressId)
                       ? formatAddress(
                           addresses.find((a) => a.id === effectiveAddressId)!,
                         )
-                      : 'Your default address'
+                      : t('ordering.order.defaultAddress')
                   }
                 />
                 <SummaryRow
-                  label="Paying by"
-                  value={useCash ? 'Cash on delivery' : 'Card'}
+                  label={t('ordering.order.payingBy')}
+                  value={useCash ? t('ordering.paymentMethod.cash') : t('ordering.paymentMethod.card')}
                 />
               </View>
 
               <Text className="mt-3 text-xs text-text-muted">
                 {useCash
-                  ? 'Prices include tax. Pay the rider in cash when your order arrives.'
-                  : 'Prices include tax. The final amount is confirmed by the server when the order is created.'}
+                  ? t('ordering.order.taxNoteCash')
+                  : t('ordering.order.taxNoteCard')}
               </Text>
             </View>
           </Card>
@@ -486,7 +491,9 @@ export default function InstantOrderScreen() {
           onPress={clearBasket}
           className="mt-5 self-center px-5 py-2"
         >
-          <Text className="text-sm font-semibold text-text-muted">Empty basket</Text>
+          <Text className="text-sm font-semibold text-text-muted">
+            {t('ordering.order.emptyBasket')}
+          </Text>
         </Pressable>
       </ScrollView>
 
@@ -502,16 +509,16 @@ export default function InstantOrderScreen() {
         <Button
           label={
             !signedIn
-              ? 'Sign in to place this order'
+              ? t('ordering.order.signInToPlace')
               : useCash
-                ? `Place order · pay ${formatMoney(total)} on delivery`
-                : `Place order · ${formatMoney(total)}`
+                ? t('ordering.order.placeCash', { amount: formatMoney(total) })
+                : t('ordering.order.place', { amount: formatMoney(total) })
           }
           size="lg"
           loading={createOrder.isPending}
           disabled={signedIn ? !canSubmit : isEmpty}
           onPress={
-            signedIn ? submit : () => promptLogin('to place this order')
+            signedIn ? submit : () => promptLogin(t('ordering.authReason.placeOrder'))
           }
         />
       </View>

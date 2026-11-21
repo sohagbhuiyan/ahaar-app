@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { toast } from 'sonner-native';
 
@@ -65,6 +66,7 @@ export function ExtraOrderSheet({
   beforeCutoff,
   onPlaced,
 }: ExtraProps) {
+  const { t } = useTranslation();
   const { data: addons, isLoading } = useAddonCatalogue();
   const { data: packages, isLoading: packagesLoading } = usePackages();
   const createExtra = useCreateExtraOrder();
@@ -157,9 +159,7 @@ export function ExtraOrderSheet({
           setPayWithCash(false);
           onClose();
           toast.success(
-            useCash
-              ? 'Extras added · pay cash on delivery'
-              : 'Extras added to your meal',
+            useCash ? t('ordering.extras.addedCash') : t('ordering.extras.added'),
           );
           if (isPayable(order.payment)) {
             await openCheckout(order.payment.checkout_url);
@@ -167,7 +167,7 @@ export function ExtraOrderSheet({
           onPlaced?.(order);
         },
         onError: (e) =>
-          toast.error(isApiError(e) ? e.message : 'Those extras could not be added'),
+          toast.error(isApiError(e) ? e.message : t('ordering.extras.failed')),
       },
     );
   };
@@ -176,16 +176,16 @@ export function ExtraOrderSheet({
     <Sheet
       open={open}
       onClose={handleClose}
-      title="Order something extra"
-      description="Added to this meal and charged separately — extras don't use up your plan."
+      title={t('ordering.extras.title')}
+      description={t('ordering.extras.description')}
       footer={
         <Button
           label={
             lineCount === 0
-              ? 'Add extras'
+              ? t('ordering.addons.addExtras')
               : useCash
-                ? `Add · pay ${formatMoney(total)} on delivery`
-                : `Add · ${formatMoney(total)}`
+                ? t('ordering.extras.addPayCash', { amount: formatMoney(total) })
+                : t('ordering.extras.addAmount', { amount: formatMoney(total) })
           }
           size="lg"
           loading={createExtra.isPending}
@@ -197,7 +197,7 @@ export function ExtraOrderSheet({
       {!beforeCutoff ? (
         <View className="mb-4 rounded-2xl bg-warning-soft px-4 py-3">
           <Text className="text-xs text-warning">
-            This day has passed its cutoff, so nothing more can be added to it.
+            {t('ordering.extras.pastCutoff')}
           </Text>
         </View>
       ) : null}
@@ -210,14 +210,16 @@ export function ExtraOrderSheet({
         <SkeletonText lines={6} />
       ) : (addons?.length ?? 0) === 0 && (packages?.length ?? 0) === 0 ? (
         <EmptyState
-          title="No extras available"
-          description="The kitchen isn't offering add-ons right now."
+          title={t('ordering.extras.emptyTitle')}
+          description={t('ordering.extras.emptyBody')}
         />
       ) : (
         <View className="gap-5 pb-2">
           {(packages?.length ?? 0) > 0 ? (
             <View className="gap-3">
-              <Text className="text-sm font-bold text-text-primary">Packages</Text>
+              <Text className="text-sm font-bold text-text-primary">
+                {t('ordering.extras.packages')}
+              </Text>
 
               {packages!.map((pkg) => {
                 const quantity = bundles[pkg.id] ?? 0;
@@ -245,7 +247,11 @@ export function ExtraOrderSheet({
                         </Text>
                         <Text numberOfLines={2} className="mt-0.5 text-xs text-text-muted">
                           {pkg.items
-                            .map((i) => (i.quantity > 1 ? `${i.quantity} × ${i.name}` : i.name))
+                            .map((i) =>
+                              i.quantity > 1
+                                ? t('ordering.itemQty', { qty: i.quantity, name: i.name })
+                                : i.name,
+                            )
                             .join(' · ')}
                         </Text>
                         <View className="mt-1 flex-row items-center gap-2">
@@ -254,7 +260,9 @@ export function ExtraOrderSheet({
                           </Text>
                           {saves ? (
                             <Badge
-                              label={`Save ${formatMoney(pkg.a_la_carte_price! - pkg.price)}`}
+                              label={t('ordering.save', {
+                                amount: formatMoney(pkg.a_la_carte_price! - pkg.price),
+                              })}
                               variant="free"
                             />
                           ) : null}
@@ -266,7 +274,7 @@ export function ExtraOrderSheet({
                           size="sm"
                           value={quantity}
                           min={1}
-                          label={`${pkg.name} quantity`}
+                          label={t('ordering.a11y.quantity', { name: pkg.name })}
                           disabled={!beforeCutoff}
                           onChange={(next) =>
                             setBundles((prev) => {
@@ -281,7 +289,7 @@ export function ExtraOrderSheet({
                       ) : (
                         <Pressable
                           accessibilityRole="button"
-                          accessibilityLabel={`Add ${pkg.name}`}
+                          accessibilityLabel={t('ordering.a11y.add', { name: pkg.name })}
                           disabled={!beforeCutoff}
                           onPress={() => setBundles((prev) => ({ ...prev, [pkg.id]: 1 }))}
                           className={cn(
@@ -289,7 +297,9 @@ export function ExtraOrderSheet({
                             !beforeCutoff && 'opacity-40',
                           )}
                         >
-                          <Text className="text-xs font-bold text-text-primary">Add</Text>
+                          <Text className="text-xs font-bold text-text-primary">
+                            {t('common.actions.add')}
+                          </Text>
                         </Pressable>
                       )}
                     </View>
@@ -300,7 +310,9 @@ export function ExtraOrderSheet({
           ) : null}
 
           {(addons?.length ?? 0) > 0 ? (
-            <Text className="text-sm font-bold text-text-primary">Single items</Text>
+            <Text className="text-sm font-bold text-text-primary">
+              {t('ordering.extras.singleItems')}
+            </Text>
           ) : null}
 
           {(addons ?? []).map((addon) => {
@@ -334,7 +346,7 @@ export function ExtraOrderSheet({
                     size="sm"
                     value={quantity}
                     min={1}
-                    label={`${addon.name} quantity`}
+                    label={t('ordering.a11y.quantity', { name: addon.name })}
                     disabled={!beforeCutoff}
                     onChange={(next) =>
                       setPicked((prev) => {
@@ -349,7 +361,7 @@ export function ExtraOrderSheet({
                 ) : (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Add ${addon.name}`}
+                    accessibilityLabel={t('ordering.a11y.add', { name: addon.name })}
                     disabled={!beforeCutoff}
                     onPress={() => setPicked((prev) => ({ ...prev, [addon.id]: 1 }))}
                     className={cn(
@@ -357,7 +369,9 @@ export function ExtraOrderSheet({
                       !beforeCutoff && 'opacity-40',
                     )}
                   >
-                    <Text className="text-xs font-bold text-text-primary">Add</Text>
+                    <Text className="text-xs font-bold text-text-primary">
+                            {t('common.actions.add')}
+                          </Text>
                   </Pressable>
                 )}
               </View>
@@ -368,7 +382,7 @@ export function ExtraOrderSheet({
               payment method to choose. */}
           {lineCount > 0 ? (
             <View className="gap-3 border-t border-border pt-5">
-              <Text className="text-sm font-bold text-text-primary">Payment</Text>
+              <Text className="text-sm font-bold text-text-primary">{t('ordering.payment')}</Text>
               <CashOnDeliveryCheckbox
                 checked={payWithCash}
                 onChange={setPayWithCash}
@@ -405,6 +419,7 @@ export function GuestOrderSheet({
   beforeCutoff,
   onPlaced,
 }: GuestProps) {
+  const { t } = useTranslation();
   const [guests, setGuests] = useState(1);
   const [payWithCash, setPayWithCash] = useState(false);
   const createGuest = useCreateGuestOrder();
@@ -435,8 +450,8 @@ export function GuestOrderSheet({
           onClose();
           toast.success(
             payWithCash
-              ? `${guests} guest portion${guests > 1 ? 's' : ''} added · pay cash on delivery`
-              : `${guests} guest portion${guests > 1 ? 's' : ''} added`,
+              ? t('ordering.guest.addedCash', { count: guests })
+              : t('ordering.guest.added', { count: guests }),
           );
           if (isPayable(order.payment)) {
             await openCheckout(order.payment.checkout_url);
@@ -444,7 +459,7 @@ export function GuestOrderSheet({
           onPlaced?.(order);
         },
         onError: (e) =>
-          toast.error(isApiError(e) ? e.message : 'Guest portions could not be added'),
+          toast.error(isApiError(e) ? e.message : t('ordering.guest.failed')),
       },
     );
   };
@@ -453,11 +468,11 @@ export function GuestOrderSheet({
     <Sheet
       open={open}
       onClose={handleClose}
-      title="Eating with someone?"
-      description="We'll send extra portions of the same meal for this day."
+      title={t('ordering.guest.title')}
+      description={t('ordering.guest.description')}
       footer={
         <Button
-          label={`Add ${guests} portion${guests > 1 ? 's' : ''}`}
+          label={t('ordering.guest.addPortions', { count: guests })}
           size="lg"
           loading={createGuest.isPending}
           disabled={!beforeCutoff}
@@ -468,7 +483,7 @@ export function GuestOrderSheet({
       {!beforeCutoff ? (
         <View className="mb-4 rounded-2xl bg-warning-soft px-4 py-3">
           <Text className="text-xs text-warning">
-            This day has passed its cutoff, so guest portions can no longer be added.
+            {t('ordering.guest.pastCutoff')}
           </Text>
         </View>
       ) : null}
@@ -479,9 +494,9 @@ export function GuestOrderSheet({
 
       <View className="flex-row items-center justify-between rounded-2xl border border-border px-4 py-4">
         <View className="flex-1">
-          <Text className="text-sm font-bold text-text-primary">Guests</Text>
+          <Text className="text-sm font-bold text-text-primary">{t('ordering.guest.guests')}</Text>
           <Text className="mt-0.5 text-xs text-text-muted">
-            Up to 10. Charged at the meal&apos;s normal price.
+            {t('ordering.guest.hint', { max: 10 })}
           </Text>
         </View>
 
@@ -489,20 +504,20 @@ export function GuestOrderSheet({
           value={guests}
           min={1}
           max={10}
-          label="Number of guests"
+          label={t('ordering.guest.count')}
           disabled={!beforeCutoff}
           onChange={(next) => setGuests(Math.max(1, Math.min(10, next)))}
         />
       </View>
 
       <Badge
-        label="Charged separately from your plan"
+        label={t('ordering.guest.chargedSeparately')}
         variant="muted"
         className="mt-4"
       />
 
       <View className="mt-5 gap-3 border-t border-border pt-5">
-        <Text className="text-sm font-bold text-text-primary">Payment</Text>
+        <Text className="text-sm font-bold text-text-primary">{t('ordering.payment')}</Text>
         {/*
           No `total`: guest portions are priced from the delivery's own items
           server-side, so the app has no figure to quote until the order comes

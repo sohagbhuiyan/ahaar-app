@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
+  I18nManager,
   Pressable,
   ScrollView,
   Text,
@@ -40,6 +42,14 @@ const DAY_GAP = 6;
 const HORIZONTAL_CHROME = 40 + 24;
 
 /**
+ * The pager is pinned to a physical left-to-right layout so its scroll offsets
+ * mean the same thing on iOS and Android; in RTL the pages are laid out in
+ * reverse (week 1 on the right) and each week row runs right-to-left.
+ */
+const RTL = I18nManager.isRTL;
+const toPage = (week: number, last: number) => (RTL ? last - week : week);
+
+/**
  * The subscriber's calendar: one row of seven day boxes per plan week.
  *
  * A week fits the screen at every width — each box takes a seventh of the row —
@@ -53,6 +63,7 @@ const HORIZONTAL_CHROME = 40 + 24;
  * week into view.
  */
 export function DeliveryCalendar({ weeks, value, onChange, className }: Props) {
+  const { t } = useTranslation();
   const { width: windowWidth } = useWindowDimensions();
   const [pageWidth, setPageWidth] = useState(Math.max(1, windowWidth - HORIZONTAL_CHROME));
   const scrollRef = useRef<ScrollView>(null);
@@ -71,8 +82,8 @@ export function DeliveryCalendar({ weeks, value, onChange, className }: Props) {
   );
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ x: visibleWeek * pageWidth, y: 0, animated: true });
-  }, [visibleWeek, pageWidth]);
+    scrollRef.current?.scrollTo({ x: toPage(visibleWeek, lastWeek) * pageWidth, y: 0, animated: true });
+  }, [visibleWeek, lastWeek, pageWidth]);
 
   const week = weeks[visibleWeek];
   if (!week) return null;
@@ -85,7 +96,8 @@ export function DeliveryCalendar({ weeks, value, onChange, className }: Props) {
   };
 
   const onMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const next = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
+    const page = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
+    const next = toPage(page, lastWeek);
     if (next !== visibleWeek) showWeek(next);
   };
 
@@ -104,7 +116,7 @@ export function DeliveryCalendar({ weeks, value, onChange, className }: Props) {
         />
         <View className="flex-1 items-center">
           <Text className="text-sm font-bold text-text-primary">
-            Week {week.number} of {weeks.length}
+            {t('account.calendar.weekOf', { number: week.number, total: weeks.length })}
           </Text>
           <Text className="mt-0.5 text-xs text-text-muted">
             {formatWeekRange(week.from, week.to)}
@@ -124,11 +136,21 @@ export function DeliveryCalendar({ weeks, value, onChange, className }: Props) {
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           decelerationRate="fast"
-          contentOffset={{ x: selectedWeek * pageWidth, y: 0 }}
+          contentOffset={{ x: toPage(selectedWeek, lastWeek) * pageWidth, y: 0 }}
+          style={{ direction: 'ltr' }}
+          contentContainerStyle={{ direction: 'ltr' }}
           onMomentumScrollEnd={onMomentumScrollEnd}
         >
-          {weeks.map((w) => (
-            <View key={w.from} style={{ width: pageWidth, flexDirection: 'row', gap: DAY_GAP }}>
+          {(RTL ? [...weeks].reverse() : weeks).map((w) => (
+            <View
+              key={w.from}
+              style={{
+                width: pageWidth,
+                flexDirection: 'row',
+                gap: DAY_GAP,
+                direction: RTL ? 'rtl' : 'ltr',
+              }}
+            >
               {w.days.map((day) => (
                 <DayBox
                   key={day.date}
@@ -145,20 +167,20 @@ export function DeliveryCalendar({ weeks, value, onChange, className }: Props) {
 
       <View className="mt-3 flex-row items-center gap-3 border-t border-border pt-3">
         <View className="flex-1 flex-row flex-wrap items-center gap-x-3 gap-y-1">
-          <LegendItem tone="open" label="Editable" />
-          <LegendItem tone="locked" label="Locked" />
-          <LegendItem tone="delivered" label="Delivered" />
+          <LegendItem tone="open" label={t('account.calendar.legendEditable')} />
+          <LegendItem tone="locked" label={t('common.status.locked')} />
+          <LegendItem tone="delivered" label={t('common.status.delivered')} />
         </View>
 
         {todayInPlan && value !== today ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Jump to today"
+            accessibilityLabel={t('account.calendar.jumpToday')}
             onPress={() => onChange(today)}
             hitSlop={8}
             className="rounded-full bg-brand-50 px-3 py-1.5 active:bg-brand-100"
           >
-            <Text className="text-xs font-bold text-brand-700">Today</Text>
+            <Text className="text-xs font-bold text-brand-700">{t('common.time.today')}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -177,18 +199,19 @@ function DayBox({
   isToday: boolean;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const tones = day.deliveries.map(mealTone);
   const allOff = day.inPlan && tones.every((tone) => tone === 'off');
   const count = day.deliveries.length;
 
   const accessibilityLabel = [
     formatDayHeading(day.date),
-    day.inPlan ? `${count} ${count === 1 ? 'meal' : 'meals'}` : 'no delivery',
-    allOff ? 'skipped' : null,
-    isToday ? 'today' : null,
+    day.inPlan ? t('common.units.meal', { count }) : t('account.calendar.noDelivery'),
+    allOff ? t('account.calendar.a11ySkipped') : null,
+    isToday ? t('account.calendar.a11yToday') : null,
   ]
     .filter(Boolean)
-    .join(', ');
+    .join(t('account.listSeparator'));
 
   return (
     <PressableScale
@@ -277,10 +300,13 @@ function WeekArrow({
   disabled: boolean;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={direction === 'previous' ? 'Previous week' : 'Next week'}
+      accessibilityLabel={
+        direction === 'previous' ? t('account.calendar.previousWeek') : t('account.calendar.nextWeek')
+      }
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
@@ -290,7 +316,13 @@ function WeekArrow({
         disabled && 'opacity-40',
       )}
     >
-      <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+      <Svg
+        width={16}
+        height={16}
+        viewBox="0 0 24 24"
+        fill="none"
+        style={{ transform: [{ scaleX: RTL ? -1 : 1 }] }}
+      >
         <Path
           d={direction === 'previous' ? 'M15 19l-7-7 7-7' : 'M9 5l7 7-7 7'}
           stroke={colors.text.primary}

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { I18nManager, Pressable, ScrollView, Text, View } from "react-native";
 
 import { cn } from "@/lib/utils";
 
@@ -35,15 +35,21 @@ export function Tabs<T extends string | number>({
   className,
 }: Props<T>) {
   const scrollRef = useRef<ScrollView>(null);
-  const offsets = useRef<Map<T, number>>(new Map());
+  const offsets = useRef<Map<T, { x: number; width: number }>>(new Map());
+  const viewportWidth = useRef(0);
 
   useEffect(() => {
     if (!scrollable || value === null) return;
-    const x = offsets.current.get(value);
-    if (x === undefined) return;
+    const tab = offsets.current.get(value);
+    if (tab === undefined) return;
 
-    // Nudge left so the active tab isn't flush against the edge.
-    scrollRef.current?.scrollTo({ x: Math.max(0, x - 16), animated: true });
+    // Nudge toward the start so the active tab isn't flush against the edge.
+    // Offsets are physical (from the left) on both platforms; in RTL the tabs
+    // start at the right, so align the tab's right edge instead.
+    const x = I18nManager.isRTL
+      ? tab.x + tab.width + 16 - viewportWidth.current
+      : tab.x - 16;
+    scrollRef.current?.scrollTo({ x: Math.max(0, x), animated: true });
   }, [value, scrollable]);
 
   const renderTab = (item: TabItem<T>) => {
@@ -57,7 +63,10 @@ export function Tabs<T extends string | number>({
         disabled={item.disabled}
         onPress={() => onChange(item.value)}
         onLayout={(e) =>
-          offsets.current.set(item.value, e.nativeEvent.layout.x)
+          offsets.current.set(item.value, {
+            x: e.nativeEvent.layout.x,
+            width: e.nativeEvent.layout.width,
+          })
         }
         className={cn(
           "items-center justify-center rounded-2xl px-4 py-2.5",
@@ -102,6 +111,9 @@ export function Tabs<T extends string | number>({
       ref={scrollRef}
       horizontal
       showsHorizontalScrollIndicator={false}
+      onLayout={(e) => {
+        viewportWidth.current = e.nativeEvent.layout.width;
+      }}
       contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}
       className={className}
     >

@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -16,6 +17,7 @@ import {
   Stepper,
 } from '@/components/ui';
 import { isNotFound } from '@/lib/api/types/common';
+import { allergenLabelKey, dietTagLabelKey, humanise } from '@/lib/constants/diet';
 import { useFood } from '@/lib/query/hooks';
 import { useInstantOrderStore } from '@/lib/store';
 import { formatMoney } from '@/lib/utils';
@@ -30,6 +32,7 @@ import { formatMoney } from '@/lib/utils';
  */
 export default function FoodDetailScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: item, isLoading, isError, error, refetch } = useFood(id);
 
@@ -49,7 +52,7 @@ export default function FoodDetailScreen() {
       unit_price: item.base_price,
       image_url: item.image_url,
     });
-    toast.success(`${item.name} added`);
+    toast.success(t('catalog.addedToast', { name: item.name }));
   };
 
   if (isLoading) {
@@ -70,9 +73,9 @@ export default function FoodDetailScreen() {
         <ScreenHeader />
         {isNotFound(error) ? (
           <EmptyState
-            title="This dish is no longer on the menu"
-            description="It has been taken off the menu for now. Have a look at what the kitchen is serving."
-            actionLabel="Browse the menu"
+            title={t('catalog.food.notFoundTitle')}
+            description={t('catalog.food.notFoundDescription')}
+            actionLabel={t('catalog.food.browseMenu')}
             onAction={() => router.replace('/(tabs)/foods')}
             className="flex-1 justify-center"
           />
@@ -119,7 +122,7 @@ export default function FoodDetailScreen() {
             ) : null}
           </View>
 
-          {item.is_addon ? <Badge label="Add-on" variant="brand" /> : null}
+          {item.is_addon ? <Badge label={t('catalog.food.addon')} variant="brand" /> : null}
         </View>
 
         <Text className="mt-3 text-xl font-bold text-brand-500">
@@ -137,10 +140,16 @@ export default function FoodDetailScreen() {
             <View className="p-5">
               {item.dietary_tags.length > 0 ? (
                 <>
-                  <Text className="text-sm font-bold text-text-primary">Dietary</Text>
+                  <Text className="text-sm font-bold text-text-primary">
+                    {t('catalog.food.dietary')}
+                  </Text>
                   <View className="mt-2 flex-row flex-wrap gap-2">
                     {item.dietary_tags.map((tag) => (
-                      <Badge key={tag} label={tag.replace(/_/g, ' ')} variant="free" />
+                      <Badge
+                        key={tag}
+                        label={t(dietTagLabelKey(tag), { defaultValue: humanise(tag) })}
+                        variant="free"
+                      />
                     ))}
                   </View>
                 </>
@@ -152,10 +161,16 @@ export default function FoodDetailScreen() {
 
               {item.allergens.length > 0 ? (
                 <>
-                  <Text className="text-sm font-bold text-text-primary">Allergens</Text>
+                  <Text className="text-sm font-bold text-text-primary">
+                    {t('catalog.food.allergens')}
+                  </Text>
                   <View className="mt-2 flex-row flex-wrap gap-2">
                     {item.allergens.map((allergen) => (
-                      <Badge key={allergen} label={allergen} variant="warning" />
+                      <Badge
+                        key={allergen}
+                        label={t(allergenLabelKey(allergen), { defaultValue: humanise(allergen) })}
+                        variant="warning"
+                      />
                     ))}
                   </View>
                 </>
@@ -165,8 +180,7 @@ export default function FoodDetailScreen() {
         ) : null}
 
         <Text className="mt-5 text-xs text-text-muted">
-          Order this on its own for any day whose meal time is still open — no
-          subscription needed.
+          {t('catalog.food.oneOffHint')}
         </Text>
       </ScrollView>
 
@@ -178,13 +192,13 @@ export default function FoodDetailScreen() {
               <Stepper
                 value={quantity}
                 min={1}
-                label={`${item.name} quantity`}
+                label={t('catalog.quantityOf', { name: item.name })}
                 onChange={(next) => setQuantity(item.id, next)}
               />
             </View>
 
             <Button
-              label="Go to basket"
+              label={t('catalog.goToBasket')}
               size="lg"
               className="flex-1"
               fullWidth={false}
@@ -192,7 +206,7 @@ export default function FoodDetailScreen() {
             />
           </View>
         ) : (
-          <Button label="Add to basket" size="lg" onPress={add} />
+          <Button label={t('catalog.addToBasket')} size="lg" onPress={add} />
         )}
       </View>
     </SafeAreaView>

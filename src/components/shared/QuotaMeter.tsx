@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import type { SubscriptionQuota } from '@/lib/api/types/subscription';
@@ -16,6 +17,7 @@ interface Props {
  * doesn't expose kitchen capacity yet; see `lib/api/endpoints/quota.ts`.
  */
 export function QuotaMeter({ quota, className }: Props) {
+  const { t } = useTranslation();
   // An item with no allowance is unlimited rather than "0 of 0" — showing an
   // empty bar there would read as exhausted, the opposite of the truth.
   const unlimited = quota.allowed <= 0;
@@ -32,7 +34,7 @@ export function QuotaMeter({ quota, className }: Props) {
     <View className={cn('gap-1.5', className)}>
       <View className="flex-row items-center justify-between">
         <Text numberOfLines={1} className="flex-1 text-sm font-semibold text-text-primary">
-          {quota.menu_item?.name ?? `Item #${quota.menu_item_id}`}
+          {quota.menu_item?.name ?? t('account.itemFallback', { id: quota.menu_item_id })}
         </Text>
 
         <Text
@@ -41,7 +43,9 @@ export function QuotaMeter({ quota, className }: Props) {
             exhausted ? 'text-danger' : 'text-text-secondary',
           )}
         >
-          {unlimited ? 'Unlimited' : `${quota.remaining} left`}
+          {unlimited
+            ? t('account.quota.unlimited')
+            : t('account.quota.left', { count: quota.remaining })}
         </Text>
       </View>
 

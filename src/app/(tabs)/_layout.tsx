@@ -1,4 +1,5 @@
 import { Tabs } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { navTint } from "../../lib/theme";
 import FloatingTabBar from "../../components/FloatingTabBar";
 import FoodsIcon from "../../components/icons/FoodsIcon";
@@ -8,6 +9,8 @@ import MenuIcon from "../../components/icons/MenuIcon";
 import PlansIcon from "../../components/icons/PlansIcon";
 
 export default function TabLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
        
@@ -24,7 +27,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t("tabs.home"),
           tabBarIcon: ({ color, focused }) => (
             <HomeIcon color={color} filled={focused} />
           ),
@@ -33,7 +36,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="plans"
         options={{
-          title: "Plans",
+          title: t("tabs.plans"),
           tabBarIcon: ({ color, focused }) => (
             <PlansIcon color={color} filled={focused} />
           ),
@@ -42,7 +45,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="foods"
         options={{
-          title: "Foods",
+          title: t("tabs.foods"),
           tabBarIcon: ({ color, focused }) => (
             <FoodsIcon color={color} filled={focused} />
           ),
@@ -51,7 +54,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="media"
         options={{
-          title: "Media",
+          title: t("tabs.media"),
           tabBarIcon: ({ color, focused }) => (
             <MediaIcon color={color} filled={focused} />
           ),
@@ -60,7 +63,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="menu"
         options={{
-          title: "Account",
+          title: t("tabs.menu"),
           tabBarIcon: ({ color, focused }) => (
             <MenuIcon color={color} filled={focused} />
           ),

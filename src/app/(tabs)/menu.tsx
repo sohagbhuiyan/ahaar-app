@@ -1,6 +1,8 @@
 import * as Application from "expo-application";
 import { useRouter } from "expo-router";
+import type { TFunction } from "i18next";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Pressable,
   RefreshControl,
@@ -24,6 +26,7 @@ import {
   PromoCodeStrip,
   SubscriptionSummaryCard,
 } from "@/components/shared";
+import { LanguagePicker } from "@/components/shared/LanguagePicker";
 import { Avatar, Badge, Button, Skeleton } from "@/components/ui";
 import { useRefreshOnFocus } from "@/lib/hooks/useRefreshOnFocus";
 import {
@@ -41,7 +44,15 @@ import {
 import { queryKeys } from "@/lib/query/keys";
 import { useAuthPromptStore } from "@/lib/store";
 import { colors, shadows } from "@/lib/theme";
+import {
+  allergenLabelKey,
+  dietTagLabelKey,
+  humanise,
+} from "@/lib/constants/diet";
 import { formatMoney } from "@/lib/utils";
+
+/** Phone numbers and emails read left to right inside Arabic text. */
+const ltr = (value: string) => `\u2066${value}\u2069`;
 
 /** Everything this tab reads that can change while it sits in the background. */
 const ACCOUNT_QUERIES = [
@@ -65,6 +76,7 @@ const ACCOUNT_QUERIES = [
  */
 export default function AccountScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const signedIn = useIsSignedIn();
   const [locationSheetOpen, setLocationSheetOpen] = useState(false);
 
@@ -122,10 +134,10 @@ export default function AccountScreen() {
       >
         <View className="px-5 pb-4 pt-4">
           <Text className="text-2xl font-bold text-text-primary">
-            My Account
+            {t("profile.accountTab.title")}
           </Text>
           <Text className="mt-1 text-sm text-text-secondary">
-            Everything about your orders and your plan
+            {t("profile.accountTab.subtitle")}
           </Text>
         </View>
 
@@ -156,11 +168,11 @@ export default function AccountScreen() {
                     numberOfLines={1}
                     className="mt-0.5 text-sm text-white/85"
                   >
-                    {user?.email ?? ""}
+                    {user?.email ? ltr(user.email) : ""}
                   </Text>
                   {user?.phone ? (
                     <Text className="mt-0.5 text-xs text-white/75">
-                      {user.phone}
+                      {ltr(user.phone)}
                     </Text>
                   ) : null}
                 </View>
@@ -173,8 +185,8 @@ export default function AccountScreen() {
                   <Badge
                     label={
                       user.email_verified
-                        ? "Email verified"
-                        : "Email not verified"
+                        ? t("profile.badges.emailVerified")
+                        : t("profile.badges.emailNotVerified")
                     }
                     variant={user.email_verified ? "success" : "warning"}
                   />
@@ -182,17 +194,18 @@ export default function AccountScreen() {
                     <Badge
                       label={
                         user.phone_verified
-                          ? "Phone verified"
-                          : "Phone not verified"
+                          ? t("profile.badges.phoneVerified")
+                          : t("profile.badges.phoneNotVerified")
                       }
                       variant={user.phone_verified ? "success" : "warning"}
                     />
                   ) : null}
                   {user.status !== "active" ? (
                     <Badge
-                      label={user.status}
+                      label={t(`common.status.${user.status}`, {
+                        defaultValue: humanise(user.status),
+                      })}
                       variant="danger"
-                      className="capitalize"
                     />
                   ) : null}
                 </View>
@@ -200,8 +213,8 @@ export default function AccountScreen() {
 
               <View className="mt-4 gap-1.5 rounded-2xl bg-white/15 px-4 py-3">
                 <DetailRow
-                  label="Dietary preferences"
-                  value={detailDiet(user)}
+                  label={t("profile.dietaryPreferences")}
+                  value={detailDiet(user, t)}
                 />
               </View>
 
@@ -211,7 +224,7 @@ export default function AccountScreen() {
                 className="mt-4 items-center rounded-2xl bg-surface py-3 active:opacity-90"
               >
                 <Text className="text-sm font-bold text-brand-500">
-                  Edit profile
+                  {t("profile.accountTab.editProfile")}
                 </Text>
               </Pressable>
             </Animated.View>
@@ -221,17 +234,17 @@ export default function AccountScreen() {
         {/* ── Snapshot ────────────────────────────────────────────────────── */}
         <View className="mt-4 flex-row gap-3 px-5">
           <StatTile
-            label="Orders"
+            label={t("profile.accountTab.stats.orders")}
             value={String(orders.length)}
             onPress={() => router.push("/orders")}
           />
           <StatTile
-            label="Plans"
+            label={t("profile.accountTab.stats.plans")}
             value={subscriptions ? String(subscriptions.length) : "—"}
             onPress={() => router.push("/subscriptions")}
           />
           <StatTile
-            label="Payments"
+            label={t("profile.accountTab.stats.payments")}
             value={payments ? String(payments.length) : "—"}
             onPress={() => router.push("/payments")}
           />
@@ -239,7 +252,7 @@ export default function AccountScreen() {
 
         {/* ── Delivery location ───────────────────────────────────────────── */}
         <View className="mt-6 px-5">
-          <SectionTitle>Delivery location</SectionTitle>
+          <SectionTitle>{t("profile.accountTab.deliveryLocation")}</SectionTitle>
           {location.source === null && !location.isLoading ? (
             <LocationRequiredCard onPress={() => setLocationSheetOpen(true)} />
           ) : (
@@ -253,11 +266,11 @@ export default function AccountScreen() {
         {/* ── Active plan snapshot ────────────────────────────────────────── */}
         {subscription ? (
           <View className="mt-6 px-5">
-            <SectionTitle>Current plan</SectionTitle>
+            <SectionTitle>{t("profile.accountTab.currentPlan")}</SectionTitle>
             <SubscriptionSummaryCard subscription={subscription}>
               <View className="flex-row gap-2">
                 <Button
-                  label="Full schedule"
+                  label={t("profile.accountTab.fullSchedule")}
                   size="sm"
                   fullWidth={false}
                   className="flex-1"
@@ -269,7 +282,7 @@ export default function AccountScreen() {
                   }
                 />
                 <Button
-                  label="Manage"
+                  label={t("profile.accountTab.manage")}
                   variant="outline"
                   size="sm"
                   fullWidth={false}
@@ -290,14 +303,18 @@ export default function AccountScreen() {
 
         {/* ── Sections ────────────────────────────────────────────────────── */}
         <View className="mt-6 px-5">
-          <SectionTitle>Manage</SectionTitle>
+          <SectionTitle>{t("profile.accountTab.manageSection")}</SectionTitle>
 
           <View className="gap-2">
             <SectionRow
               glyph="🧾"
-              label="My Orders"
-              hint="One-off, extra and guest orders"
-              badge={unpaidOrders > 0 ? `${unpaidOrders} unpaid` : undefined}
+              label={t("profile.accountTab.rows.orders")}
+              hint={t("profile.accountTab.rows.ordersHint")}
+              badge={
+                unpaidOrders > 0
+                  ? t("profile.accountTab.rows.unpaid", { count: unpaidOrders })
+                  : undefined
+              }
               badgeVariant="warning"
               count={orders.length}
               onPress={() => router.push("/orders")}
@@ -305,16 +322,16 @@ export default function AccountScreen() {
 
             <SectionRow
               glyph="📦"
-              label="Subscription Orders"
-              hint="Every plan you've bought"
+              label={t("profile.accountTab.rows.subscriptions")}
+              hint={t("profile.accountTab.rows.subscriptionsHint")}
               count={subscriptions?.length}
               onPress={() => router.push("/subscriptions")}
             />
 
             <SectionRow
               glyph="🗓️"
-              label="My Plan"
-              hint="The complete schedule, every day of your plan"
+              label={t("profile.accountTab.rows.plan")}
+              hint={t("profile.accountTab.rows.planHint")}
               count={
                 subscription ? subscription.plan?.duration_days : undefined
               }
@@ -323,18 +340,20 @@ export default function AccountScreen() {
 
             <SectionRow
               glyph="🚚"
-              label="Deliveries"
-              hint="Change a meal — swaps, extras and skipped days"
+              label={t("profile.accountTab.rows.deliveries")}
+              hint={t("profile.accountTab.rows.deliveriesHint")}
               onPress={() => router.push("/deliveries")}
             />
 
             <SectionRow
               glyph="💳"
-              label="Payments"
+              label={t("profile.accountTab.rows.payments")}
               hint={
                 payments && payments.length > 0
-                  ? `Last charge ${formatMoney(payments[0].amount)}`
-                  : "Charges and refunds"
+                  ? t("profile.accountTab.rows.paymentsLastCharge", {
+                      amount: ltr(formatMoney(payments[0].amount)),
+                    })
+                  : t("profile.accountTab.rows.paymentsHint")
               }
               count={payments?.length}
               onPress={() => router.push("/payments")}
@@ -342,19 +361,21 @@ export default function AccountScreen() {
 
             <SectionRow
               glyph="👤"
-              label="Profile"
-              hint="Details, addresses and dietary preferences"
+              label={t("profile.accountTab.rows.profile")}
+              hint={t("profile.accountTab.rows.profileHint")}
               onPress={() => router.push("/profile")}
             />
 
             <SectionRow
               glyph="🎬"
-              label="Kitchen videos"
-              hint="See how your meals are made, and join the conversation"
+              label={t("profile.accountTab.rows.videos")}
+              hint={t("profile.accountTab.rows.videosHint")}
               onPress={() => router.push("/media")}
             />
           </View>
         </View>
+
+        <LanguageSection />
 
         <BrandFooter />
       </ScrollView>
@@ -369,13 +390,14 @@ export default function AccountScreen() {
 
 /** Admin banners and promo codes — nothing at all when there are none. */
 function Offers({ layout }: { layout: HomeLayout }) {
+  const { t } = useTranslation();
   if (layout.promoBanners.length === 0 && layout.promoCodes.length === 0)
     return null;
 
   return (
     <View className="mt-6">
       <Text className="mb-3 px-5 text-xs font-bold uppercase tracking-wider text-text-muted">
-        Offers &amp; updates
+        {t("profile.accountTab.offers")}
       </Text>
       <PromoCarousel banners={layout.promoBanners} />
       <PromoCodeStrip
@@ -388,21 +410,8 @@ function Offers({ layout }: { layout: HomeLayout }) {
 }
 
 /** What an account is for — the same destinations the signed-in hub lists. */
-const ACCOUNT_BENEFITS = [
-  {
-    title: "Orders & deliveries",
-    detail: "Track every order and swap a meal before the cutoff",
-  },
-  {
-    title: "Your meal plan",
-    detail: "The full schedule and your subscription in one place",
-  },
-  { title: "Payments", detail: "Every charge and refund, with its receipt" },
-  {
-    title: "Saved details",
-    detail: "Addresses and dietary preferences, ready at checkout",
-  },
-] as const;
+/** Translation keys under `profile.accountTab.benefits`, resolved at render. */
+const ACCOUNT_BENEFITS = ["orders", "plan", "payments", "details"] as const;
 
 /**
  * The Account tab before sign-in.
@@ -415,6 +424,7 @@ const ACCOUNT_BENEFITS = [
  */
 function SignedOutAccount({ layout }: { layout: HomeLayout }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const promptLogin = useAuthPromptStore((s) => s.prompt);
 
   return (
@@ -429,10 +439,10 @@ function SignedOutAccount({ layout }: { layout: HomeLayout }) {
       >
         <View className="px-5 pb-4 pt-4">
           <Text className="text-2xl font-bold text-text-primary">
-            My Account
+            {t("profile.accountTab.title")}
           </Text>
           <Text className="mt-1 text-sm text-text-secondary">
-            Your orders, plan and payments, in one place
+            {t("profile.accountTab.signedOutSubtitle")}
           </Text>
         </View>
 
@@ -450,27 +460,26 @@ function SignedOutAccount({ layout }: { layout: HomeLayout }) {
             </View>
 
             <Text className="mt-4 text-center text-xl font-bold text-text-inverse">
-              Sign in to your account
+              {t("profile.accountTab.signInTitle")}
             </Text>
             <Text className="mt-1.5 text-center text-sm leading-5 text-white/90">
-              Pick up your orders, deliveries and subscription right where you
-              left them.
+              {t("profile.accountTab.signInBody")}
             </Text>
 
             <Button
-              label="Sign in"
+              label={t("common.actions.signIn")}
               size="lg"
               className="mt-6 bg-surface active:bg-brand-50"
               textClassName="text-brand-500"
               onPress={() =>
                 // Once signed in, start from Home rather than this tab.
-                promptLogin("to see your orders, plan and payments", () =>
+                promptLogin(t("profile.accountTab.signInReason"), () =>
                   router.navigate("/"),
                 )
               }
             />
             <Button
-              label="Create an account"
+              label={t("profile.accountTab.createAccount")}
               variant="outline"
               size="lg"
               className="mt-3 border-white/70 active:bg-white/10"
@@ -481,20 +490,20 @@ function SignedOutAccount({ layout }: { layout: HomeLayout }) {
         </View>
 
         <View className="mt-8 px-5">
-          <SectionTitle>With an account</SectionTitle>
+          <SectionTitle>{t("profile.accountTab.withAccount")}</SectionTitle>
 
           <View className="gap-4">
             {ACCOUNT_BENEFITS.map((benefit) => (
-              <View key={benefit.title} className="flex-row items-start gap-3">
+              <View key={benefit} className="flex-row items-start gap-3">
                 <View className="h-8 w-8 items-center justify-center rounded-full bg-brand-50">
                   <CheckIcon color={colors.brand[500]} />
                 </View>
                 <View className="flex-1 pt-0.5">
                   <Text className="text-sm font-bold text-text-primary">
-                    {benefit.title}
+                    {t(`profile.accountTab.benefits.${benefit}`)}
                   </Text>
                   <Text className="mt-0.5 text-xs leading-4 text-text-secondary">
-                    {benefit.detail}
+                    {t(`profile.accountTab.benefits.${benefit}Detail`)}
                   </Text>
                 </View>
               </View>
@@ -504,8 +513,10 @@ function SignedOutAccount({ layout }: { layout: HomeLayout }) {
 
         <Offers layout={layout} />
 
+        <LanguageSection />
+
         <Text className="mt-8 px-8 text-center text-xs text-text-muted">
-          Browsing plans and dishes never needs an account.
+          {t("profile.accountTab.browsingFree")}
         </Text>
 
         <BrandFooter />
@@ -519,6 +530,7 @@ function SignedOutAccount({ layout }: { layout: HomeLayout }) {
  * they are and which build this is, out of the way of everything above.
  */
 function BrandFooter() {
+  const { t } = useTranslation();
   // Null in Expo Go, where there is no native build to name.
   const version = Application.nativeApplicationVersion;
 
@@ -526,11 +538,11 @@ function BrandFooter() {
     <View className="mt-10 items-center px-8">
       <AhaarLogo height={44} />
       <Text className="mt-2 text-xs font-semibold text-text-muted">
-        Fresh meals, delivered daily
+        {t("profile.accountTab.tagline")}
       </Text>
       {version ? (
         <Text className="mt-0.5 text-[11px] text-text-muted">
-          Version {version}
+          {t("profile.accountTab.version", { version })}
         </Text>
       ) : null}
     </View>
@@ -551,15 +563,44 @@ function CheckIcon({ color }: { color: string }) {
   );
 }
 
-function detailDiet(user: ReturnType<typeof useProfile>["data"]): string {
+/** Display language selector — reachable before signing in, too. */
+function LanguageSection() {
+  const { t } = useTranslation();
+  return (
+    <View className="mt-6 px-5">
+      <SectionTitle>{t("profile.accountTab.language")}</SectionTitle>
+      <LanguagePicker />
+    </View>
+  );
+}
+
+function detailDiet(
+  user: ReturnType<typeof useProfile>["data"],
+  t: TFunction,
+): string {
   const tags = user?.dietary_preferences?.tags ?? [];
   const avoid = user?.dietary_preferences?.avoid_allergens ?? [];
-  if (tags.length === 0 && avoid.length === 0) return "None set";
+  if (tags.length === 0 && avoid.length === 0)
+    return t("profile.diet.noneSet");
 
+  const sep = t("profile.diet.listSeparator");
   const parts: string[] = [];
   if (tags.length > 0)
-    parts.push(tags.map((t) => t.replace(/_/g, " ")).join(", "));
-  if (avoid.length > 0) parts.push(`avoiding ${avoid.join(", ")}`);
+    parts.push(
+      tags
+        .map((tag) => t(dietTagLabelKey(tag), { defaultValue: humanise(tag) }))
+        .join(sep),
+    );
+  if (avoid.length > 0)
+    parts.push(
+      t("profile.diet.avoiding", {
+        list: avoid
+          .map((a) =>
+            t(allergenLabelKey(a), { defaultValue: humanise(a) }).toLowerCase(),
+          )
+          .join(sep),
+      }),
+    );
   return parts.join(" · ");
 }
 
@@ -577,7 +618,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <Text className="text-xs text-white/80">{label}</Text>
       <Text
         numberOfLines={1}
-        className="flex-1 text-right text-xs font-semibold capitalize text-text-inverse"
+        className="flex-1 text-right text-xs font-semibold text-text-inverse"
       >
         {value}
       </Text>

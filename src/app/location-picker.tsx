@@ -1,10 +1,12 @@
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  I18nManager,
   Keyboard,
   Platform,
   Pressable,
@@ -46,6 +48,7 @@ import {
   newSearchSession,
   type PlaceLookup,
 } from '@/lib/location/lookup';
+import { countryName } from '@/lib/location/labels';
 import { useDeviceLocation } from '@/lib/location/useDeviceLocation';
 import {
   useChangeLocation,
@@ -86,6 +89,7 @@ type SearchResults = { query: string; items: PlaceSuggestion[]; failed: boolean 
  * `mode=add` saves one more address to the account.
  */
 export default function LocationPickerScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ mode?: string; start?: string; lat?: string; lng?: string }>();
@@ -217,19 +221,15 @@ export default function LocationPickerScreen() {
     }
 
     if (result.status === 'denied' && !result.canAskAgain) {
-      Alert.alert(
-        'Location is off for Ahaar',
-        'Allow location in Settings to find where you are — or just drag the map to your door.',
-        [
-          { text: 'Not now', style: 'cancel' },
-          { text: 'Open settings', onPress: device.openSettings },
-        ],
-      );
+      Alert.alert(t('location.picker.deniedTitle'), t('location.picker.deniedBody'), [
+        { text: t('location.common.notNow'), style: 'cancel' },
+        { text: t('location.common.openSettings'), onPress: device.openSettings },
+      ]);
     } else if (result.status === 'services_off') {
-      Alert.alert('Location is switched off', 'Turn on location to find where you are — or drag the map to your door.', [
-        { text: 'Not now', style: 'cancel' },
+      Alert.alert(t('location.picker.servicesOffTitle'), t('location.picker.servicesOffBody'), [
+        { text: t('location.common.notNow'), style: 'cancel' },
         {
-          text: Platform.OS === 'android' ? 'Turn on' : 'Open settings',
+          text: Platform.OS === 'android' ? t('location.common.turnOn') : t('location.common.openSettings'),
           onPress: () => {
             device.enableServices().then((on) => {
               if (on) locateHere();
@@ -238,7 +238,7 @@ export default function LocationPickerScreen() {
         },
       ]);
     } else if (result.message) {
-      toast.error(`${result.message} Drag the map to your door instead.`);
+      toast.error(t('location.picker.dragInstead', { message: result.message }));
     }
   };
 
@@ -290,7 +290,7 @@ export default function LocationPickerScreen() {
       if (suggestion.lat != null && suggestion.lng != null) {
         moveTo(suggestion.lat, suggestion.lng, 'search');
       } else {
-        toast.error('We couldn’t open that place. Try another result.');
+        toast.error(t('location.picker.placeFailed'));
       }
     } finally {
       // A session ends with its pick.
@@ -301,13 +301,13 @@ export default function LocationPickerScreen() {
   const save = async (draft: AddressDraft) => {
     if (addMode) {
       await createAddress.mutateAsync(draftToPayload(draft));
-      toast.success('Address saved');
+      toast.success(t('location.common.addressSaved'));
     } else {
       const result = await saveLocation(draft);
       toast.success(
         result.kind === 'existing'
-          ? `Using your saved address — ${locationTitle(result.address)}`
-          : 'Delivery location updated',
+          ? t('location.common.usingSaved', { title: locationTitle(result.address) })
+          : t('location.common.locationUpdated'),
       );
     }
     setConfirmOpen(false);
@@ -320,7 +320,7 @@ export default function LocationPickerScreen() {
   const served = lookup?.supported ?? false;
   const tooFar = zoom < MIN_CONFIRM_ZOOM;
   const rules = isSupportedCountry(lookup?.country) ? countryRules(lookup?.country) : null;
-  const title = draft ? draft.line1 || shortLocation(draft) || 'Pinned location' : '';
+  const title = draft ? draft.line1 || shortLocation(draft) || t('location.picker.pinnedLocation') : '';
   const subtitle = draft && draft.line1 ? shortLocation(draft) : '';
 
   const trimmed = query.trim();
@@ -354,20 +354,20 @@ export default function LocationPickerScreen() {
         style={{ paddingTop: insets.top + 8 }}
         className="absolute left-0 right-0 top-0 flex-row items-center gap-2 px-3"
       >
-        <RoundButton label="Close" onPress={() => router.back()}>
+        <RoundButton label={t('location.picker.close')} onPress={() => router.back()}>
           <CloseIcon color={colors.text.primary} />
         </RoundButton>
         <Pressable
           testID="open-search"
           accessibilityRole="search"
-          accessibilityLabel="Search for an address"
+          accessibilityLabel={t('location.common.searchAddress')}
           onPress={() => setSearchOpen(true)}
           className="h-12 flex-1 flex-row items-center gap-2 rounded-2xl bg-surface px-4 active:opacity-90"
           style={shadows.card}
         >
           <SearchIcon color={colors.text.muted} size={18} />
           <Text numberOfLines={1} className="flex-1 text-sm text-text-muted">
-            Search street, building or place
+            {t('location.picker.searchPlaceholder')}
           </Text>
         </Pressable>
       </View>
@@ -375,7 +375,7 @@ export default function LocationPickerScreen() {
       {/* Bottom: locate me, and what is under the pin */}
       <View className="absolute bottom-0 left-0 right-0" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <View className="mb-3 flex-row justify-end px-4">
-          <RoundButton label="Use my current location" onPress={locateHere} busy={deviceBusy}>
+          <RoundButton label={t('location.common.useCurrentLocation')} onPress={locateHere} busy={deviceBusy}>
             <LocateIcon color={colors.brand[500]} size={22} />
           </RoundButton>
         </View>
@@ -383,12 +383,14 @@ export default function LocationPickerScreen() {
         <View testID="picked-place" className="mx-3 rounded-3xl bg-surface p-4" style={shadows.cardRaised}>
           <View className="flex-row items-center justify-between gap-2">
             <Text className="text-xs font-bold uppercase text-text-muted">
-              {addMode ? 'New address' : 'Deliver to'}
+              {addMode ? t('location.picker.newAddress') : t('location.picker.deliverTo')}
             </Text>
             {lookup && !busy ? (
               <View className="rounded-full bg-surface-muted px-2.5 py-1">
                 <Text className="text-[11px] font-bold text-text-secondary">
-                  {rules ? `${rules.flag} ${rules.name}` : (lookup.countryName ?? lookup.country ?? 'Unknown country')}
+                  {rules
+                    ? `${rules.flag} ${countryName(rules.code)}`
+                    : (lookup.countryName ?? lookup.country ?? t('location.common.unknownCountry'))}
                 </Text>
               </View>
             ) : null}
@@ -410,20 +412,20 @@ export default function LocationPickerScreen() {
                 </Text>
               ) : null}
               {draft?.lat != null && draft.lng != null ? (
-                <Text className="mt-0.5 text-[11px] text-text-muted">
+                <Text className="mt-0.5 text-[11px] text-text-muted" style={{ writingDirection: 'ltr' }}>
                   {draft.lat.toFixed(5)}, {draft.lng.toFixed(5)}
                 </Text>
               ) : null}
               {!served ? (
                 <View testID="not-served" className="mt-3 rounded-2xl bg-warning-soft px-3 py-2.5">
                   <Text className="text-xs text-text-primary">
-                    Ahaar doesn’t deliver here yet. Move the pin to your address in Saudi Arabia.
+                    {t('location.picker.notServed')}
                   </Text>
                 </View>
               ) : tooFar ? (
                 <View testID="zoom-in" className="mt-3 rounded-2xl bg-surface-muted px-3 py-2.5">
                   <Text className="text-xs text-text-primary">
-                    Zoom in to put the pin exactly on your building.
+                    {t('location.picker.zoomIn')}
                   </Text>
                 </View>
               ) : null}
@@ -431,14 +433,14 @@ export default function LocationPickerScreen() {
           )}
 
           <Button
-            label={lookup && !busy && !served ? 'Not available here' : 'Confirm location'}
+            label={lookup && !busy && !served ? t('location.picker.notAvailable') : t('location.picker.confirm')}
             size="lg"
             className="mt-4"
             disabled={!lookup || busy || !served || tooFar}
             onPress={() => setConfirmOpen(true)}
           />
           <Text className="mt-2 text-center text-[11px] text-text-muted">
-            Drag the map or tap your building — the pin marks the spot.
+            {t('location.picker.dragHint')}
           </Text>
         </View>
       </View>
@@ -448,7 +450,7 @@ export default function LocationPickerScreen() {
           <View className="flex-row items-center gap-2 border-b border-border px-3 py-2">
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Back to the map"
+              accessibilityLabel={t('location.picker.backToMap')}
               onPress={() => {
                 Keyboard.dismiss();
                 setSearchOpen(false);
@@ -456,14 +458,16 @@ export default function LocationPickerScreen() {
               hitSlop={8}
               className="h-10 w-10 items-center justify-center"
             >
-              <ArrowLeftIcon color={colors.text.primary} />
+              <View style={{ transform: [{ scaleX: I18nManager.isRTL ? -1 : 1 }] }}>
+                <ArrowLeftIcon color={colors.text.primary} />
+              </View>
             </Pressable>
             <TextInput
               testID="search-input"
               autoFocus
               value={query}
               onChangeText={setQuery}
-              placeholder="Search street, building or place"
+              placeholder={t('location.picker.searchPlaceholder')}
               placeholderTextColor={colors.text.muted}
               returnKeyType="search"
               autoCorrect={false}
@@ -472,7 +476,7 @@ export default function LocationPickerScreen() {
             {query ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Clear search"
+                accessibilityLabel={t('location.picker.clearSearch')}
                 onPress={() => setQuery('')}
                 hitSlop={8}
                 className="h-10 w-10 items-center justify-center"
@@ -490,7 +494,7 @@ export default function LocationPickerScreen() {
             ListHeaderComponent={
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Use my current location"
+                accessibilityLabel={t('location.common.useCurrentLocation')}
                 onPress={() => {
                   Keyboard.dismiss();
                   setSearchOpen(false);
@@ -501,7 +505,7 @@ export default function LocationPickerScreen() {
                 <View className="h-9 w-9 items-center justify-center rounded-full bg-brand-50">
                   <LocateIcon color={colors.brand[500]} size={18} />
                 </View>
-                <Text className="text-sm font-bold text-brand-700">Use my current location</Text>
+                <Text className="text-sm font-bold text-brand-700">{t('location.common.useCurrentLocation')}</Text>
               </Pressable>
             }
             ListEmptyComponent={
@@ -510,13 +514,15 @@ export default function LocationPickerScreen() {
                   <ActivityIndicator color={colors.brand[500]} />
                 ) : shown?.failed ? (
                   <Text className="text-center text-sm text-text-muted">
-                    Search isn’t available right now. Go back and drag the map to your address instead.
+                    {t('location.picker.searchFailed')}
                   </Text>
                 ) : shown ? (
-                  <Text className="text-center text-sm text-text-muted">No places found for “{shown.query}”.</Text>
+                  <Text className="text-center text-sm text-text-muted">
+                    {t('location.picker.noResults', { query: shown.query })}
+                  </Text>
                 ) : (
                   <Text className="text-center text-sm text-text-muted">
-                    Type a street, building, district or landmark.
+                    {t('location.picker.typeHint')}
                   </Text>
                 )}
               </View>
@@ -551,15 +557,15 @@ export default function LocationPickerScreen() {
         open={confirmOpen && draft !== null}
         onClose={() => setConfirmOpen(false)}
         initialDraft={draft}
-        notice={lookup && !lookup.found ? 'We couldn’t read the street at this pin — please add it.' : null}
+        notice={lookup && !lookup.found ? t('location.picker.noStreetNotice') : null}
         onSubmitDraft={save}
-        title="Address details"
+        title={t('location.picker.detailsTitle')}
         description={
           rules
-            ? `${rules.flag} ${rules.name} — add your building and flat so the rider finds the door.`
-            : 'Add your building and flat so the rider finds the door.'
+            ? t('location.picker.detailsDescription', { country: `${rules.flag} ${countryName(rules.code)}` })
+            : t('location.common.riderHint')
         }
-        submitLabel={addMode ? 'Save address' : 'Deliver here'}
+        submitLabel={addMode ? t('location.common.saveAddress') : t('location.common.deliverHere')}
       />
     </View>
   );

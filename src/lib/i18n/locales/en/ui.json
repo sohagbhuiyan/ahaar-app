@@ -1,0 +1,62 @@
+{
+  "goBack": "Go back",
+  "avatar": "Avatar",
+  "loadMore": "Load more",
+  "password": {
+    "show": "Show password",
+    "hide": "Hide password"
+  },
+  "stepper": {
+    "decrease": "Decrease",
+    "increase": "Increase"
+  },
+  "errorState": {
+    "offline": "You're offline",
+    "tryLater": "Please try again in a moment."
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "body": "The app hit an unexpected problem. Reporting it helps us fix it."
+  },
+  "offline": {
+    "message": "You're offline — showing saved data",
+    "withTime": "You're offline — showing saved data from {{since}}",
+    "justNow": "just now",
+    "minutesAgo_one": "{{count}}m ago",
+    "minutesAgo_other": "{{count}}m ago",
+    "hoursAgo_one": "{{count}}h ago",
+    "hoursAgo_other": "{{count}}h ago",
+    "daysAgo_one": "{{count}}d ago",
+    "daysAgo_other": "{{count}}d ago"
+  },
+  "splash": {
+    "loading": "Loading Ahaar",
+    "fresh": "Fresh",
+    "chefMade": "Chef-made",
+    "deliveredDaily": "Delivered daily"
+  },
+  "onboarding": {
+    "skip": "Skip",
+    "skipA11y": "Skip the introduction",
+    "step": "Step {{current}} of {{total}}",
+    "chooseLanguage": "Choose your language",
+    "getStarted": "Get Started",
+    "slides": {
+      "menu": {
+        "title": "Fresh Food,\nEvery Single Day",
+        "body": "A menu that changes daily — homestyle plates, grills and rice dishes, cooked this morning and ready when you are.",
+        "alt": "A plate of rice, roast chicken and fresh salad"
+      },
+      "kitchen": {
+        "title": "Chef-Made,\nNever Rushed",
+        "body": "Our signature kacchi and slow-cooked classics are layered by hand. Real recipes, real kitchens, no shortcuts.",
+        "alt": "A clay bowl of kacchi biryani with tender mutton"
+      },
+      "delivery": {
+        "title": "Sweet Endings,\nDelivered Daily",
+        "body": "Pick a plan, choose your meals, and we bring them to your door — right down to dessert. Swap or pause any time.",
+        "alt": "A plated dessert"
+      }
+    }
+  }
+}

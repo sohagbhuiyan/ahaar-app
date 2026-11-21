@@ -19,8 +19,10 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   BackHandler,
+  I18nManager,
   Platform,
   Pressable,
   StyleSheet,
@@ -44,6 +46,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AhaarLogo } from '@/components/shared/AhaarLogo';
+import { LanguagePicker } from '@/components/shared/LanguagePicker';
 import { Button } from '@/components/ui';
 import { useOnboardingStore } from '@/lib/store';
 import { colors } from '@/lib/theme';
@@ -73,12 +76,22 @@ const CARD_SHADOW = {
   elevation: 10,
 } as const;
 
+/**
+ * Layout direction is fixed at app start, so a constant read is enough. In RTL
+ * the first card sits on the right and scroll offsets are physical (from the
+ * left), so every offset below is converted to and from "distance from the
+ * first card".
+ */
+const IS_RTL = I18nManager.isRTL;
+
 interface Slide {
   key: string;
   image: number;
+  /** i18n key */
   title: string;
+  /** i18n key */
   body: string;
-  /** Read instead of the picture — the title never describes the food itself. */
+  /** i18n key. Read instead of the picture — the title never describes the food itself. */
   alt: string;
 }
 
@@ -93,28 +106,29 @@ const SLIDES: Slide[] = [
   {
     key: 'menu',
     image: require('@/assets/images/onboard/dishes.png'),
-    title: 'Fresh Food,\nEvery Single Day',
-    body: 'A menu that changes daily — homestyle plates, grills and rice dishes, cooked this morning and ready when you are.',
-    alt: 'A plate of rice, roast chicken and fresh salad',
+    title: 'ui.onboarding.slides.menu.title',
+    body: 'ui.onboarding.slides.menu.body',
+    alt: 'ui.onboarding.slides.menu.alt',
   },
   {
     key: 'kitchen',
     image: require('@/assets/images/onboard/kacci.png'),
-    title: 'Chef-Made,\nNever Rushed',
-    body: 'Our signature kacchi and slow-cooked classics are layered by hand. Real recipes, real kitchens, no shortcuts.',
-    alt: 'A clay bowl of kacchi biryani with tender mutton',
+    title: 'ui.onboarding.slides.kitchen.title',
+    body: 'ui.onboarding.slides.kitchen.body',
+    alt: 'ui.onboarding.slides.kitchen.alt',
   },
   {
     key: 'delivery',
     image: require('@/assets/images/onboard/dessert.avif'),
-    title: 'Sweet Endings,\nDelivered Daily',
-    body: 'Pick a plan, choose your meals, and we bring them to your door — right down to dessert. Swap or pause any time.',
-    alt: 'A plated dessert',
+    title: 'ui.onboarding.slides.delivery.title',
+    body: 'ui.onboarding.slides.delivery.body',
+    alt: 'ui.onboarding.slides.delivery.alt',
   },
 ];
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width, height: windowHeight } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
@@ -139,19 +153,27 @@ export default function OnboardingScreen() {
   const isLast = index === SLIDES.length - 1;
 
   const onScroll = useAnimatedScrollHandler((event) => {
-    scrollX.value = event.contentOffset.x;
+    scrollX.value = IS_RTL
+      ? event.contentSize.width - event.layoutMeasurement.width - event.contentOffset.x
+      : event.contentOffset.x;
   });
+
+  /** Physical x of a card, for `scrollTo`. */
+  const offsetOf = useCallback(
+    (card: number) => (IS_RTL ? (SLIDES.length - 1 - card) * width : card * width),
+    [width],
+  );
 
   const goTo = useCallback(
     (next: number) => {
       const clamped = Math.max(0, Math.min(next, SLIDES.length - 1));
-      scrollRef.current?.scrollTo({ x: clamped * width, animated: true });
+      scrollRef.current?.scrollTo({ x: offsetOf(clamped), animated: true });
       // Set eagerly rather than waiting for the scroll to settle, so the last
       // tap of "Continue" turns it into "Get Started" at once. A swipe has no
       // such tell and is picked up by `onMomentumScrollEnd` instead.
       setIndex(clamped);
     },
-    [scrollRef, width],
+    [scrollRef, offsetOf],
   );
 
   /** Skip and Get Started land in the same place — see the file header. */
@@ -162,7 +184,11 @@ export default function OnboardingScreen() {
 
   const onMomentumScrollEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      setIndex(Math.round(event.nativeEvent.contentOffset.x / width));
+      const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+      const logical = IS_RTL
+        ? contentSize.width - layoutMeasurement.width - contentOffset.x
+        : contentOffset.x;
+      setIndex(Math.round(logical / width));
     },
     [width],
   );
@@ -212,12 +238,12 @@ export default function OnboardingScreen() {
           <Pressable
             onPress={finish}
             accessibilityRole="button"
-            accessibilityLabel="Skip the introduction"
+            accessibilityLabel={t('ui.onboarding.skipA11y')}
             hitSlop={12}
             className="h-10 w-16 items-end justify-center active:opacity-60"
           >
             <Text className="text-sm font-semibold" style={{ color: SKIP_TEXT }}>
-              Skip
+              {t('ui.onboarding.skip')}
             </Text>
           </Pressable>
         )}
@@ -235,7 +261,11 @@ export default function OnboardingScreen() {
         onScroll={onScroll}
         scrollEventThrottle={16}
         onMomentumScrollEnd={onMomentumScrollEnd}
-        onLayout={(event) => setPageHeight(event.nativeEvent.layout.height)}
+        onLayout={(event) => {
+          setPageHeight(event.nativeEvent.layout.height);
+          // RTL: make sure the tour opens on the first card (the right-most one).
+          if (IS_RTL) scrollRef.current?.scrollTo({ x: offsetOf(index), animated: false });
+        }}
         className="flex-1"
       >
         {SLIDES.map((slide, slideIndex) => (
@@ -258,11 +288,21 @@ export default function OnboardingScreen() {
         <View
           className="flex-row items-center justify-center gap-2"
           accessibilityRole="progressbar"
-          accessibilityLabel={`Step ${index + 1} of ${SLIDES.length}`}
+          accessibilityLabel={t('ui.onboarding.step', { current: index + 1, total: SLIDES.length })}
         >
           {SLIDES.map((slide, dotIndex) => (
             <Dot key={slide.key} index={dotIndex} scrollX={scrollX} width={width} />
           ))}
+        </View>
+
+        {/* First-run language choice. On a white card: the picker is drawn for a
+            light surface, like the logo above. Choosing Arabic restarts the app
+            into RTL, and the tour (not yet completed) simply shows again. */}
+        <View className="rounded-2xl bg-surface px-4 pb-3 pt-2.5" style={CARD_SHADOW}>
+          <Text className="mb-2 text-xs font-semibold text-text-secondary">
+            {t('ui.onboarding.chooseLanguage')}
+          </Text>
+          <LanguagePicker />
         </View>
 
         {/* White on the brand field rather than the usual brand-on-white: a
@@ -277,7 +317,7 @@ export default function OnboardingScreen() {
             variant="secondary"
             size="lg"
             className="bg-surface"
-            label={isLast ? 'Get Started' : 'Continue'}
+            label={isLast ? t('ui.onboarding.getStarted') : t('common.actions.continue')}
             onPress={isLast ? finish : () => goTo(index + 1)}
           />
         </View>
@@ -305,6 +345,7 @@ function SlideView({
   pageHeight: number;
   reduceMotion: boolean;
 }) {
+  const { t } = useTranslation();
   const heroHeight = (pageHeight * HERO_FLEX) / (HERO_FLEX + COPY_FLEX);
 
   // Bounded three ways: by the card's width, by the height of the hero band —
@@ -330,7 +371,8 @@ function SlideView({
           translateX: interpolate(
             scrollX.value,
             range,
-            [width * 0.2, 0, -width * 0.2],
+            // Mirrored in RTL, where "forward" slides the other way.
+            IS_RTL ? [-width * 0.2, 0, width * 0.2] : [width * 0.2, 0, -width * 0.2],
             Extrapolation.CLAMP,
           ),
         },
@@ -392,7 +434,7 @@ function SlideView({
               // memory alone avoids writing three copies to disk on first run.
               cachePolicy="memory"
               accessibilityRole="image"
-              accessibilityLabel={slide.alt}
+              accessibilityLabel={t(slide.alt)}
               // Softens the corners of the one source that is a full-frame
               // photo; invisible on the cut-outs, which have none to round.
               style={{ width: '88%', height: '88%', borderRadius: tile * 0.1 }}
@@ -406,10 +448,10 @@ function SlideView({
           accessibilityRole="header"
           className="text-[30px] font-extrabold leading-[38px] tracking-tight text-text-inverse"
         >
-          {slide.title}
+          {t(slide.title)}
         </Text>
         <Text className="mt-3 text-base leading-6" style={{ color: BODY_TEXT }}>
-          {slide.body}
+          {t(slide.body)}
         </Text>
       </Animated.View>
     </View>

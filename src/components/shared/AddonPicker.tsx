@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 
 import { Badge, Button, Separator } from '@/components/ui';
@@ -49,6 +50,7 @@ export function AddonPicker({
   locked = false,
   className,
 }: Props) {
+  const { t } = useTranslation();
   const defaultMeals = deliveryItems.filter((i) => !i.is_addon);
   const defaultAddons = deliveryItems.filter((i) => i.is_addon && i.is_default);
 
@@ -60,14 +62,17 @@ export function AddonPicker({
       {/* 1 — the plan's meal for this day */}
       {defaultMeals.length > 0 ? (
         <View className="gap-2">
-          <SectionLabel title="Included" caption="Your plan's meal for this day" />
+          <SectionLabel
+            title={t('ordering.addons.included')}
+            caption={t('ordering.addons.includedCaption')}
+          />
           {defaultMeals.map((item) => (
             <RowShell key={item.id}>
               <Thumb uri={item.menu_item?.image_url} />
               <Text className="flex-1 text-sm font-semibold text-text-primary">
-                {item.menu_item?.name ?? `Item #${item.id}`}
+                {item.menu_item?.name ?? t('ordering.itemFallback', { id: item.id })}
               </Text>
-              <Badge label="Included" variant="muted" />
+              <Badge label={t('ordering.addons.included')} variant="muted" />
             </RowShell>
           ))}
         </View>
@@ -77,31 +82,35 @@ export function AddonPicker({
       {defaultAddons.length > 0 ? (
         <View className="gap-2">
           <SectionLabel
-            title="Included extras"
+            title={t('ordering.addons.includedExtras')}
             caption={
               canRemoveDefaults
-                ? 'Added automatically — tap to remove'
-                : 'Added automatically with your plan'
+                ? t('ordering.addons.autoRemovable')
+                : t('ordering.addons.auto')
             }
           />
           {defaultAddons.map((item) => (
             <RowShell key={item.id}>
               <Thumb uri={item.menu_item?.image_url} />
               <Text className="flex-1 text-sm font-semibold text-text-primary">
-                {item.menu_item?.name ?? `Item #${item.id}`}
+                {item.menu_item?.name ?? t('ordering.itemFallback', { id: item.id })}
               </Text>
 
               {canRemoveDefaults && !locked ? (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Remove ${item.menu_item?.name ?? 'item'}`}
+                  accessibilityLabel={t('ordering.a11y.remove', {
+                    name: item.menu_item?.name ?? t('ordering.itemGeneric'),
+                  })}
                   onPress={() => onRemove(item.menu_item?.id ?? 0)}
                   className="rounded-xl bg-surface-muted px-3 py-1.5 active:opacity-70"
                 >
-                  <Text className="text-xs font-bold text-text-secondary">Remove</Text>
+                  <Text className="text-xs font-bold text-text-secondary">
+                    {t('common.actions.remove')}
+                  </Text>
                 </Pressable>
               ) : (
-                <Badge label="Included" variant="free" />
+                <Badge label={t('ordering.addons.included')} variant="free" />
               )}
             </RowShell>
           ))}
@@ -111,7 +120,10 @@ export function AddonPicker({
       {/* 3 — opt-in */}
       {available.length > 0 ? (
         <View className="gap-2">
-          <SectionLabel title="Add extras" caption="Optional — not included by default" />
+          <SectionLabel
+            title={t('ordering.addons.addExtras')}
+            caption={t('ordering.addons.optionalCaption')}
+          />
 
           {available.map((item, index) => {
             const quantity = quantityFor(item.id);
@@ -133,13 +145,13 @@ export function AddonPicker({
                         isFree ? 'text-success' : 'text-brand-500',
                       )}
                     >
-                      {isFree ? 'Free' : formatMoney(item.base_price)}
+                      {isFree ? t('ordering.free') : formatMoney(item.base_price)}
                     </Text>
                   </View>
 
                   {quantity > 0 ? (
                     <Button
-                      label={`Added (${quantity})`}
+                      label={t('ordering.addons.added', { count: quantity })}
                       variant="secondary"
                       size="sm"
                       fullWidth={false}
@@ -148,7 +160,7 @@ export function AddonPicker({
                     />
                   ) : (
                     <Button
-                      label={isFree ? 'Add · Free' : 'Add'}
+                      label={isFree ? t('ordering.addons.addFree') : t('common.actions.add')}
                       variant="outline"
                       size="sm"
                       fullWidth={false}

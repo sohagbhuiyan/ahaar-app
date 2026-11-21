@@ -2,7 +2,7 @@ import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Stack, useNavigationContainerRef } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Platform, StatusBar as RNStatusBar } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -11,6 +11,7 @@ import { Toaster } from "sonner-native";
 import { AnimatedSplash } from "@/components/shared/AnimatedSplash";
 import { AuthGate } from "@/components/shared/AuthGate";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { LanguageSync } from "@/components/shared/LanguageSync";
 import { LocationSync } from "@/components/shared/LocationSync";
 import { LoginPrompt } from "@/components/shared/LoginPrompt";
 import { OnboardingGate } from "@/components/shared/OnboardingGate";
@@ -22,6 +23,11 @@ import {
 } from "@/lib/monitoring/sentry";
 import { QueryProvider } from "@/lib/query/QueryProvider";
 import { useAuthPromptStore, useAuthStore } from "@/lib/store";
+import {
+  syncLayoutDirection,
+  useLanguageStore,
+} from "@/lib/store/useLanguageStore";
+import i18n from "@/lib/i18n";
 import { colors } from "@/lib/theme";
 import "../global.css";
 
@@ -41,6 +47,18 @@ initSentry();
 
 function RootLayout() {
   const navigationRef = useNavigationContainerRef();
+
+  // The saved language is read from AsyncStorage before anything renders, so
+  // no screen paints in English first. If it needs the other layout direction
+  // than the native side started with (first launch in Arabic, or a restart
+  // that didn't complete), flip it and restart — the native splash stays up
+  // throughout, so the customer sees one longer splash, not a flicker.
+  const languageHydrated = useLanguageStore((s) => s.hydrated);
+  const [restarting, setRestarting] = useState(false);
+  useEffect(() => {
+    if (!languageHydrated) return;
+    if (syncLayoutDirection(useLanguageStore.getState().locale)) setRestarting(true);
+  }, [languageHydrated]);
 
   // Lets Sentry attribute errors and transactions to a screen.
   useEffect(() => {
@@ -67,7 +85,7 @@ function RootLayout() {
   const handleUnauthorized = useCallback(() => {
     useAuthPromptStore
       .getState()
-      .prompt("to pick up where you left off — your session expired");
+      .prompt(i18n.t("auth.prompt.sessionExpired"));
   }, []);
 
   // Ensure Android status bar is translucent with a transparent background
@@ -78,6 +96,8 @@ function RootLayout() {
       RNStatusBar.setBackgroundColor('transparent');
     }
   }, []);
+
+  if (!languageHydrated || restarting) return null;
 
   return (
     // sonner-native renders through gesture-handler, so this wraps everything.
@@ -166,6 +186,10 @@ function RootLayout() {
             {/* A location set while signed out is saved to the account as
                 soon as there is one. */}
             <LocationSync />
+
+            {/* Refetches content and saves the choice to the account when
+                the language changes. */}
+            <LanguageSync />
           </BottomSheetModalProvider>
 
           {/* Global mutation feedback. Matches the web app's `sonner` usage so

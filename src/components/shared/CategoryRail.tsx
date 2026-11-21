@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import type { CategoryTile } from '@/lib/query/hooks';
@@ -24,6 +25,7 @@ interface Props {
  * dish rail on Home, and a six-tile grid there pushes the catalogue off-screen.
  */
 export function CategoryRail({ categories, onSelect }: Props) {
+  const { t } = useTranslation();
   if (categories.length === 0) return null;
 
   return (
@@ -37,9 +39,10 @@ export function CategoryRail({ categories, onSelect }: Props) {
         <Pressable
           key={category.slug}
           accessibilityRole="button"
-          accessibilityLabel={`${category.name}, ${category.itemCount} ${
-            category.itemCount === 1 ? 'dish' : 'dishes'
-          }`}
+          accessibilityLabel={t('catalog.category.a11y', {
+            name: category.name,
+            dishes: t('common.units.dish', { count: category.itemCount }),
+          })}
           onPress={() => onSelect(category.slug)}
           className="w-28 overflow-hidden rounded-2xl border border-border bg-surface active:opacity-80"
         >
@@ -69,7 +72,7 @@ export function CategoryRail({ categories, onSelect }: Props) {
               {category.name}
             </Text>
             <Text className="mt-0.5 text-[11px] text-text-muted">
-              {category.itemCount} {category.itemCount === 1 ? 'dish' : 'dishes'}
+              {t('common.units.dish', { count: category.itemCount })}
             </Text>
           </View>
         </Pressable>
