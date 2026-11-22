@@ -68,6 +68,10 @@ jest.mock('expo-video', () => require('./jest/expo-video-mock'));
 jest.mock('expo-location', () => require('./jest/expo-location-mock'));
 
 jest.mock('react-native-maps', () => require('./jest/react-native-maps-mock'));
+jest.mock('expo-notifications', () => require('./jest/expo-notifications-mock'));
+// The OpenStreetMap fallback maps (picker and tracking) render in a WebView,
+// whose native module doesn't exist under Jest.
+jest.mock('react-native-webview', () => require('./jest/react-native-webview-mock'));
 
 // FlashList measures natively before it renders a row; FlatList renders its
 // first rows straight away, which is what a test needs.

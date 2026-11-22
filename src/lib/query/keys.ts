@@ -56,6 +56,9 @@ export const queryKeys = {
       ['menu', 'deliveries', filters ?? {}] as const,
     detail: (deliveryId: string | number) =>
       ['menu', 'deliveries', 'detail', String(deliveryId)] as const,
+    /** Live tracking of one meal on a car route. */
+    tracking: (deliveryId: string | number) =>
+      ['menu', 'tracking', String(deliveryId)] as const,
   },
 
   subscription: {
@@ -132,6 +135,8 @@ export const queryKeys = {
      */
     list: () => ['orders', 'list'] as const,
     detail: (id: string | number) => ['orders', 'detail', String(id)] as const,
+    /** Live tracking of one instant order. Under `orders`, so sign-out sweeps it. */
+    tracking: (id: string | number) => ['orders', 'tracking', String(id)] as const,
   },
 
   /** The customer's own charge history. */

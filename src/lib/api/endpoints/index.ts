@@ -17,6 +17,7 @@ import * as profile from './profile';
 import * as quota from './quota';
 import * as subscriptions from './subscriptions';
 import * as swap from './swap';
+import * as tracking from './tracking';
 
 export const api = {
   addons,
@@ -32,6 +33,7 @@ export const api = {
   quota,
   subscriptions,
   swap,
+  tracking,
 } as const;
 
 export {
@@ -48,4 +50,5 @@ export {
   quota,
   subscriptions,
   swap,
+  tracking,
 };

@@ -50,7 +50,11 @@ export interface Subscription {
 export type DeliveryStatus =
   | 'scheduled'
   | 'locked'
+  | 'packed'
+  | 'out_for_delivery'
   | 'delivered'
+  | 'failed_attempt'
+  | 'returned'
   | 'paused'
   | 'skipped';
 
@@ -116,6 +120,9 @@ export interface Delivery {
   cutoff_at: string;
   /** Server-computed; the only source of truth for "can I still edit this?". */
   before_cutoff: boolean;
+  /** On a car route that has left the kitchen: `GET /deliveries/{id}/tracking` is worth opening. */
+  is_trackable: boolean;
+  delivered_at: string | null;
   items?: DeliveryItem[];
 }
 

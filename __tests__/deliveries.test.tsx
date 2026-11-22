@@ -42,6 +42,8 @@ function meal(
     is_customized: false,
     cutoff_at: `${date}T02:00:00Z`,
     before_cutoff: true,
+    is_trackable: false,
+    delivered_at: null,
     items: [
       {
         id: id * 10,

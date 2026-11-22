@@ -1,0 +1,119 @@
+{
+  "title": "Live tracking",
+  "deliveryTitle": "Meal delivery",
+  "live": "Live",
+  "updating": "Updating…",
+  "status": {
+    "placed": "Order placed",
+    "confirmed": "Order confirmed",
+    "awaiting_payment": "Waiting for payment",
+    "pending": "Waiting for payment",
+    "searching_rider": "Finding a rider",
+    "assigned": "Rider found",
+    "accepted": "Rider on board",
+    "heading_to_pickup": "Rider heading to the kitchen",
+    "picked_up": "Picked up",
+    "on_the_way": "On the way to you",
+    "dispatched": "On the way to you",
+    "delivered": "Delivered",
+    "failed": "Delivery failed",
+    "cancelled": "Cancelled",
+    "scheduled": "Scheduled",
+    "locked": "Being prepared",
+    "packed": "Packed",
+    "rider_assigned": "Driver assigned",
+    "out_for_delivery": "Out for delivery",
+    "next_stop": "You're the next stop",
+    "failed_attempt": "Delivery attempt failed",
+    "returned": "Returned to the kitchen",
+    "paused": "Paused",
+    "skipped": "Skipped",
+    "unknown": "Update"
+  },
+  "hint": {
+    "awaiting_payment": "Finish paying to send your order to the kitchen.",
+    "confirmed": "The kitchen has your order.",
+    "searching_rider": "We're matching your order with a nearby rider.",
+    "assigned": "A rider has been offered your order.",
+    "accepted": "Your rider will head to the kitchen shortly.",
+    "heading_to_pickup": "Your rider is on the way to collect your food.",
+    "picked_up": "Your food has left the kitchen.",
+    "on_the_way": "Your food is on its way.",
+    "dispatched": "Your food is on its way.",
+    "delivered": "Enjoy your meal!",
+    "failed": "We couldn't complete this delivery. Our team will be in touch.",
+    "cancelled": "This order was cancelled.",
+    "scheduled": "Your meal is on the plan for this day.",
+    "locked": "The kitchen is preparing your meal.",
+    "packed": "Your meal is packed and waiting for its driver.",
+    "rider_assigned": "A driver will bring your meal.",
+    "out_for_delivery": "Your meal is on the road.",
+    "next_stop": "Your driver is heading to you now.",
+    "failed_attempt": "We couldn't hand over your meal. Our team will be in touch.",
+    "returned": "Your meal went back to the kitchen.",
+    "paused": "Nothing is delivered on a paused day.",
+    "skipped": "Nothing is delivered on a skipped day."
+  },
+  "eta": {
+    "minutes_one": "Arriving in {{count}} min",
+    "minutes_other": "Arriving in {{count}} min",
+    "toKitchen_one": "Reaches the kitchen in {{count}} min",
+    "toKitchen_other": "Reaches the kitchen in {{count}} min",
+    "soon": "Arriving any minute",
+    "around": "Around {{time}}",
+    "distance": "{{km}} km away",
+    "estimated": "Estimated"
+  },
+  "stops": {
+    "before_one": "{{count}} stop before you",
+    "before_other": "{{count}} stops before you",
+    "next": "You're the next stop"
+  },
+  "timeline": {
+    "title": "Progress"
+  },
+  "rider": {
+    "title": "Your rider",
+    "driverTitle": "Your driver",
+    "fallbackName": "Your rider",
+    "bike": "Bike",
+    "car": "Car",
+    "plate": "Plate {{plate}}",
+    "call": "Call",
+    "callA11y": "Call {{name}}",
+    "callFailed": "Couldn't start a call on this device"
+  },
+  "map": {
+    "a11y": "Map of your delivery",
+    "kitchen": "Kitchen",
+    "home": "Your address",
+    "rider": "Rider",
+    "stale": "The rider's location may be out of date",
+    "updated": "Location updated {{time}}"
+  },
+  "failedReason": "Reason: {{reason}}",
+  "unavailable": "Live tracking isn't available right now.",
+  "track": "Track",
+  "trackA11y": "Track {{slot}}",
+  "cancel": {
+    "alreadyDispatched": "Your order has already left the kitchen, so it can no longer be cancelled."
+  },
+  "delivery": {
+    "title": "Meal delivery",
+    "items": "In this meal",
+    "notFoundTitle": "Meal not found",
+    "notFoundBody": "This meal isn't on any of your plans.",
+    "backToPlan": "Back to my plan"
+  },
+  "push": {
+    "channelName": "Order updates",
+    "channelDescription": "Rider and delivery updates for your orders and meals",
+    "softTitle": "Get delivery updates?",
+    "softBody": "We'll let you know when a rider picks up your food and when it's at your door. Just order updates, nothing else.",
+    "softAllow": "Turn on updates",
+    "softLater": "Not now",
+    "view": "View",
+    "orderTitle": "Order #{{id}}",
+    "deliveryTitle": "Your meal"
+  }
+}

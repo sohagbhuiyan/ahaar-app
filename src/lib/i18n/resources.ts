@@ -11,6 +11,7 @@ import arLocation from './locales/ar/location.json';
 import arOrdering from './locales/ar/ordering.json';
 import arProfile from './locales/ar/profile.json';
 import arTabs from './locales/ar/tabs.json';
+import arTracking from './locales/ar/tracking.json';
 import arUi from './locales/ar/ui.json';
 import bnAccount from './locales/bn/account.json';
 import bnAuth from './locales/bn/auth.json';
@@ -21,6 +22,7 @@ import bnLocation from './locales/bn/location.json';
 import bnOrdering from './locales/bn/ordering.json';
 import bnProfile from './locales/bn/profile.json';
 import bnTabs from './locales/bn/tabs.json';
+import bnTracking from './locales/bn/tracking.json';
 import bnUi from './locales/bn/ui.json';
 import enAccount from './locales/en/account.json';
 import enAuth from './locales/en/auth.json';
@@ -31,6 +33,7 @@ import enLocation from './locales/en/location.json';
 import enOrdering from './locales/en/ordering.json';
 import enProfile from './locales/en/profile.json';
 import enTabs from './locales/en/tabs.json';
+import enTracking from './locales/en/tracking.json';
 import enUi from './locales/en/ui.json';
 
 export const resources = {
@@ -38,18 +41,21 @@ export const resources = {
     translation: {
       common: enCommon, tabs: enTabs, home: enHome, catalog: enCatalog, ui: enUi,
       auth: enAuth, profile: enProfile, account: enAccount, ordering: enOrdering, location: enLocation,
+      tracking: enTracking,
     },
   },
   bn: {
     translation: {
       common: bnCommon, tabs: bnTabs, home: bnHome, catalog: bnCatalog, ui: bnUi,
       auth: bnAuth, profile: bnProfile, account: bnAccount, ordering: bnOrdering, location: bnLocation,
+      tracking: bnTracking,
     },
   },
   ar: {
     translation: {
       common: arCommon, tabs: arTabs, home: arHome, catalog: arCatalog, ui: arUi,
       auth: arAuth, profile: arProfile, account: arAccount, ordering: arOrdering, location: arLocation,
+      tracking: arTracking,
     },
   },
 } as const;

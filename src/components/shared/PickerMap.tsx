@@ -194,7 +194,7 @@ const WebPickerMap = forwardRef<PickerMapHandle, Props>(function WebPickerMap(
   );
 });
 
-function MapUnavailable() {
+export function MapUnavailable() {
   const { t } = useTranslation();
   return (
     <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-surface-muted px-8">
@@ -213,7 +213,7 @@ function MapUnavailable() {
  * when the map renders; this keeps the picker usable — search and GPS still
  * place the pin.
  */
-class MapBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+export class MapBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
 
   static getDerivedStateFromError() {

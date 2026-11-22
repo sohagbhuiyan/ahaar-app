@@ -13,6 +13,8 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 
 import { setUnauthorizedHandler } from '../api/client';
 import { useAuthStore } from '../store/useAuthStore';
+import { useCartStore } from '../store/useCartStore';
+import { useInstantOrderStore } from '../store/useInstantOrderStore';
 import { useReactQueryDeviceSync } from './deviceSync';
 import { persistOptions } from './persister';
 import { makeQueryClient } from './queryClient';
@@ -50,6 +52,10 @@ export function QueryProvider({ children, onUnauthorized }: Props) {
       // `clearSession` goes through getState() rather than a hook so this
       // effect doesn't re-run whenever the store changes.
       await useAuthStore.getState().clearSession();
+      // The drafts too, as on sign-out: a plan or basket assembled by this
+      // account must not greet whoever signs in next.
+      useCartStore.getState().clear();
+      useInstantOrderStore.getState().clear();
       await clearPrivateQueries(queryClient);
 
       onUnauthorized?.();

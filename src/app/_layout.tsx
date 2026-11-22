@@ -15,6 +15,7 @@ import { LanguageSync } from "@/components/shared/LanguageSync";
 import { LocationSync } from "@/components/shared/LocationSync";
 import { LoginPrompt } from "@/components/shared/LoginPrompt";
 import { OnboardingGate } from "@/components/shared/OnboardingGate";
+import { PushNotifications } from "@/components/shared/PushNotifications";
 import {
   initSentry,
   navigationIntegration,
@@ -57,6 +58,10 @@ function RootLayout() {
   const [restarting, setRestarting] = useState(false);
   useEffect(() => {
     if (!languageHydrated) return;
+    // `syncLayoutDirection` is the external side effect (it flips the native
+    // direction and schedules a reload); the state only holds the splash up
+    // until that reload lands.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (syncLayoutDirection(useLanguageStore.getState().locale)) setRestarting(true);
   }, [languageHydrated]);
 
@@ -153,6 +158,8 @@ function RootLayout() {
                   <Stack.Screen name="subscriptions" />
                   <Stack.Screen name="subscriptions/[id]" />
                   <Stack.Screen name="deliveries" />
+                  {/* One meal: status, live car route, what's in it. */}
+                  <Stack.Screen name="deliveries/[id]" />
                   <Stack.Screen name="schedule" />
                   <Stack.Screen name="payments" />
                   <Stack.Screen name="profile" />
@@ -190,6 +197,11 @@ function RootLayout() {
             {/* Refetches content and saves the choice to the account when
                 the language changes. */}
             <LanguageSync />
+
+            {/* Delivery pushes: registers this device once signed in, turns
+                a push into fresh data + an in-app toast, and opens the
+                order or meal a tapped notification is about. */}
+            <PushNotifications />
           </BottomSheetModalProvider>
 
           {/* Global mutation feedback. Matches the web app's `sonner` usage so

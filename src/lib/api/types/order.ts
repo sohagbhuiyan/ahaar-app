@@ -26,7 +26,28 @@ export type OrderType = 'extra' | 'guest' | 'instant';
  */
 export type PaymentGateway = 'test' | 'mollie' | 'stripe' | 'cash';
 
-export type OrderStatus = 'pending' | 'confirmed' | 'cancelled' | 'delivered';
+/**
+ * The order's money/lifecycle field. `dispatched` is set when a rider picks an
+ * instant order up at the kitchen; where the food *is* lives in
+ * `delivery_status`.
+ */
+export type OrderStatus = 'pending' | 'confirmed' | 'dispatched' | 'cancelled' | 'delivered';
+
+/**
+ * Where an instant order's delivery leg is (`orders.delivery_status`). Null on
+ * pending orders and on extra/guest orders, which ride along with a
+ * subscription delivery.
+ */
+export type OrderDeliveryStatus =
+  | 'searching_rider'
+  | 'assigned'
+  | 'accepted'
+  | 'heading_to_pickup'
+  | 'picked_up'
+  | 'on_the_way'
+  | 'delivered'
+  | 'failed'
+  | 'cancelled';
 
 export type PaymentStatus =
   | 'pending'
@@ -96,8 +117,19 @@ export interface Order {
   total_amount: number;
   currency: string;
   status: OrderStatus;
+  /** Instant orders only; see `OrderDeliveryStatus`. */
+  delivery_status: OrderDeliveryStatus | null;
+  /** A rider is on the move (heading to pickup / picked up / on the way). */
+  is_trackable: boolean;
+  /**
+   * Server-decided: false once the food has left the kitchen (or the order is
+   * finished). The cancel button follows this, never a client re-derivation.
+   */
+  can_cancel: boolean;
   guests_count: number | null;
   confirmed_at: string | null;
+  picked_up_at: string | null;
+  delivered_at: string | null;
   cancelled_at: string | null;
   cancellation_reason: string | null;
   items?: OrderItem[];

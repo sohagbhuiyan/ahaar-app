@@ -12,6 +12,7 @@ import {
   ExtraOrderSheet,
   FoodImage,
   GuestOrderSheet,
+  LiveStatusPill,
   MealSwapSheet,
   OfflineBanner,
   ScreenHeader,
@@ -353,6 +354,7 @@ function DayTimeline({
   onOrderGuest: (meal: Delivery) => void;
 }) {
   const { t } = useTranslation();
+  const router = useRouter();
   const tones = meals.map(mealTone);
   const editable = tones.filter((tone) => tone === 'open').length;
   const summary =
@@ -398,6 +400,9 @@ function DayTimeline({
             onSwap={() => onSwap(meal)}
             onOrderExtra={() => onOrderExtra(meal)}
             onOrderGuest={() => onOrderGuest(meal)}
+            onTrack={() =>
+              router.push({ pathname: '/deliveries/[id]', params: { id: String(meal.id) } })
+            }
           />
         ))
       )}
@@ -420,12 +425,14 @@ function MealSlot({
   onSwap,
   onOrderExtra,
   onOrderGuest,
+  onTrack,
 }: {
   delivery: Delivery;
   last: boolean;
   onSwap: () => void;
   onOrderExtra: () => void;
   onOrderGuest: () => void;
+  onTrack: () => void;
 }) {
   const { t } = useTranslation();
   const tone = mealTone(delivery);
@@ -548,11 +555,42 @@ function MealSlot({
                 />
               </View>
             ) : null}
+
+            {/* Once the kitchen has it, the meal has a journey worth
+                following — live while the car is on the road. */}
+            {isTrackableMeal(delivery) ? (
+              <View className="mt-4 flex-row items-center gap-2">
+                {delivery.is_trackable ? <LiveStatusPill status={delivery.status} /> : null}
+                <Button
+                  label={t('tracking.track')}
+                  accessibilityLabel={t('tracking.trackA11y', { slot: slotName })}
+                  size="sm"
+                  variant={delivery.is_trackable ? 'primary' : 'outline'}
+                  fullWidth={false}
+                  className="ms-auto"
+                  onPress={onTrack}
+                />
+              </View>
+            ) : null}
           </View>
         </Card>
       </View>
     </View>
   );
+}
+
+/** Statuses past the kitchen's cutoff, where tracking has something to say. */
+const TRACKABLE_MEAL = new Set<Delivery['status']>([
+  'locked',
+  'packed',
+  'out_for_delivery',
+  'delivered',
+  'failed_attempt',
+  'returned',
+]);
+
+function isTrackableMeal(delivery: Delivery): boolean {
+  return delivery.is_trackable || TRACKABLE_MEAL.has(delivery.status);
 }
 
 function ItemRow({ item }: { item: DeliveryItem }) {

@@ -23,6 +23,7 @@ import { createJSONStorage, persist, type StateStorage } from 'zustand/middlewar
 import { AUTH_TOKEN_KEY, setAuthToken } from '../api/client';
 import * as authApi from '../api/endpoints/auth';
 import { signOutOfGoogle } from '../auth/google';
+import { unregisterFromPush } from '../notifications/push';
 import type { LoginPayload, RegisterPayload, User, UserRole } from '../api/types/auth';
 
 /** SecureStore key for the identity snapshot. Distinct from the token's key. */
@@ -130,6 +131,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
+        // Stop pushes to this device for this account. Before the logout call,
+        // which revokes the token this request authenticates with.
+        await unregisterFromPush();
         // Revoke server-side first, but never let a failure strand the user in
         // a signed-in shell — local state is cleared either way.
         await authApi.logout().catch(() => undefined);
@@ -143,6 +147,10 @@ export const useAuthStore = create<AuthState>()(
       syncUser: (user) => set({ user: toSessionUser(user) }),
 
       clearSession: async () => {
+        // Best effort, and a no-op on the 401 path: the API client has already
+        // dropped the bearer token there, and the API removes device tokens
+        // tied to a revoked session by itself.
+        await unregisterFromPush();
         await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY).catch(() => undefined);
         setAuthToken(null);
         set({ token: null, user: null });

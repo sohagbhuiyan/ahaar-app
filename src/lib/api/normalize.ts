@@ -422,8 +422,18 @@ export function normalizeOrder(raw: Raw): Order {
     total_amount: toNumber(raw.total_amount),
     currency: (raw.currency as string) ?? FALLBACK_CURRENCY,
     status: raw.status as Order['status'],
+    delivery_status: (raw.delivery_status as Order['delivery_status']) ?? null,
+    is_trackable: Boolean(raw.is_trackable),
+    // An older API without the field: fall back to the old client rule, so the
+    // button doesn't vanish from every cancellable order.
+    can_cancel:
+      raw.can_cancel === undefined
+        ? raw.status === 'pending' || raw.status === 'confirmed'
+        : Boolean(raw.can_cancel),
     guests_count: (raw.guests_count as number | null) ?? null,
     confirmed_at: (raw.confirmed_at as string | null) ?? null,
+    picked_up_at: (raw.picked_up_at as string | null) ?? null,
+    delivered_at: (raw.delivered_at as string | null) ?? null,
     cancelled_at: (raw.cancelled_at as string | null) ?? null,
     cancellation_reason: (raw.cancellation_reason as string | null) ?? null,
     items: items?.map(normalizeOrderItem),
@@ -520,6 +530,8 @@ export function normalizeDelivery(raw: Raw): Delivery {
     is_customized: Boolean(raw.is_customized),
     cutoff_at: (raw.cutoff_at as string) ?? '',
     before_cutoff: Boolean(raw.before_cutoff),
+    is_trackable: Boolean(raw.is_trackable),
+    delivered_at: (raw.delivered_at as string | null) ?? null,
     items: items?.map(normalizeDeliveryItem),
   };
 }

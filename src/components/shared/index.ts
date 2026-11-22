@@ -51,3 +51,6 @@ export { TapToPlayVideo, PlayBadge, formatDuration } from './VideoPlayer';
 export { MediaVideoCard, commentCountLabel } from './MediaVideoCard';
 export { MediaFeedCard } from './MediaFeedCard';
 export { MediaCommentItem, MediaCommentComposer } from './MediaComments';
+export { TrackingMap } from './TrackingMap';
+export { TrackingPanel, StatusHero, RiderCard, Timeline } from './TrackingPanel';
+export { LiveStatusPill } from './LiveStatusPill';

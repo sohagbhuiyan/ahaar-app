@@ -126,7 +126,17 @@ export async function requestGoogleIdToken(): Promise<string | null> {
     }
 
     // DEVELOPER_ERROR (code 10) on Android is almost always a SHA-1 or package
-    // name that isn't registered on the Android OAuth client.
+    // name that isn't registered on the Android OAuth client. The customer
+    // sees the generic message; the code goes to the log (and Sentry's
+    // breadcrumbs), or this failure is indistinguishable from a flaky network.
+    const code = isErrorWithCode(error) ? error.code : 'unknown';
+    console.warn(
+      `[google-sign-in] failed with code ${code}` +
+        (String(code) === '10' || code === 'DEVELOPER_ERROR'
+          ? ': this build\'s package name + signing SHA-1 is not registered on an Android OAuth client'
+          : ''),
+      error,
+    );
     throw new GoogleSignInError(i18n.t('auth.google.errors.generic'));
   }
 }

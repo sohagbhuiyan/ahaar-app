@@ -5,7 +5,10 @@ import { Text, View } from 'react-native';
 import { Badge, Card, type BadgeVariant } from '@/components/ui';
 import type { Order, OrderStatus } from '@/lib/api/types/order';
 import { paymentStatusLabel, paymentStatusTone } from '@/lib/payments';
+import { isOrderInFlight } from '@/lib/tracking/status';
 import { formatMoney, formatShortDate } from '@/lib/utils';
+
+import { LiveStatusPill } from './LiveStatusPill';
 
 interface Props {
   order: Order;
@@ -26,6 +29,7 @@ const TYPE_LABEL: Record<Order['type'], string> = {
 const STATUS_VARIANT: Record<OrderStatus, BadgeVariant> = {
   pending: 'warning',
   confirmed: 'success',
+  dispatched: 'brand',
   delivered: 'success',
   cancelled: 'danger',
 };
@@ -65,6 +69,12 @@ function OrderCardComponent({ order, slotName, onPress, action }: Props) {
             variant={STATUS_VARIANT[order.status] ?? 'muted'}
           />
         </View>
+
+        {/* Where the food is, for an order a rider is working on — the one
+            thing worth reading in the list while it's in flight. */}
+        {isOrderInFlight(order) && order.delivery_status ? (
+          <LiveStatusPill status={order.delivery_status} className="mt-2" />
+        ) : null}
 
         {itemCount > 0 ? (
           <Text numberOfLines={2} className="mt-2 text-xs text-text-secondary">

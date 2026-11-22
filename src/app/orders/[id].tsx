@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import {
   FoodImage,
   OfflineBanner,
   ScreenHeader,
+  TrackingPanel,
 } from '@/components/shared';
 import {
   AlertDialog,
@@ -31,13 +32,20 @@ import {
   paymentStatusLabel,
   paymentStatusTone,
 } from '@/lib/payments';
-import { useCancelOrder, useDeliverySlotMap, useOrder } from '@/lib/query/hooks';
+import {
+  useCancelOrder,
+  useDeliverySlotMap,
+  useOrder,
+  useOrderTracking,
+} from '@/lib/query/hooks';
+import { orderHasTracking } from '@/lib/tracking/status';
 import { slotWindow } from '@/lib/slots';
 import { formatLongDate, formatMoney } from '@/lib/utils';
 
 const STATUS_VARIANT: Record<OrderStatus, BadgeVariant> = {
   pending: 'warning',
   confirmed: 'success',
+  dispatched: 'brand',
   delivered: 'success',
   cancelled: 'danger',
 };
@@ -65,6 +73,25 @@ export default function OrderDetailScreen() {
   const { data: order, isLoading, isFetching, isError, error, refetch } = useOrder(id);
   const { data: slotById } = useDeliverySlotMap();
   const cancelOrder = useCancelOrder();
+
+  // Instant orders only: extra and guest orders ride along with a subscription
+  // meal, whose own screen tracks it.
+  const trackable = order ? orderHasTracking(order) : false;
+  const focused = useIsFocused();
+  const tracking = useOrderTracking(id, { enabled: trackable, focused });
+
+  // The tracking poll sees a step change before this screen's order does
+  // (picked up → `dispatched`, delivered, cancelled). Re-read the order then,
+  // so `can_cancel` and the status badge follow without a pull-to-refresh.
+  // Once per change of the tracked status, so a lagging read can't loop.
+  const trackedOrderStatus = tracking.data?.order_status;
+  const orderStatus = order?.status;
+  const handledStatus = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!trackedOrderStatus || !orderStatus || handledStatus.current === trackedOrderStatus) return;
+    handledStatus.current = trackedOrderStatus;
+    if (trackedOrderStatus !== orderStatus) void refetch();
+  }, [trackedOrderStatus, orderStatus, refetch]);
 
   const [confirmCancel, setConfirmCancel] = useState(false);
 
@@ -96,10 +123,10 @@ export default function OrderDetailScreen() {
   const slot = slotById?.get(order.slot_id);
   const payable = isPayable(order.payment);
 
-  // The API refuses a cancel past the delivery's cutoff and on anything already
-  // finished; offering the button only in the states it can succeed in keeps a
-  // predictable 422 out of the customer's way.
-  const cancellable = order.status === 'pending' || order.status === 'confirmed';
+  // Server-decided: false once the rider has the food, or the order is
+  // finished. A race (picked up while the dialog is open) still answers 422
+  // `already_dispatched`, handled below.
+  const cancellable = order.can_cancel;
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
@@ -114,7 +141,13 @@ export default function OrderDetailScreen() {
         contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} />
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={() => {
+              void refetch();
+              if (trackable) void tracking.refetch();
+            }}
+          />
         }
       >
         {/* Status */}
@@ -141,6 +174,7 @@ export default function OrderDetailScreen() {
               />
             </View>
 
+
             {order.status === 'cancelled' && order.cancellation_reason ? (
               <View className="mt-3 rounded-2xl bg-danger-soft px-4 py-3">
                 <Text className="text-xs text-danger">
@@ -152,6 +186,15 @@ export default function OrderDetailScreen() {
             <DeliveryAddressBlock address={order.delivery_address} className="mt-3" />
           </View>
         </Card>
+
+        {trackable ? (
+          <TrackingPanel
+            tracking={tracking.data}
+            isLoading={tracking.isLoading}
+            isError={tracking.isError}
+            className="mt-4"
+          />
+        ) : null}
 
         {/* Items */}
         {order.items && order.items.length > 0 ? (
@@ -295,6 +338,15 @@ export default function OrderDetailScreen() {
               },
               onError: (e) => {
                 setConfirmCancel(false);
+                if (isApiError(e) && e.reason === 'already_dispatched') {
+                  // The rider picked it up while the customer was deciding.
+                  // Say so in our words, and bring the screen up to date so
+                  // the button goes away.
+                  toast.error(t('tracking.cancel.alreadyDispatched'));
+                  void refetch();
+                  void tracking.refetch();
+                  return;
+                }
                 toast.error(
                   isApiError(e) ? e.message : t('ordering.orderDetail.cancelFailed'),
                 );

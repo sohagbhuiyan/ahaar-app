@@ -41,6 +41,13 @@ export const apiClient: AxiosInstance = axios.create({
   timeout: 15_000,
 });
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /** Don't run the global 401 handler for this request. */
+    skipUnauthorizedHandler?: boolean;
+  }
+}
+
 // ── Token ────────────────────────────────────────────────────────────────────
 
 let authToken: string | null = null;
@@ -108,7 +115,10 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const normalized = normalizeError(error);
 
-    if (normalized.status === 401) {
+    // `skipUnauthorizedHandler`: a best-effort call made while a session is
+    // already ending (unregistering the push token) must not re-enter the
+    // sign-out path or prompt a sign-in over a deliberate sign-out.
+    if (normalized.status === 401 && !error.config?.skipUnauthorizedHandler) {
       setAuthToken(null);
       await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY).catch(() => undefined);
       await onUnauthorized?.();
