@@ -10,6 +10,7 @@
  */
 import type { QueryClient } from '@tanstack/react-query';
 
+import type { AppNotification } from '../api/types/notification';
 import type { PushData } from '../api/types/tracking';
 import { queryKeys } from '../query/keys';
 
@@ -28,6 +29,38 @@ export function parsePushData(data: unknown): PushData | null {
   }
   if (d.type === 'delivery.status' && isId(d.delivery_id)) {
     return { type: 'delivery.status', delivery_id: String(d.delivery_id), status };
+  }
+  return null;
+}
+
+/**
+ * A push that carries no title or body is a silent sync signal (the API never
+ * stores those in the inbox either): refresh, but don't ring or show it.
+ */
+export function isSilentPush(content: { title?: string | null; body?: string | null }): boolean {
+  return !content.title && !content.body;
+}
+
+/** The inbox and the bell's count — every visible push adds a row. */
+export function invalidateInbox(queryClient: QueryClient): void {
+  void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all() });
+}
+
+/**
+ * An inbox row as the push it was, so a tap on it does what a tap on the push
+ * did. Keyed on the ids rather than only `type`: an older row, or a type this
+ * build doesn't know, still opens the order or meal it names.
+ */
+export function pushDataForNotification(notification: AppNotification): PushData | null {
+  const status = notification.status ?? undefined;
+  if (notification.type === 'delivery.status' && notification.delivery_id) {
+    return { type: 'delivery.status', delivery_id: String(notification.delivery_id), status };
+  }
+  if (notification.order_id) {
+    return { type: 'order.status', order_id: String(notification.order_id), status };
+  }
+  if (notification.delivery_id) {
+    return { type: 'delivery.status', delivery_id: String(notification.delivery_id), status };
   }
   return null;
 }

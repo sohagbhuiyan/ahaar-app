@@ -97,4 +97,10 @@ export {
   useAppActive,
   trackingRefetchInterval,
 } from './useTracking';
+export {
+  useNotifications,
+  useUnreadNotificationCount,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+} from './useNotifications';
 export { useLogin, useRegister, useGoogleLogin, useLogout } from './useAuth';

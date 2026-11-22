@@ -4,12 +4,13 @@ import { useRootNavigationState, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
-import { toast } from 'sonner-native';
 
 import { Button, Dialog } from '@/components/ui';
+import { markNotificationRead } from '@/lib/api/endpoints/notifications';
 import type { PushData } from '@/lib/api/types/tracking';
-import i18n from '@/lib/i18n';
+import { useUnreadNotificationCount } from '@/lib/query/hooks/useNotifications';
 import {
+  ensureNotificationChannels,
   getPushPermission,
   notifications,
   notificationsAvailable,
@@ -17,8 +18,15 @@ import {
   pushRegistrationSupported,
   registerForPush,
   requestPushPermission,
+  setAppBadgeCount,
 } from '@/lib/notifications/push';
-import { invalidateForPush, parsePushData, routeForPush } from '@/lib/notifications/routing';
+import {
+  invalidateForPush,
+  invalidateInbox,
+  isSilentPush,
+  parsePushData,
+  routeForPush,
+} from '@/lib/notifications/routing';
 import { useAuthHydrated, useAuthStore } from '@/lib/store';
 import { useNeedsOnboarding } from '@/lib/store/useOnboardingStore';
 
@@ -40,9 +48,13 @@ const SOFT_PROMPT_DELAY_MS = 6_000;
  *    customer has allowed notifications.
  *  - Asks for that permission through an in-app explanation first, a few
  *    seconds into a signed-in session; the system dialog only follows a "yes".
- *  - A push that arrives in the foreground refreshes the order/meal it's about
- *    and shows as a toast instead of a system banner.
+ *  - Creates the Android channels (sound, heads-up importance) on every start.
+ *  - A push that arrives in the foreground shows the same system banner and
+ *    sound as in the background, and refreshes the order/meal it's about plus
+ *    the bell's inbox. No in-app toast on top: the banner already says it and
+ *    is tappable, so a toast would announce every update twice.
  *  - Tapping a notification (also from a cold start) opens that order or meal.
+ *  - Keeps the app icon's badge equal to the inbox's unread count.
  *
  * Renders nothing in a build without the native module (Expo Go, web).
  */
@@ -51,27 +63,31 @@ export function PushNotifications() {
   return <PushNotificationsInner />;
 }
 
-// Foreground presentation: our own delivery pushes become an in-app toast
-// (shown by the received listener below), anything else shows normally.
+/**
+ * Foreground presentation: every visible push looks and sounds the same as in
+ * the background (heads-up banner, the channel's sound, badge). A silent push
+ * (no title or body) only refreshes data. On Android `shouldPlaySound: false`
+ * would also suppress the heads-up, so the two always go together.
+ */
 let handlerInstalled = false;
 function installForegroundHandler() {
   if (handlerInstalled) return;
   handlerInstalled = true;
   notifications().setNotificationHandler({
     handleNotification: async (notification) => {
-      const ours = parsePushData(notification.request.content.data) !== null;
+      const show = !isSilentPush(notification.request.content);
       return {
-        shouldShowBanner: !ours,
-        shouldShowList: true,
-        shouldPlaySound: !ours,
-        shouldSetBadge: false,
+        shouldShowBanner: show,
+        shouldShowList: show,
+        shouldPlaySound: show,
+        shouldSetBadge: show,
       };
     },
   });
 }
 
 function PushNotificationsInner() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
   const hydrated = useAuthHydrated();
@@ -90,9 +106,25 @@ function PushNotificationsInner() {
 
   useEffect(installForegroundHandler, []);
 
+  // Channels before the first push can arrive; re-run on a language change so
+  // their names in system Settings follow the app's language.
+  const language = i18n.language;
+  useEffect(() => {
+    void ensureNotificationChannels();
+  }, [language]);
+
+  // The app icon badge mirrors the inbox. Signed out the count is 0, which
+  // also clears a badge left over from the previous session.
+  const { count: unreadCount } = useUnreadNotificationCount();
+  useEffect(() => {
+    if (!hydrated) return;
+    void setAppBadgeCount(unreadCount);
+  }, [hydrated, unreadCount]);
+
   const openFor = useCallback(
     (data: PushData) => {
       invalidateForPush(queryClient, data);
+      invalidateInbox(queryClient);
       router.push(routeForPush(data));
     },
     [queryClient, router],
@@ -103,6 +135,11 @@ function PushNotificationsInner() {
       const id = response.notification.request.identifier;
       if (handled.current.has(id)) return;
       handled.current.add(id);
+      // The push carries its inbox row id: opening it counts as reading it.
+      const raw = response.notification.request.content.data as { notification_id?: unknown } | undefined;
+      if (typeof raw?.notification_id === 'string' && raw.notification_id) {
+        markNotificationRead(raw.notification_id).catch(() => undefined);
+      }
       const data = parsePushData(response.notification.request.content.data);
       if (data) setPendingRoute(data);
     },
@@ -113,21 +150,13 @@ function PushNotificationsInner() {
   useEffect(() => {
     const Notifications = notifications();
 
+    // The system banner (see the handler) is the announcement; this only
+    // brings the data behind it up to date.
     const received = Notifications.addNotificationReceivedListener((notification) => {
-      const data = parsePushData(notification.request.content.data);
-      if (!data) return;
-      invalidateForPush(queryClient, data);
-
       const content = notification.request.content;
-      const title =
-        content.title ??
-        (data.type === 'order.status'
-          ? i18n.t('tracking.push.orderTitle', { id: data.order_id })
-          : i18n.t('tracking.push.deliveryTitle'));
-      toast(title, {
-        description: content.body ?? undefined,
-        action: { label: i18n.t('tracking.push.view'), onClick: () => openFor(data) },
-      });
+      if (!isSilentPush(content)) invalidateInbox(queryClient);
+      const data = parsePushData(content.data);
+      if (data) invalidateForPush(queryClient, data);
     });
 
     const tapped = Notifications.addNotificationResponseReceivedListener(onTap);
@@ -145,7 +174,7 @@ function PushNotificationsInner() {
       received.remove();
       tapped.remove();
     };
-  }, [queryClient, openFor, onTap]);
+  }, [queryClient, onTap]);
 
   // Navigate once the router is mounted and the session is known. Signed out,
   // the order screens would only ask to sign in, so the tap is dropped.

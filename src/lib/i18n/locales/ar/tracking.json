@@ -118,14 +118,29 @@
     "backToPlan": "العودة إلى خطتي"
   },
   "push": {
-    "channelName": "تحديثات الطلبات",
-    "channelDescription": "تحديثات المندوب والتوصيل لطلباتك ووجباتك",
     "softTitle": "هل تريد تلقي تحديثات التوصيل؟",
     "softBody": "سنخبرك عندما يستلم المندوب طعامك وعندما يصل إلى بابك. تحديثات الطلبات فقط، لا شيء غير ذلك.",
     "softAllow": "تفعيل التحديثات",
     "softLater": "ليس الآن",
-    "view": "عرض",
     "orderTitle": "الطلب رقم {{id}}",
-    "deliveryTitle": "وجبتك"
+    "deliveryTitle": "وجبتك",
+    "updatesChannelName": "تحديثات الطلبات",
+    "updatesChannelDescription": "تحديثات المندوب والتوصيل لطلباتك ووجباتك",
+    "newOrdersChannelName": "تنبيهات عاجلة",
+    "newOrdersChannelDescription": "تنبيهات عاجلة تحتاج إلى انتباهك"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "bell": "الإشعارات",
+    "bellUnread": "الإشعارات، غير المقروءة: {{count}}",
+    "markAllRead": "تعليم الكل كمقروء",
+    "markAllFailed": "تعذّر تعليمها كمقروءة. حاول مرة أخرى.",
+    "unread": "غير مقروء",
+    "emptyTitle": "لا توجد إشعارات بعد",
+    "emptyBody": "ستظهر هنا تحديثات طلباتك والتوصيل.",
+    "signInTitle": "سجّل الدخول لرؤية إشعاراتك",
+    "signInBody": "نحتفظ هنا بتحديثات طلباتك والتوصيل.",
+    "authReason": "لرؤية إشعاراتك",
+    "fallbackTitle": "تحديث من AHAAR"
   }
 }

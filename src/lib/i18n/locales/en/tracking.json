@@ -106,14 +106,29 @@
     "backToPlan": "Back to my plan"
   },
   "push": {
-    "channelName": "Order updates",
-    "channelDescription": "Rider and delivery updates for your orders and meals",
     "softTitle": "Get delivery updates?",
     "softBody": "We'll let you know when a rider picks up your food and when it's at your door. Just order updates, nothing else.",
     "softAllow": "Turn on updates",
     "softLater": "Not now",
-    "view": "View",
     "orderTitle": "Order #{{id}}",
-    "deliveryTitle": "Your meal"
+    "deliveryTitle": "Your meal",
+    "updatesChannelName": "Order updates",
+    "updatesChannelDescription": "Rider and delivery updates for your orders and meals",
+    "newOrdersChannelName": "Urgent alerts",
+    "newOrdersChannelDescription": "Time-sensitive alerts that need your attention"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "bell": "Notifications",
+    "bellUnread": "Notifications, {{count}} unread",
+    "markAllRead": "Mark all read",
+    "markAllFailed": "Couldn't mark them as read. Try again.",
+    "unread": "Unread",
+    "emptyTitle": "No notifications yet",
+    "emptyBody": "Order and delivery updates will show up here.",
+    "signInTitle": "Sign in to see your notifications",
+    "signInBody": "Your order and delivery updates are kept here.",
+    "authReason": "to see your notifications",
+    "fallbackTitle": "Ahaar update"
   }
 }

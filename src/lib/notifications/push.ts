@@ -27,8 +27,25 @@ import i18n from '../i18n';
 
 type NotificationsLib = typeof import('expo-notifications');
 
-/** The Android channel the API addresses (`docs/delivery-api.md`). */
-export const DELIVERY_CHANNEL_ID = 'ahaar-deliveries';
+/**
+ * Android channels the API addresses (`docs/delivery-api.md`, "Push sound and
+ * channels (v2)"). Android takes a push's sound and importance from its
+ * channel, and a channel's sound can't change once created, so each sound has
+ * its own id. The sound files ship through the expo-notifications plugin's
+ * `sounds` (app.json), which copies them into `res/raw`.
+ *
+ *   ahaar-updates     every customer order/meal update  HIGH  order_update.wav
+ *   ahaar-new-orders  rider offers (never sent here,    MAX   new_order.wav
+ *                     but every app creates both)
+ */
+export const UPDATES_CHANNEL_ID = 'ahaar-updates';
+export const NEW_ORDERS_CHANNEL_ID = 'ahaar-new-orders';
+/** v1's channel: no custom sound. Deleted so Settings doesn't list it twice. */
+export const LEGACY_CHANNEL_ID = 'ahaar-deliveries';
+
+export const UPDATE_SOUND = 'order_update.wav';
+export const NEW_ORDER_SOUND = 'new_order.wav';
+const BRAND_LIGHT = '#ff2b85';
 
 /** This binary can show and receive notifications at all. */
 export const notificationsAvailable =
@@ -51,19 +68,67 @@ export function notifications(): NotificationsLib {
 export type PushPermission = 'granted' | 'undetermined' | 'denied';
 
 /**
- * Android 13+ shows no permission dialog until a channel exists, so this runs
- * before any permission request or token read.
+ * Create (or refresh the names of) both channels and drop the v1 one.
+ *
+ * Runs on every start, before any permission request or token read: Android
+ * 13+ shows no permission dialog until a channel exists, and a push that
+ * arrives for a channel the app never created plays on the fallback channel
+ * with no custom sound. Re-running is cheap and only updates the name and
+ * description (the one part Android lets an app change), so a language switch
+ * renames them in Settings. Never throws.
  */
-export async function ensureDeliveryChannel(): Promise<void> {
+export async function ensureNotificationChannels(): Promise<void> {
   if (!notificationsAvailable || Platform.OS !== 'android') return;
   const Notifications = notifications();
-  await Notifications.setNotificationChannelAsync(DELIVERY_CHANNEL_ID, {
-    name: i18n.t('tracking.push.channelName'),
-    description: i18n.t('tracking.push.channelDescription'),
-    importance: Notifications.AndroidImportance.HIGH,
-    vibrationPattern: [0, 250, 150, 250],
-    lightColor: '#ff2b85',
-  }).catch(() => null);
+  const lockscreenVisibility = Notifications.AndroidNotificationVisibility.PUBLIC;
+
+  await Promise.all([
+    Notifications.setNotificationChannelAsync(UPDATES_CHANNEL_ID, {
+      name: i18n.t('tracking.push.updatesChannelName'),
+      description: i18n.t('tracking.push.updatesChannelDescription'),
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: UPDATE_SOUND,
+      enableVibrate: true,
+      vibrationPattern: [0, 250, 150, 250],
+      enableLights: true,
+      lightColor: BRAND_LIGHT,
+      lockscreenVisibility,
+      showBadge: true,
+    }).catch(() => null),
+    Notifications.setNotificationChannelAsync(NEW_ORDERS_CHANNEL_ID, {
+      name: i18n.t('tracking.push.newOrdersChannelName'),
+      description: i18n.t('tracking.push.newOrdersChannelDescription'),
+      importance: Notifications.AndroidImportance.MAX,
+      sound: NEW_ORDER_SOUND,
+      enableVibrate: true,
+      vibrationPattern: [0, 400, 250, 400, 250, 600],
+      enableLights: true,
+      lightColor: BRAND_LIGHT,
+      lockscreenVisibility,
+      bypassDnd: false,
+      showBadge: true,
+    }).catch(() => null),
+  ]);
+
+  try {
+    const existing = (await Notifications.getNotificationChannelsAsync()) ?? [];
+    if (existing.some((channel) => channel.id === LEGACY_CHANNEL_ID)) {
+      await Notifications.deleteNotificationChannelAsync(LEGACY_CHANNEL_ID);
+    }
+  } catch {
+    // Not worth failing start-up over; it only clutters Settings.
+  }
+}
+
+/**
+ * The app icon's badge. Android launchers that show a number read it from
+ * here; on iOS it needs the badge permission. Never throws.
+ */
+export async function setAppBadgeCount(count: number): Promise<void> {
+  if (!notificationsAvailable) return;
+  await notifications()
+    .setBadgeCountAsync(Math.max(0, Math.floor(count)))
+    .catch(() => false);
 }
 
 /**
@@ -84,7 +149,7 @@ export async function getPushPermission(): Promise<PushPermission> {
 /** Show the system dialog. Call only after the in-app explanation. */
 export async function requestPushPermission(): Promise<boolean> {
   if (!pushRegistrationSupported) return false;
-  await ensureDeliveryChannel();
+  await ensureNotificationChannels();
   try {
     const status = await notifications().requestPermissionsAsync();
     return status.granted;
@@ -112,7 +177,7 @@ export async function registerForPush(token?: string): Promise<boolean> {
   if ((await getPushPermission()) !== 'granted') return false;
 
   try {
-    await ensureDeliveryChannel();
+    await ensureNotificationChannels();
     const deviceToken = token ?? String((await notifications().getDevicePushTokenAsync()).data);
     if (!deviceToken) return false;
     await registerDeviceToken({ token: deviceToken, platform: 'android', app: 'customer' });

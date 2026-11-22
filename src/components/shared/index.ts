@@ -54,3 +54,4 @@ export { MediaCommentItem, MediaCommentComposer } from './MediaComments';
 export { TrackingMap } from './TrackingMap';
 export { TrackingPanel, StatusHero, RiderCard, Timeline } from './TrackingPanel';
 export { LiveStatusPill } from './LiveStatusPill';
+export { NotificationBell } from './NotificationBell';

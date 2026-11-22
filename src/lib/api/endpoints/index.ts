@@ -10,6 +10,7 @@ import * as foods from './foods';
 import * as home from './home';
 import * as media from './media';
 import * as menu from './menu';
+import * as notifications from './notifications';
 import * as orders from './orders';
 import * as packages from './packages';
 import * as plans from './plans';
@@ -26,6 +27,7 @@ export const api = {
   home,
   media,
   menu,
+  notifications,
   orders,
   packages,
   plans,
@@ -43,6 +45,7 @@ export {
   home,
   media,
   menu,
+  notifications,
   orders,
   packages,
   plans,

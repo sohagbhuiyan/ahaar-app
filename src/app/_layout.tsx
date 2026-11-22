@@ -162,6 +162,7 @@ function RootLayout() {
                   <Stack.Screen name="deliveries/[id]" />
                   <Stack.Screen name="schedule" />
                   <Stack.Screen name="payments" />
+                  <Stack.Screen name="notifications" />
                   <Stack.Screen name="profile" />
                   {/* `orders.tsx` + `orders/[id].tsx` rather than an `orders/`
                       folder with an `index`: the flat file keeps the generated

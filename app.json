@@ -76,8 +76,13 @@
       [
         "expo-notifications",
         {
+          "icon": "./assets/images/notification-icon.png",
           "color": "#ff2b85",
-          "defaultChannel": "ahaar-deliveries"
+          "defaultChannel": "ahaar-updates",
+          "sounds": [
+            "./assets/sounds/order_update.wav",
+            "./assets/sounds/new_order.wav"
+          ]
         }
       ],
       [

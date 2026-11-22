@@ -20,6 +20,7 @@ import {
   LocationPill,
   LocationRequiredCard,
   LocationSheet,
+  NotificationBell,
   OfflineBanner,
   PackageCard,
   PlanCard,
@@ -401,8 +402,9 @@ export default function HomeScreen() {
           under the safe area, so the logo and where the food goes stay in view
           however far down the customer scrolls. The logo is fixed-size and the
           location takes the rest of the row, so a long address truncates
-          instead of pushing the brand off screen. */}
-      <View className="flex-row items-center border-b border-border bg-surface pl-4">
+          instead of pushing the brand off screen. The bell closes the row at
+          its end (right, or left in Arabic: the row mirrors with RTL). */}
+      <View className="flex-row items-center border-b border-border bg-surface pl-4 pr-3">
         <AhaarLogo height={40} />
         <View className="ml-3 h-9 w-px bg-border" />
         <LocationPill
@@ -411,6 +413,7 @@ export default function HomeScreen() {
           onPress={openLocationSheet}
           className="flex-1 pl-3"
         />
+        <NotificationBell />
       </View>
       <OfflineBanner />
 

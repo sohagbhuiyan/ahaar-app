@@ -9,3 +9,4 @@ export * from './addons';
 export * from './package';
 export * from './media';
 export * from './tracking';
+export * from './notification';

@@ -106,14 +106,29 @@
     "backToPlan": "আমার প্ল্যানে ফিরুন"
   },
   "push": {
-    "channelName": "অর্ডার আপডেট",
-    "channelDescription": "আপনার অর্ডার ও খাবারের রাইডার এবং ডেলিভারি আপডেট",
     "softTitle": "ডেলিভারি আপডেট পেতে চান?",
     "softBody": "রাইডার খাবার তুললে এবং আপনার দরজায় পৌঁছালে আমরা জানাব। শুধু অর্ডার আপডেট, আর কিছু নয়।",
     "softAllow": "আপডেট চালু করুন",
     "softLater": "এখন নয়",
-    "view": "দেখুন",
     "orderTitle": "অর্ডার #{{id}}",
-    "deliveryTitle": "আপনার খাবার"
+    "deliveryTitle": "আপনার খাবার",
+    "updatesChannelName": "অর্ডার আপডেট",
+    "updatesChannelDescription": "আপনার অর্ডার ও খাবারের রাইডার এবং ডেলিভারি আপডেট",
+    "newOrdersChannelName": "জরুরি সতর্কতা",
+    "newOrdersChannelDescription": "সময়-সংবেদনশীল সতর্কতা যেগুলোতে আপনার মনোযোগ দরকার"
+  },
+  "notifications": {
+    "title": "নোটিফিকেশন",
+    "bell": "নোটিফিকেশন",
+    "bellUnread": "নোটিফিকেশন, {{count}}টি অপঠিত",
+    "markAllRead": "সব পঠিত করুন",
+    "markAllFailed": "পঠিত করা যায়নি। আবার চেষ্টা করুন।",
+    "unread": "অপঠিত",
+    "emptyTitle": "এখনো কোনো নোটিফিকেশন নেই",
+    "emptyBody": "অর্ডার ও ডেলিভারির আপডেট এখানে দেখাবে।",
+    "signInTitle": "নোটিফিকেশন দেখতে সাইন ইন করুন",
+    "signInBody": "আপনার অর্ডার ও ডেলিভারির আপডেট এখানে রাখা থাকে।",
+    "authReason": "আপনার নোটিফিকেশন দেখতে",
+    "fallbackTitle": "আহার আপডেট"
   }
 }

@@ -66,7 +66,7 @@ describe('push registration', () => {
 
     await expect(push.registerForPush()).resolves.toBe(true);
     expect(Notifications.setNotificationChannelAsync).toHaveBeenCalledWith(
-      'ahaar-deliveries',
+      'ahaar-updates',
       expect.objectContaining({ importance: Notifications.AndroidImportance.HIGH }),
     );
     expect(post).toHaveBeenCalledWith('/device-tokens', {
@@ -122,5 +122,61 @@ describe('push registration', () => {
     delete (globalThis as { __expoGo?: boolean }).__expoGo;
     expect(push.notificationsAvailable).toBe(false);
     expect(push.pushRegistrationSupported).toBe(false);
+  });
+});
+
+describe('notification channels (v2)', () => {
+  beforeEach(() => jest.clearAllMocks());
+  afterEach(() => Object.defineProperty(OuterPlatform, 'OS', ORIGINAL_OS));
+
+  it('creates ahaar-updates and ahaar-new-orders with their sounds, as the contract says', async () => {
+    const { push, Notifications } = loadPush('android');
+    await push.ensureNotificationChannels();
+
+    expect(Notifications.setNotificationChannelAsync).toHaveBeenCalledWith(
+      'ahaar-updates',
+      expect.objectContaining({
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: 'order_update.wav',
+        enableVibrate: true,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        lightColor: '#ff2b85',
+      }),
+    );
+    expect(Notifications.setNotificationChannelAsync).toHaveBeenCalledWith(
+      'ahaar-new-orders',
+      expect.objectContaining({
+        importance: Notifications.AndroidImportance.MAX,
+        sound: 'new_order.wav',
+        vibrationPattern: [0, 400, 250, 400, 250, 600],
+        bypassDnd: false,
+      }),
+    );
+  });
+
+  it('deletes the v1 ahaar-deliveries channel only when it exists', async () => {
+    const { push, Notifications } = loadPush('android');
+    await push.ensureNotificationChannels();
+    expect(Notifications.deleteNotificationChannelAsync).not.toHaveBeenCalled();
+
+    (Notifications.getNotificationChannelsAsync as jest.Mock).mockResolvedValueOnce([
+      { id: 'ahaar-deliveries' },
+    ]);
+    await push.ensureNotificationChannels();
+    expect(Notifications.deleteNotificationChannelAsync).toHaveBeenCalledWith('ahaar-deliveries');
+  });
+
+  it('creates no channels on iOS', async () => {
+    const { push, Notifications } = loadPush('ios');
+    await push.ensureNotificationChannels();
+    expect(Notifications.setNotificationChannelAsync).not.toHaveBeenCalled();
+  });
+
+  it('sets the app badge, never below zero', async () => {
+    const { push, Notifications } = loadPush('android');
+    await push.setAppBadgeCount(-3);
+    expect(Notifications.setBadgeCountAsync).toHaveBeenCalledWith(0);
+    await push.setAppBadgeCount(4);
+    expect(Notifications.setBadgeCountAsync).toHaveBeenCalledWith(4);
   });
 });

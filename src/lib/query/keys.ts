@@ -139,6 +139,16 @@ export const queryKeys = {
     tracking: (id: string | number) => ['orders', 'tracking', String(id)] as const,
   },
 
+  /**
+   * The inbox behind the Home bell. One customer's own messages, so private:
+   * sign-out sweeps it.
+   */
+  notifications: {
+    all: () => ['notifications'] as const,
+    list: () => ['notifications', 'list'] as const,
+    unreadCount: () => ['notifications', 'unread-count'] as const,
+  },
+
   /** The customer's own charge history. */
   payments: {
     all: () => ['payments'] as const,
@@ -182,5 +192,6 @@ export const PRIVATE_QUERY_ROOTS: readonly (readonly string[])[] = [
   queryKeys.schedule.all(),
   queryKeys.orders.all(),
   queryKeys.payments.all(),
+  queryKeys.notifications.all(),
   queryKeys.addons.all(),
 ];
