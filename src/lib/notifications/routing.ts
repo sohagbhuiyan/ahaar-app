@@ -5,6 +5,11 @@
  *   order.status    { order_id, status }     → order + list + tracking; tap → orders/[id]
  *   delivery.status { delivery_id, status }  → delivery + list + tracking; tap → deliveries/[id]
  *
+ * `status` is informational only and never changes the routing: for orders a
+ * delivery_status or the kitchen's `preparing` / `ready_for_pickup`; for
+ * deliveries `rider_assigned`, `out_for_delivery`, `next_stop`, `delivered`,
+ * `failed_attempt`. An unknown status is still a valid push.
+ *
  * Any other `type` (or a malformed one) is ignored: the API may add types
  * this build doesn't know.
  */

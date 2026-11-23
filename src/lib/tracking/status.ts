@@ -19,6 +19,8 @@ export const KNOWN_TRACKING_STATUSES = [
   'assigned',
   'accepted',
   'heading_to_pickup',
+  'preparing',
+  'ready_for_pickup',
   'picked_up',
   'on_the_way',
   'dispatched',
@@ -29,8 +31,10 @@ export const KNOWN_TRACKING_STATUSES = [
   'locked',
   'packed',
   'rider_assigned',
+  'loaded',
   'out_for_delivery',
   'next_stop',
+  'rescheduled',
   'failed_attempt',
   'returned',
   'paused',
@@ -38,6 +42,62 @@ export const KNOWN_TRACKING_STATUSES = [
 ] as const;
 
 const KNOWN = new Set<string>(KNOWN_TRACKING_STATUSES);
+
+/**
+ * Route housekeeping the backend records on a delivery's timeline for staff.
+ * A customer never sees these (same list as the web app).
+ */
+export const STAFF_ONLY_TIMELINE_STEPS: readonly string[] = [
+  'moved',
+  'removed_from_run',
+  'label_reprinted',
+  'reordered',
+];
+
+const STAFF_ONLY = new Set<string>(STAFF_ONLY_TIMELINE_STEPS);
+
+/** The timeline as the customer sees it: staff-only steps dropped, order kept. */
+export function customerTimeline<T extends { status: TrackingStatus }>(steps: readonly T[]): T[] {
+  return steps.filter((step) => !STAFF_ONLY.has(step.status));
+}
+
+/** An instant order's delivery leg before the rider has collected the food. */
+const BEFORE_PICKUP = new Set<string>(['searching_rider', 'assigned', 'accepted', 'heading_to_pickup']);
+/** The rider has the food (or it's over): the kitchen has nothing left to say. */
+const AFTER_PICKUP = new Set<string>([
+  'picked_up',
+  'on_the_way',
+  'dispatched',
+  'delivered',
+  'failed',
+  'cancelled',
+]);
+
+export type KitchenStep = 'preparing' | 'ready' | 'loaded';
+
+/**
+ * The kitchen-side chip beside the status (mirrors the web's `kitchenStep`):
+ *  - instant order not yet picked up → `prep_status` ("Kitchen is preparing" /
+ *    "Packed, waiting for the rider");
+ *  - subscription box still `packed` but scanned into the car → `loaded`
+ *    ("In the car").
+ * Null otherwise, and always null after pickup or once final.
+ */
+export function kitchenStep(
+  tracking: Pick<Tracking, 'subject' | 'status' | 'order_status' | 'is_final' | 'prep_status' | 'is_loaded'>,
+): KitchenStep | null {
+  if (tracking.is_final) return null;
+  if (tracking.subject === 'order') {
+    if (!tracking.prep_status) return null;
+    if (AFTER_PICKUP.has(tracking.status)) return null;
+    const beforePickup =
+      BEFORE_PICKUP.has(tracking.status) ||
+      tracking.status === 'confirmed' ||
+      tracking.order_status === 'confirmed';
+    return beforePickup ? tracking.prep_status : null;
+  }
+  return tracking.is_loaded === true && tracking.status === 'packed' ? 'loaded' : null;
+}
 
 /** Localized label for any status; unknown ones read as a generic "Update". */
 export function trackingStatusLabel(status: TrackingStatus | null | undefined): string {

@@ -8,8 +8,10 @@ import { Badge, Button, Card, Skeleton } from '@/components/ui';
 import type { Tracking, TrackingTimelineStep } from '@/lib/api/types/tracking';
 import { formatDate, formatTime } from '@/lib/i18n/format';
 import {
+  customerTimeline,
   etaLabel,
   hasMap,
+  kitchenStep,
   trackingStatusHint,
   trackingStatusLabel,
   trackingStatusTone,
@@ -56,12 +58,14 @@ export function TrackingPanel({ tracking, isLoading, isError, isFetching, classN
     ) : null;
   }
 
+  const steps = customerTimeline(tracking.timeline);
+
   return (
     <Animated.View entering={FadeIn.duration(250)} className={cn('gap-4', className)}>
       <StatusHero tracking={tracking} refreshing={Boolean(isFetching)} />
       {hasMap(tracking) && !tracking.is_final ? <TrackingMap tracking={tracking} /> : null}
       {tracking.rider ? <RiderCard tracking={tracking} /> : null}
-      {tracking.timeline.length > 0 ? <Timeline steps={tracking.timeline} /> : null}
+      {steps.length > 0 ? <Timeline steps={steps} /> : null}
     </Animated.View>
   );
 }
@@ -91,6 +95,7 @@ export function StatusHero({ tracking, refreshing }: { tracking: Tracking; refre
       ? (tracking.route.distance_m / 1000).toFixed(1)
       : null;
   const stops = tracking.stops_before;
+  const kitchen = kitchenStep(tracking);
 
   return (
     <Card>
@@ -110,6 +115,15 @@ export function StatusHero({ tracking, refreshing }: { tracking: Tracking; refre
             <Badge label={label} variant={trackingStatusTone(tracking.status)} />
           )}
         </View>
+
+        {kitchen ? (
+          <View className="mt-2 flex-row" testID="tracking-kitchen">
+            <View className="flex-row items-center gap-1.5 rounded-xl bg-brand-50 px-2.5 py-1">
+              <Text style={{ fontSize: 12 }}>{kitchen === 'loaded' ? '🚗' : '👨‍🍳'}</Text>
+              <Text className="text-xs font-bold text-brand-700">{t(`tracking.kitchen.${kitchen}`)}</Text>
+            </View>
+          </View>
+        ) : null}
 
         {hint ? <Text className="mt-1.5 text-sm text-text-secondary">{hint}</Text> : null}
 

@@ -28,6 +28,10 @@
     "returned": "Returned to the kitchen",
     "paused": "Paused",
     "skipped": "Skipped",
+    "preparing": "Preparing",
+    "ready_for_pickup": "Ready for pickup",
+    "loaded": "Loaded into the car",
+    "rescheduled": "Rescheduled",
     "unknown": "Update"
   },
   "hint": {
@@ -52,7 +56,11 @@
     "failed_attempt": "We couldn't hand over your meal. Our team will be in touch.",
     "returned": "Your meal went back to the kitchen.",
     "paused": "Nothing is delivered on a paused day.",
-    "skipped": "Nothing is delivered on a skipped day."
+    "skipped": "Nothing is delivered on a skipped day.",
+    "preparing": "The kitchen is cooking your order.",
+    "ready_for_pickup": "Your order is packed and waiting for the rider.",
+    "loaded": "Your meal is in the car and leaves with the route.",
+    "rescheduled": "Your meal has moved to a new delivery time."
   },
   "eta": {
     "minutes_one": "Arriving in {{count}} min",
@@ -68,6 +76,11 @@
     "before_one": "{{count}} stop before you",
     "before_other": "{{count}} stops before you",
     "next": "You're the next stop"
+  },
+  "kitchen": {
+    "preparing": "Kitchen is preparing",
+    "ready": "Packed, waiting for the rider",
+    "loaded": "In the car"
   },
   "timeline": {
     "title": "Progress"

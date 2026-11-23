@@ -13,11 +13,14 @@
  * Instant orders: `placed`, `confirmed`, then the delivery leg
  * (`searching_rider` → `assigned` → `accepted` → `heading_to_pickup` →
  * `picked_up` → `on_the_way` → `delivered`, or `failed` / `cancelled`).
- * A pending order reads `awaiting_payment`.
+ * A pending order reads `awaiting_payment`. The kitchen runs in parallel
+ * (`prep_status`) and adds the timeline steps `preparing` / `ready_for_pickup`.
  *
  * Subscription meals: `scheduled` → `locked` → `packed` → `out_for_delivery`
- * → `delivered` | `failed_attempt`, plus the event-only `rider_assigned` and
- * `next_stop`, and `paused` / `skipped` / `returned`.
+ * → `delivered` | `failed_attempt`, plus the event-only `rider_assigned`,
+ * `loaded`, `next_stop`, `rescheduled`, and `paused` / `skipped` / `returned`.
+ * Route housekeeping (`moved`, `removed_from_run`, `label_reprinted`,
+ * `reordered`) is staff-only: `customerTimeline` drops it.
  *
  * Widened to `string`: a step the app doesn't know yet still renders (with a
  * generic label) instead of breaking the screen.
@@ -30,6 +33,8 @@ export type TrackingStatus =
   | 'assigned'
   | 'accepted'
   | 'heading_to_pickup'
+  | 'preparing'
+  | 'ready_for_pickup'
   | 'picked_up'
   | 'on_the_way'
   | 'delivered'
@@ -42,7 +47,9 @@ export type TrackingStatus =
   | 'packed'
   | 'rider_assigned'
   | 'out_for_delivery'
+  | 'loaded'
   | 'next_stop'
+  | 'rescheduled'
   | 'failed_attempt'
   | 'returned'
   | 'paused'
@@ -101,6 +108,10 @@ export interface Tracking {
   /** The rider is moving and visible to this customer. */
   is_live: boolean;
   is_final: boolean;
+  /** Orders only: the kitchen side (`null → preparing → ready`); never blocks the rider. */
+  prep_status?: 'preparing' | 'ready' | null;
+  /** Deliveries only: the box has been scanned into the driver's car. */
+  is_loaded?: boolean;
   /** Oldest first. */
   timeline: TrackingTimelineStep[];
   rider: TrackingRider | null;

@@ -6,12 +6,15 @@ import { invalidateForPush, parsePushData, routeForPush } from '@/lib/notificati
 import { trackingRefetchInterval } from '@/lib/query/hooks/useTracking';
 import { queryKeys } from '@/lib/query/keys';
 import {
+  customerTimeline,
   etaLabel,
   etaMinutes,
   isOrderInFlight,
+  kitchenStep,
   KNOWN_TRACKING_STATUSES,
   orderHasTracking,
   routeLine,
+  STAFF_ONLY_TIMELINE_STEPS,
   trackingStatusLabel,
 } from '@/lib/tracking/status';
 import ar from '@/lib/i18n/locales/ar/tracking.json';
@@ -194,5 +197,133 @@ describe('push routing', () => {
     invalidateForPush(client, { type: 'delivery.status', delivery_id: '5' });
     const keys = spy.mock.calls.map(([filters]) => filters?.queryKey);
     expect(keys).toEqual([queryKeys.menu.detail('5'), ['menu', 'deliveries'], queryKeys.menu.tracking('5')]);
+  });
+});
+
+describe('kitchenStep', () => {
+  it('shows the kitchen side of an instant order before pickup', () => {
+    for (const status of ['searching_rider', 'assigned', 'accepted', 'heading_to_pickup', 'confirmed']) {
+      expect(kitchenStep(trackingFixture({ status, order_status: 'confirmed', prep_status: 'preparing' }))).toBe(
+        'preparing',
+      );
+      expect(kitchenStep(trackingFixture({ status, order_status: 'confirmed', prep_status: 'ready' }))).toBe('ready');
+    }
+  });
+
+  it('reads order_status confirmed when the delivery leg has not started', () => {
+    expect(kitchenStep(trackingFixture({ status: 'placed', order_status: 'confirmed', prep_status: 'ready' }))).toBe(
+      'ready',
+    );
+  });
+
+  it('says nothing after pickup, when final, or before the kitchen starts', () => {
+    for (const status of ['picked_up', 'on_the_way', 'delivered']) {
+      expect(kitchenStep(trackingFixture({ status, order_status: 'dispatched', prep_status: 'ready' }))).toBeNull();
+    }
+    expect(
+      kitchenStep(trackingFixture({ status: 'accepted', order_status: 'confirmed', prep_status: 'ready', is_final: true })),
+    ).toBeNull();
+    expect(kitchenStep(trackingFixture({ status: 'accepted', order_status: 'confirmed', prep_status: null }))).toBeNull();
+    expect(
+      kitchenStep(trackingFixture({ status: 'awaiting_payment', order_status: 'pending', prep_status: 'preparing' })),
+    ).toBeNull();
+  });
+
+  it('shows "in the car" for a packed box scanned into the car', () => {
+    const delivery = { subject: 'delivery' as const, order_status: null, prep_status: null };
+    expect(kitchenStep(trackingFixture({ ...delivery, status: 'packed', is_loaded: true }))).toBe('loaded');
+    expect(kitchenStep(trackingFixture({ ...delivery, status: 'packed', is_loaded: false }))).toBeNull();
+    expect(kitchenStep(trackingFixture({ ...delivery, status: 'out_for_delivery', is_loaded: true }))).toBeNull();
+  });
+
+  it('normalizes prep_status and is_loaded from the payload', () => {
+    const t = normalizeTracking({ subject: 'order', id: 1, status: 'accepted', prep_status: 'cooking', is_loaded: 'yes' });
+    expect(t.prep_status).toBeNull();
+    expect(t.is_loaded).toBe(false);
+    expect(normalizeTracking({ subject: 'delivery', id: 2, status: 'packed', is_loaded: true }).is_loaded).toBe(true);
+    expect(normalizeTracking({ subject: 'order', id: 3, status: 'accepted', prep_status: 'ready' }).prep_status).toBe(
+      'ready',
+    );
+  });
+
+  it('has every kitchen label in en, bn and ar', () => {
+    for (const locale of [en, bn, ar]) {
+      for (const step of ['preparing', 'ready', 'loaded']) {
+        expect((locale as { kitchen: Record<string, string> }).kitchen[step]).toEqual(expect.any(String));
+      }
+    }
+  });
+});
+
+describe('customerTimeline', () => {
+  it('drops staff-only route housekeeping and keeps the rest in order', () => {
+    const steps = [
+      'placed',
+      'preparing',
+      'moved',
+      'ready_for_pickup',
+      'removed_from_run',
+      'rider_assigned',
+      'label_reprinted',
+      'loaded',
+      'reordered',
+      'next_stop',
+      'rescheduled',
+    ].map((status) => ({ status, at: null, note: null }));
+    expect(customerTimeline(steps).map((s) => s.status)).toEqual([
+      'placed',
+      'preparing',
+      'ready_for_pickup',
+      'rider_assigned',
+      'loaded',
+      'next_stop',
+      'rescheduled',
+    ]);
+    for (const status of STAFF_ONLY_TIMELINE_STEPS) {
+      expect(customerTimeline([{ status, at: null, note: null }])).toEqual([]);
+    }
+  });
+
+  it('labels the new customer steps', () => {
+    expect(trackingStatusLabel('preparing')).toBe('Preparing');
+    expect(trackingStatusLabel('ready_for_pickup')).toBe('Ready for pickup');
+    expect(trackingStatusLabel('loaded')).toBe('Loaded into the car');
+  });
+});
+
+describe('push routing for the kitchen and route statuses', () => {
+  it.each(['preparing', 'ready_for_pickup', 'picked_up'])('order.status %s opens the order', (status) => {
+    const data = parsePushData({ type: 'order.status', order_id: '12', status, notification_id: 'abc' });
+    expect(data).toEqual({ type: 'order.status', order_id: '12', status });
+    expect(routeForPush(data!)).toEqual({ pathname: '/orders/[id]', params: { id: '12' } });
+
+    const client = new QueryClient();
+    const spy = jest.spyOn(client, 'invalidateQueries');
+    invalidateForPush(client, data!);
+    const keys = spy.mock.calls.map(([filters]) => filters?.queryKey);
+    expect(keys).toContainEqual(queryKeys.orders.detail('12'));
+    expect(keys).toContainEqual(queryKeys.orders.tracking('12'));
+  });
+
+  it.each(['rider_assigned', 'out_for_delivery', 'next_stop', 'delivered', 'failed_attempt'])(
+    'delivery.status %s opens the delivery',
+    (status) => {
+      const data = parsePushData({ type: 'delivery.status', delivery_id: '5', status });
+      expect(data).toEqual({ type: 'delivery.status', delivery_id: '5', status });
+      expect(routeForPush(data!)).toEqual({ pathname: '/deliveries/[id]', params: { id: '5' } });
+
+      const client = new QueryClient();
+      const spy = jest.spyOn(client, 'invalidateQueries');
+      invalidateForPush(client, data!);
+      const keys = spy.mock.calls.map(([filters]) => filters?.queryKey);
+      expect(keys).toContainEqual(queryKeys.menu.detail('5'));
+      expect(keys).toContainEqual(queryKeys.menu.tracking('5'));
+    },
+  );
+
+  it('ignores rider-app and admin pushes', () => {
+    for (const type of ['job.updated', 'run.ready', 'order.new', 'dispatch.attention']) {
+      expect(parsePushData({ type, order_id: '1', run_id: '2' })).toBeNull();
+    }
   });
 });

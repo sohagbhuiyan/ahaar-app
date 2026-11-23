@@ -82,6 +82,8 @@ export function normalizeTracking(raw: Raw): Tracking {
     order_status: str(raw.order_status),
     is_live: Boolean(raw.is_live),
     is_final: Boolean(raw.is_final),
+    prep_status: raw.prep_status === 'preparing' || raw.prep_status === 'ready' ? raw.prep_status : null,
+    is_loaded: raw.is_loaded === true || raw.is_loaded === 1,
     timeline: timeline
       .filter((step) => typeof step?.status === 'string')
       .map(

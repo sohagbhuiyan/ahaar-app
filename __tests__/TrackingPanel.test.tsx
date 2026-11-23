@@ -120,6 +120,55 @@ describe('TrackingPanel', () => {
     expect(screen.getAllByText('Delivered').length).toBeGreaterThan(0);
   });
 
+  it('shows the kitchen chip before pickup, and not after', async () => {
+    const { rerender } = await render(
+      <TrackingPanel
+        tracking={live({ status: 'accepted', order_status: 'confirmed', is_live: false, prep_status: 'preparing' })}
+        isLoading={false}
+        isError={false}
+      />,
+    );
+    expect(screen.getByTestId('tracking-kitchen')).toBeTruthy();
+    expect(screen.getByText('Kitchen is preparing')).toBeTruthy();
+
+    await rerender(
+      <TrackingPanel
+        tracking={live({ status: 'on_the_way', prep_status: 'ready' })}
+        isLoading={false}
+        isError={false}
+      />,
+    );
+    expect(screen.queryByTestId('tracking-kitchen')).toBeNull();
+  });
+
+  it('says "In the car" for a loaded box and hides staff-only timeline steps', async () => {
+    await render(
+      <TrackingPanel
+        tracking={live({
+          subject: 'delivery',
+          status: 'packed',
+          order_status: null,
+          is_live: false,
+          is_loaded: true,
+          rider_location: null,
+          route: null,
+          timeline: [
+            { status: 'packed', at: '2026-11-22T09:00:00+00:00' },
+            { status: 'label_reprinted', at: '2026-11-22T09:05:00+00:00' },
+            { status: 'moved', at: '2026-11-22T09:06:00+00:00' },
+            { status: 'loaded', at: '2026-11-22T09:10:00+00:00' },
+          ],
+        })}
+        isLoading={false}
+        isError={false}
+      />,
+    );
+    expect(screen.getByText('In the car')).toBeTruthy();
+    expect(screen.getByText('Loaded into the car')).toBeTruthy();
+    // Unknown statuses render as the generic "Update"; staff steps must not render at all.
+    expect(screen.queryByText('Update')).toBeNull();
+  });
+
   it('shows a skeleton while loading and one quiet line on error', async () => {
     const { rerender } = await render(
       <TrackingPanel tracking={undefined} isLoading isError={false} />,
