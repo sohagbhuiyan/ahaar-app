@@ -104,3 +104,4 @@ export {
   useMarkAllNotificationsRead,
 } from './useNotifications';
 export { useLogin, useRegister, useGoogleLogin, useLogout } from './useAuth';
+export { useCartPricing, useCheckoutCart, useCartSync, useCartSyncOnSignIn, syncCart, CART_KEY, CART_PRICING_KEY } from './useCart';

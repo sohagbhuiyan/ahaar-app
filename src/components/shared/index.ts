@@ -7,6 +7,7 @@
 export { FoodImage } from './FoodImage';
 export { FoodCard } from './FoodCard';
 export { PlanCard } from './PlanCard';
+export { PlanTrustStrip } from './PlanTrustStrip';
 export { PackageCard } from './PackageCard';
 export { CategoryRail } from './CategoryRail';
 export { MenuDayTabs } from './MenuDayTabs';

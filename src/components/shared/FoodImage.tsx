@@ -1,6 +1,6 @@
 import { memo, useState } from 'react';
 import { Image } from 'expo-image';
-import { Text, View } from 'react-native';
+import { Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { FOOD_BLURHASH } from '@/lib/constants/images';
 import { cn } from '@/lib/utils';
@@ -23,11 +23,18 @@ interface Props {
   label?: string;
   /** The frame: size, radius, margins — e.g. `h-12 w-12 rounded-xl`. */
   className?: string;
+  /** Frame style that has no class, e.g. `{ aspectRatio: 16 / 10 }`. */
+  style?: StyleProp<ViewStyle>;
   /** Shown when there is no picture. 🍽️ for dishes and plans, 🍱 for boxes. */
   glyph?: string;
   glyphSize?: GlyphSize;
   /** On the picture; the fallback carries `${testID}-fallback`. */
   testID?: string;
+  /**
+   * `contain` shows the whole picture, uncropped, on a transparent frame —
+   * for plated-food cut-outs such as plan images. Default `cover`.
+   */
+  contentFit?: 'cover' | 'contain';
   /** Drawn over the picture — a "Sold out" scrim, say. */
   children?: React.ReactNode;
 }
@@ -45,9 +52,11 @@ function FoodImageComponent({
   uri,
   label,
   className,
+  style,
   glyph = '🍽️',
   glyphSize = 'md',
   testID,
+  contentFit = 'cover',
   children,
 }: Props) {
   // The URL that failed, not a bare flag: a recycled list row handed a new URL
@@ -56,12 +65,15 @@ function FoodImageComponent({
   const src = uri && uri !== failedUri ? uri : null;
 
   return (
-    <View className={cn('overflow-hidden bg-surface-muted', className)}>
+    <View
+      className={cn('overflow-hidden', contentFit === 'cover' && 'bg-surface-muted', className)}
+      style={style}
+    >
       {src ? (
         <Image
           source={{ uri: src }}
           placeholder={{ blurhash: FOOD_BLURHASH }}
-          contentFit="cover"
+          contentFit={contentFit}
           transition={200}
           // Both caches: survives scroll-away and app restart.
           cachePolicy="memory-disk"

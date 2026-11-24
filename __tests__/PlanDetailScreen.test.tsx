@@ -61,6 +61,7 @@ const plan: Plan = {
   name: 'Full Board',
   slug: 'full-board',
   description: null,
+  short_description: null,
   image_url: 'https://cdn.test/full-board.jpg',
   duration_days: 7,
   price: 700,

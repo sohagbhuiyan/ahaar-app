@@ -65,6 +65,13 @@ interface InstantOrderState {
   deliveryDate: string | null;
   slotId: number | null;
   addressId: number | null;
+  /**
+   * The basket was changed on this device and the account cart has not caught
+   * up yet. While true the device wins the next sync (it is pushed); while
+   * false the server wins (it is pulled) — so an edit made on the website is
+   * never overwritten by a stale phone, nor a phone edit by a stale server.
+   */
+  dirty: boolean;
 
   /** Adds one, or increments an existing line. Clamped to the API's max. */
   add: (line: Omit<InstantOrderLine, 'quantity'>, quantity?: number) => void;
@@ -79,6 +86,20 @@ interface InstantOrderState {
   setSlot: (slotId: number | null) => void;
   setAddress: (addressId: number | null) => void;
 
+  /**
+   * Take the account's cart (from `POST /cart/merge` on sign-in) as the
+   * basket: what the customer put in the cart on the website shows up here.
+   * Server prices replace the device snapshot. Box dish counts are kept when
+   * the box was already in the basket (the cart doesn't carry them).
+   */
+  adoptServerCart: (cart: {
+    items: { kind: 'item' | 'package'; menu_item_id: number | null; package_id: number | null; name: string; image_url: string | null; unit_price: number; quantity: number; dish_count?: number | null }[];
+  }) => void;
+
+  /** The customer emptied the basket: also empties the account cart on next sync. */
+  emptyBasket: () => void;
+
+  /** Forget everything (after checkout, on sign-out). Not a cart edit. */
   clear: () => void;
 }
 
@@ -88,6 +109,7 @@ const EMPTY = {
   deliveryDate: null,
   slotId: null,
   addressId: null,
+  dirty: false,
 };
 
 function clampQuantity(value: number): number {
@@ -96,11 +118,16 @@ function clampQuantity(value: number): number {
 
 export const useInstantOrderStore = create<InstantOrderState>()(
   persist(
-    (set) => ({
+    (set) => {
+      /** A basket edit made on this device: the account cart must catch up. */
+      const edit = (fn: (state: InstantOrderState) => Partial<InstantOrderState>) =>
+        set((state) => ({ ...fn(state), dirty: true }));
+
+      return {
       ...EMPTY,
 
       add: (line, quantity = 1) =>
-        set((state) => {
+        edit((state) => {
           const existing = state.lines.find(
             (l) => l.menu_item_id === line.menu_item_id,
           );
@@ -127,7 +154,7 @@ export const useInstantOrderStore = create<InstantOrderState>()(
         }),
 
       setQuantity: (menuItemId, quantity) =>
-        set((state) => ({
+        edit((state) => ({
           // Dropping to zero removes the line — that is what a stepper's "−"
           // at 1 means, and an order can't carry a zero-quantity item.
           lines:
@@ -141,12 +168,12 @@ export const useInstantOrderStore = create<InstantOrderState>()(
         })),
 
       remove: (menuItemId) =>
-        set((state) => ({
+        edit((state) => ({
           lines: state.lines.filter((l) => l.menu_item_id !== menuItemId),
         })),
 
       addPackage: (line, quantity = 1) =>
-        set((state) => {
+        edit((state) => {
           const existing = state.packageLines.find(
             (l) => l.package_id === line.package_id,
           );
@@ -176,7 +203,7 @@ export const useInstantOrderStore = create<InstantOrderState>()(
         }),
 
       setPackageQuantity: (packageId, quantity) =>
-        set((state) => ({
+        edit((state) => ({
           packageLines:
             quantity <= 0
               ? state.packageLines.filter((l) => l.package_id !== packageId)
@@ -188,7 +215,7 @@ export const useInstantOrderStore = create<InstantOrderState>()(
         })),
 
       removePackage: (packageId) =>
-        set((state) => ({
+        edit((state) => ({
           packageLines: state.packageLines.filter((l) => l.package_id !== packageId),
         })),
 
@@ -196,8 +223,37 @@ export const useInstantOrderStore = create<InstantOrderState>()(
       setSlot: (slotId) => set({ slotId }),
       setAddress: (addressId) => set({ addressId }),
 
+      adoptServerCart: (cart) =>
+        set((state) => ({
+          dirty: false,
+          lines: cart.items
+            .filter((l) => l.kind === 'item' && l.menu_item_id != null)
+            .map((l) => ({
+              menu_item_id: l.menu_item_id as number,
+              name: l.name,
+              unit_price: l.unit_price,
+              image_url: l.image_url,
+              quantity: clampQuantity(l.quantity),
+            })),
+          packageLines: cart.items
+            .filter((l) => l.kind === 'package' && l.package_id != null)
+            .map((l) => ({
+              package_id: l.package_id as number,
+              name: l.name,
+              unit_price: l.unit_price,
+              image_url: l.image_url,
+              item_count:
+                l.dish_count ??
+                state.packageLines.find((p) => p.package_id === l.package_id)?.item_count ?? 0,
+              quantity: clampQuantity(l.quantity),
+            })),
+        })),
+
+      emptyBasket: () => set({ lines: [], packageLines: [], dirty: true }),
+
       clear: () => set({ ...EMPTY }),
-    }),
+      };
+    },
     {
       name: 'ahaar.instant-order',
       storage: createJSONStorage(() => AsyncStorage),

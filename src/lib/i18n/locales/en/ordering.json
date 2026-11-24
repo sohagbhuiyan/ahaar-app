@@ -128,7 +128,9 @@
     "cancelTitle": "Cancel this order?",
     "cancelBody": "Anything already paid is refunded by our team. Orders past their delivery cutoff can no longer be cancelled.",
     "cancelConfirm": "Cancel order",
-    "keep": "Keep it"
+    "keep": "Keep it",
+    "deliveryFee": "Delivery",
+    "notes": "Note"
   },
   "payments": {
     "title": "Payments",
@@ -193,5 +195,15 @@
     "signInToPlace": "Sign in to place this order",
     "place": "Place order · {{amount}}",
     "placeCash": "Place order · pay {{amount}} on delivery"
+  },
+  "cart": {
+    "subtotal": "Subtotal",
+    "delivery": "Delivery",
+    "free": "Free",
+    "unavailable": "No longer available — remove it to order.",
+    "removeUnavailable": "Some items are no longer available. Remove them to place your order.",
+    "phone": "Phone number",
+    "phoneHint": "The rider calls this number if they need you.",
+    "phoneInvalid": "Enter a valid phone number."
   }
 }

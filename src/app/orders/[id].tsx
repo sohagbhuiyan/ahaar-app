@@ -239,6 +239,17 @@ export default function OrderDetailScreen() {
           </Card>
         ) : null}
 
+        {order.notes ? (
+          <Card className="mt-4">
+            <View className="p-5">
+              <Text className="text-sm font-bold text-text-primary">
+                {t('ordering.orderDetail.notes')}
+              </Text>
+              <Text className="mt-1 text-sm text-text-secondary">{order.notes}</Text>
+            </View>
+          </Card>
+        ) : null}
+
         {/* Money */}
         <Card className="mt-4">
           <View className="p-5">
@@ -246,6 +257,12 @@ export default function OrderDetailScreen() {
               label={t('ordering.subtotal')}
               value={formatMoney(order.subtotal)}
             />
+            {order.delivery_fee > 0 ? (
+              <Row
+                label={t('ordering.orderDetail.deliveryFee')}
+                value={formatMoney(order.delivery_fee)}
+              />
+            ) : null}
             <Row
               label={t('ordering.taxIncluded')}
               value={formatMoney(order.tax_amount)}

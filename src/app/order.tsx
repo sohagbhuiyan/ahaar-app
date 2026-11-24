@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -22,6 +22,7 @@ import {
   Card,
   EmptyState,
   InlineError,
+  Input,
   Separator,
   Stepper,
 } from '@/components/ui';
@@ -35,14 +36,23 @@ import {
   openCheckout,
 } from '@/lib/payments';
 import {
+  CART_PRICING_KEY,
   useAddresses,
-  useCreateInstantOrder,
+  useCartPricing,
+  useCheckoutCart,
   useDeliverySlots,
   useIsSignedIn,
+  useProfile,
 } from '@/lib/query/hooks';
+import { useQueryClient } from '@tanstack/react-query';
 import { slotAvailabilityFor, firstBookableSlotId } from '@/lib/slots';
 import { useAuthPromptStore, useInstantOrderStore } from '@/lib/store';
 import { formatLongDate, formatMoney, todayISO } from '@/lib/utils';
+
+const newAttemptKey = () => `cart-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+/** Same rule as `CheckoutCartRequest::PHONE_PATTERN`. */
+const PHONE_PATTERN = /^\+?[0-9][0-9\s-]{6,18}[0-9]$/;
 
 /** How far ahead the day strip offers. Beyond this, cutoffs are meaningless. */
 const LOOKAHEAD_DAYS = 14;
@@ -57,9 +67,10 @@ const LOOKAHEAD_DAYS = 14;
  * being asked who they are, and `useRequireAuth` replays the submit once they
  * say.
  *
- * The order is created `pending` with a payment attached; nothing is confirmed
- * until the gateway's checkout page is completed, so this hands off to it
- * immediately rather than claiming success.
+ * The whole basket is bought as ONE order through the account cart
+ * (`POST /cart/checkout`). Payment is the API's default gateway (`test` until
+ * a live one is wired in; its checkout page opens if it has one), or cash on
+ * delivery when ticked: confirmed at once, the rider collects at the door.
  */
 export default function InstantOrderScreen() {
   const { t } = useTranslation();
@@ -78,18 +89,39 @@ export default function InstantOrderScreen() {
   const setSlot = useInstantOrderStore((s) => s.setSlot);
   const addressId = useInstantOrderStore((s) => s.addressId);
   const setAddress = useInstantOrderStore((s) => s.setAddress);
+  // After checkout: the server has already emptied the cart.
   const clearBasket = useInstantOrderStore((s) => s.clear);
+  // The customer's "Empty basket": the account cart has to follow.
+  const emptyBasket = useInstantOrderStore((s) => s.emptyBasket);
 
   const { data: slots } = useDeliverySlots();
   // Only readable with a session. Signed out the picker simply shows its empty
   // state, and the order falls back to the account's default address on submit.
   const { data: addresses } = useAddresses();
 
+  const queryClient = useQueryClient();
+  const { data: profile } = useProfile();
+  // The server's price for this basket (signed in). It is what checkout will
+  // charge, so it is what the screen shows; the local sum is only a fallback
+  // for a visitor who has not signed in yet.
+  const pricing = useCartPricing(signedIn);
+  const priced = pricing.data ?? null;
+  const unavailable = useMemo(
+    () =>
+      new Set(
+        (priced?.items ?? [])
+          .filter((l) => !l.is_available)
+          .map((l) => `${l.kind}:${l.menu_item_id ?? l.package_id}`),
+      ),
+    [priced],
+  );
+  // A rider has to be able to call someone: ask only when the account has no phone.
+  const needsPhone = signedIn && !!profile && !profile.phone;
+  const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+
   const [addressFormOpen, setAddressFormOpen] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
-
-  // Card is the default; cash is the deliberate choice, so it starts unticked.
-  const [payWithCash, setPayWithCash] = useState(false);
 
   // `after_or_equal:today` on `CreateInstantOrderRequest` — today counts, as
   // long as some slot for it is still open.
@@ -152,47 +184,38 @@ export default function InstantOrderScreen() {
     addresses?.[0]?.id ??
     null;
 
-  const total =
+  const localTotal =
     lines.reduce((sum, l) => sum + l.unit_price * l.quantity, 0) +
     packageLines.reduce((sum, l) => sum + l.unit_price * l.quantity, 0);
+
+  const total = priced?.total ?? localTotal;
 
   // A basket of nothing but boxes is a valid basket — the API needs at least
   // one line across `items` and `packages`, not specifically a dish.
   const isEmpty = lines.length === 0 && packageLines.length === 0;
 
-  /**
-   * Cash, but only while the basket is still small enough for it.
-   *
-   * Derived rather than stored, so a customer who ticks the box and then adds
-   * another meal box cannot carry a now-invalid choice through to submit. The
-   * checkbox disables itself at the same threshold, so the two always agree.
-   */
-  const useCash = payWithCash && isCashAllowedForAmount(total);
+  // Unticked = the API's default gateway (`test` for now, a real one later);
+  // ticked = cash on delivery, the deliberate choice.
+  const [payWithCash, setPayWithCash] = useState(false);
 
   /**
-   * Stable for a given basket + delivery, so a retry after a dropped response
-   * can't create a second order and a second charge. Changing anything about
-   * the order legitimately makes it a different order.
+   * Cash, but only while the basket is small enough for a rider to collect.
+   * Derived rather than stored, so a basket that grows past the ceiling can't
+   * carry a now-invalid choice to submit. The server's flag is the rule; the
+   * local constant only covers the moment before the first server price.
    */
-  const idempotencyKey = useMemo(() => {
-    // Both kinds of line go into the signature. With only dishes in it, a
-    // basket of "one Beef Curry" and one of "one Beef Curry + a meal box"
-    // produced the same key, and the second order would be swallowed as a
-    // retry of the first.
-    const signature = [
-      ...lines.map((l) => `i${l.menu_item_id}x${l.quantity}`),
-      ...packageLines.map((l) => `p${l.package_id}x${l.quantity}`),
-    ]
-      .sort()
-      .join('.');
-    // The payment method is part of the signature: a customer who places a
-    // card order, backs out and re-places it as cash means it, and the second
-    // one must not be swallowed as a retry of the first.
-    const method = useCash ? 'cash' : 'card';
-    return `instant-${deliveryDate}-${slotId}-${effectiveAddressId ?? 'default'}-${method}-${signature}`;
-  }, [lines, packageLines, deliveryDate, slotId, effectiveAddressId, useCash]);
+  const cashAllowed = priced ? !priced.exceeds_cash_limit : isCashAllowedForAmount(total);
+  const useCash = payWithCash && cashAllowed;
 
-  const createOrder = useCreateInstantOrder();
+  /**
+   * One key per attempt, not per basket. Kept across a dropped response (a
+   * retry is the same attempt and returns the same order), replaced after any
+   * definite answer. Derived from the basket instead, a customer ordering the
+   * same thing twice for the same slot got their first order back.
+   */
+  const attemptKey = useRef(newAttemptKey());
+
+  const createOrder = useCheckoutCart();
 
   const goToOrder = (order: Order) =>
     router.replace({ pathname: '/orders/[id]', params: { id: String(order.id) } });
@@ -201,47 +224,70 @@ export default function InstantOrderScreen() {
     if (!deliveryDate || slotId === null || isEmpty) return;
     setSubmitError(null);
 
+    if (needsPhone && !PHONE_PATTERN.test(phone.trim())) {
+      setPhoneError(t('ordering.cart.phoneInvalid'));
+      return;
+    }
+    setPhoneError(null);
+
     createOrder.mutate(
       {
+        // What is bought, and at what price, is the server cart — which
+        // `useCartPricing` has just made equal to this basket. The only money
+        // sent is the total the customer saw, so a price change is caught (409)
+        // instead of charged.
         payload: {
           delivery_date: deliveryDate,
           slot_id: slotId,
           address_id: effectiveAddressId,
-          items: lines.map((l) => ({
-            menu_item_id: l.menu_item_id,
-            quantity: l.quantity,
-          })),
-          packages: packageLines.map((l) => ({
-            package_id: l.package_id,
-            quantity: l.quantity,
-          })),
-          // Omitted for card so the API keeps using its configured default
-          // gateway; sent only when the customer has actually chosen cash.
+          expected_total: total,
+          ...(needsPhone ? { phone: phone.trim() } : {}),
+          // Omitted unless cash is chosen, so the API uses its default gateway.
           ...(useCash ? { gateway: CASH_GATEWAY } : {}),
         },
-        idempotencyKey,
+        idempotencyKey: attemptKey.current,
       },
       {
         onSuccess: async (order) => {
           // The server now owns this order; a lingering basket would let the
           // customer submit the same thing again.
           clearBasket();
+          attemptKey.current = newAttemptKey();
 
-          // A cash order is already confirmed and needs no checkout page, so
-          // say what will happen rather than the neutral "placed" — this is
-          // the customer's only prompt to have the money ready.
+          // A cash order is already confirmed: say so — it is the customer's
+          // prompt to have the money ready.
           toast.success(
             useCash
               ? t('ordering.order.confirmedCash', { id: order.id })
               : t('ordering.order.placed', { id: order.id }),
           );
 
+          // `test` settles on the spot; a real gateway leaves a page to pay on.
           if (isPayable(order.payment)) {
             await openCheckout(order.payment.checkout_url);
           }
           goToOrder(order);
         },
         onError: (error) => {
+          // No response (offline / timeout), or a twin request still running:
+          // the same attempt, so the same key — pressing again cannot buy twice.
+          const sameAttempt =
+            !isApiError(error) || !error.status || error.reason === 'in_progress';
+          if (!sameAttempt) attemptKey.current = newAttemptKey();
+          if (
+            isApiError(error) &&
+            (error.reason === 'price_changed' || error.reason === 'unavailable_items')
+          ) {
+            // Re-price on screen; the customer confirms the new total.
+            void queryClient.invalidateQueries({ queryKey: CART_PRICING_KEY });
+          }
+          if (isApiError(error) && error.reason === 'cash_limit') {
+            setPayWithCash(false);
+            void queryClient.invalidateQueries({ queryKey: CART_PRICING_KEY });
+          }
+          if (isApiError(error) && error.errors?.phone?.[0]) {
+            setPhoneError(error.errors.phone[0]);
+          }
           setSubmitError(error);
           toast.error(
             isApiError(error) ? error.message : t('ordering.order.failed'),
@@ -256,6 +302,10 @@ export default function InstantOrderScreen() {
     deliveryDate !== null &&
     slotId !== null &&
     hasBookableSlot &&
+    // Buy only what the server has priced, and never with dead lines in it.
+    !!priced &&
+    !pricing.isFetching &&
+    !priced.has_unavailable &&
     !createOrder.isPending;
 
   if (isEmpty) {
@@ -317,6 +367,14 @@ export default function InstantOrderScreen() {
                       <Text className="mt-0.5 text-xs text-text-muted">
                         {t('ordering.order.each', { price: formatMoney(line.unit_price) })}
                       </Text>
+                      {unavailable.has(`item:${line.menu_item_id}`) ? (
+                        <Text
+                          testID={`order-line-unavailable-${line.menu_item_id}`}
+                          className="mt-0.5 text-xs font-semibold text-danger"
+                        >
+                          {t('ordering.cart.unavailable')}
+                        </Text>
+                      ) : null}
                     </View>
 
                     <Stepper
@@ -364,6 +422,11 @@ export default function InstantOrderScreen() {
                           {formatMoney(line.unit_price)} ·{' '}
                           {t('common.units.item', { count: line.item_count })}
                         </Text>
+                        {unavailable.has(`package:${line.package_id}`) ? (
+                          <Text className="mt-0.5 text-xs font-semibold text-danger">
+                            {t('ordering.cart.unavailable')}
+                          </Text>
+                        ) : null}
                       </View>
 
                       <Stepper
@@ -425,11 +488,27 @@ export default function InstantOrderScreen() {
           />
         </View>
 
+        {needsPhone ? (
+          <View className="mt-6 px-5">
+            <StepLabel n={4} label={t('ordering.cart.phone')} />
+            <Input
+              testID="order-phone"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              placeholder="+966 5x xxx xxxx"
+              hint={t('ordering.cart.phoneHint')}
+              error={phoneError ?? undefined}
+            />
+          </View>
+        ) : null}
+
         {/* Payment method */}
         <View className="mt-6 px-5">
-          <StepLabel n={4} label={t('ordering.order.howToPay')} />
+          <StepLabel n={needsPhone ? 5 : 4} label={t('ordering.order.howToPay')} />
           <CashOnDeliveryCheckbox
-            checked={payWithCash}
+            checked={useCash}
             onChange={setPayWithCash}
             total={total}
           />
@@ -439,6 +518,27 @@ export default function InstantOrderScreen() {
         <View className="mt-6 px-5">
           <Card>
             <View className="p-5">
+              {priced ? (
+                <View className="mb-3 gap-1" testID="order-server-totals">
+                  <SummaryRow
+                    label={t('ordering.cart.subtotal')}
+                    value={formatMoney(priced.subtotal)}
+                  />
+                  <SummaryRow
+                    label={t('ordering.cart.delivery')}
+                    value={
+                      priced.delivery_fee > 0
+                        ? formatMoney(priced.delivery_fee)
+                        : t('ordering.cart.free')
+                    }
+                  />
+                </View>
+              ) : null}
+              {priced?.has_unavailable ? (
+                <View className="mb-3 rounded-2xl bg-warning-soft px-4 py-3">
+                  <Text className="text-xs text-warning">{t('ordering.cart.removeUnavailable')}</Text>
+                </View>
+              ) : null}
               <View className="flex-row items-center justify-between">
                 <Text className="text-base font-bold text-text-primary">{t('ordering.total')}</Text>
                 <Text className="text-xl font-bold text-brand-500">
@@ -488,7 +588,7 @@ export default function InstantOrderScreen() {
 
         <Pressable
           accessibilityRole="button"
-          onPress={clearBasket}
+          onPress={emptyBasket}
           className="mt-5 self-center px-5 py-2"
         >
           <Text className="text-sm font-semibold text-text-muted">

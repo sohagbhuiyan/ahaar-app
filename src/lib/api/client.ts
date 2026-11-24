@@ -176,7 +176,15 @@ export function normalizeError(error: AxiosError): ApiError {
       ? fallbackMessage(code)
       : body.message;
 
-  return { message, status, code, errors: body?.errors, reason: body?.reason };
+  return {
+    message,
+    status,
+    code,
+    errors: body?.errors,
+    reason: body?.reason,
+    // Never a 5xx body (may leak internals).
+    details: code === 'server' ? undefined : (body as Record<string, unknown> | undefined),
+  };
 }
 
 function fallbackMessage(code: ApiErrorCode): string {

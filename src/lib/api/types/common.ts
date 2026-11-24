@@ -48,6 +48,11 @@ export interface ApiError {
    * branch on the rule instead of matching on prose.
    */
   reason?: string;
+  /**
+   * The rest of a 4xx body, for refusals that carry data the UI needs — e.g.
+   * `POST /cart/checkout` → 409 `price_changed` returns the re-priced `cart`.
+   */
+  details?: Record<string, unknown>;
 }
 
 export type ApiErrorCode =

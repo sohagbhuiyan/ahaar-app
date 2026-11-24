@@ -24,6 +24,7 @@ import {
   OfflineBanner,
   PackageCard,
   PlanCard,
+  PlanTrustStrip,
   PROMO_ASPECT,
   PromoCarousel,
   PromoCodeStrip,
@@ -363,6 +364,8 @@ export default function HomeScreen() {
                 ))
               )}
             </View>
+
+            {promoted.length > 0 ? <PlanTrustStrip className="mt-5 px-5" /> : null}
           </View>
         );
       }

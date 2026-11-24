@@ -112,6 +112,10 @@ export interface Order {
   /** Where it goes, frozen when the order was placed. Null on older orders. */
   delivery_address: DeliveryAddress | null;
   subtotal: number;
+  /** Part of total_amount (total = subtotal + delivery_fee); 0 when free. */
+  delivery_fee: number;
+  /** The customer's note for the kitchen / rider, if any. */
+  notes: string | null;
   tax_amount: number;
   /** Prices are stored tax-inclusive; `tax_amount` is the extracted VAT. */
   total_amount: number;

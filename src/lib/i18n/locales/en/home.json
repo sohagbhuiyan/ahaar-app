@@ -191,5 +191,12 @@
     "heading": "Ready to stop thinking about dinner?",
     "subheading": "Pick a plan, choose your start date, and we take it from there. Pause, swap or skip whenever you need to.",
     "label": "Browse plans"
+  },
+  "plans": {
+    "trust": {
+      "fresh": "Fresh & Healthy Meals",
+      "onTime": "On-Time Delivery",
+      "health": "Your Health, Our Priority"
+    }
   }
 }

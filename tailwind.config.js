@@ -1,4 +1,4 @@
-const { brand, surface, text, border, status } = require("./src/lib/tokens.js");
+const { brand, surface, text, border, status, accent } = require("./src/lib/tokens.js");
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -13,6 +13,7 @@ module.exports = {
       // these utility classes can never disagree.
       colors: {
         brand,
+        accent,
         surface,
         text,
         border,

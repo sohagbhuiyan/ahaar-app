@@ -151,6 +151,11 @@ export interface Plan {
   name: string;
   slug: string;
   description: string | null;
+  /**
+   * Admin-managed plan-card blurb, localized by the API (Accept-Language →
+   * English). `null` when none was written — the card omits the line.
+   */
+  short_description: string | null;
   image_url: string | null;
   /** Any length — 7, 15, 25, 30… Not a fixed union. */
   duration_days: number;

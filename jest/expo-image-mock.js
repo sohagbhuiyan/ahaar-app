@@ -13,5 +13,7 @@ module.exports = {
       testID: props.testID,
       accessibilityLabel: props.accessibilityLabel,
       onError: props.onError,
+      contentFit: props.contentFit,
+      source: props.source,
     }),
 };

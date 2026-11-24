@@ -196,6 +196,11 @@ function normalizePlanQuota(raw: Raw): PlanQuotaSummary {
  * means "the API wasn't asked", not "empty". They stay `undefined` rather than
  * defaulting to `[]` so the UI can tell the two apart.
  */
+/** A string with something in it, else null — never "" or "   ". */
+function nonBlank(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() !== '' ? value : null;
+}
+
 export function normalizePlan(raw: Raw): Plan {
   const slots = raw.slots as Raw[] | undefined;
   const schedule = raw.schedule as Raw[] | undefined;
@@ -206,6 +211,7 @@ export function normalizePlan(raw: Raw): Plan {
     name: raw.name as string,
     slug: raw.slug as string,
     description: (raw.description as string | null) ?? null,
+    short_description: nonBlank(raw.short_description),
     image_url: (raw.image_url as string | null) ?? null,
     duration_days: raw.duration_days as number,
     price: toNumber(raw.price),
@@ -418,6 +424,8 @@ export function normalizeOrder(raw: Raw): Order {
     address_id: (raw.address_id as number | null) ?? null,
     delivery_address: normalizeDeliveryAddress(raw.delivery_address),
     subtotal: toNumber(raw.subtotal),
+    delivery_fee: toNumber(raw.delivery_fee),
+    notes: typeof raw.notes === 'string' && raw.notes.trim() !== '' ? raw.notes : null,
     tax_amount: toNumber(raw.tax_amount),
     total_amount: toNumber(raw.total_amount),
     currency: (raw.currency as string) ?? FALLBACK_CURRENCY,

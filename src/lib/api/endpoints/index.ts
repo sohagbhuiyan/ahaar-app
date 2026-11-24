@@ -6,6 +6,7 @@
  */
 import * as addons from './addons';
 import * as auth from './auth';
+import * as cart from './cart';
 import * as foods from './foods';
 import * as home from './home';
 import * as media from './media';
@@ -23,6 +24,7 @@ import * as tracking from './tracking';
 export const api = {
   addons,
   auth,
+  cart,
   foods,
   home,
   media,
@@ -41,6 +43,7 @@ export const api = {
 export {
   addons,
   auth,
+  cart,
   foods,
   home,
   media,

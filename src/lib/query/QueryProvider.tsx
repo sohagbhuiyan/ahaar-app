@@ -15,6 +15,7 @@ import { setUnauthorizedHandler } from '../api/client';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCartStore } from '../store/useCartStore';
 import { useInstantOrderStore } from '../store/useInstantOrderStore';
+import { useCartSync } from './hooks/useCart';
 import { useReactQueryDeviceSync } from './deviceSync';
 import { persistOptions } from './persister';
 import { makeQueryClient } from './queryClient';
@@ -69,7 +70,18 @@ export function QueryProvider({ children, onUnauthorized }: Props) {
       client={queryClient}
       persistOptions={persistOptions}
     >
+      <CartSync />
       {children}
     </PersistQueryClientProvider>
   );
+}
+
+/**
+ * Keeps the device basket and the account cart (shared with the website) in
+ * step. A component, not a hook call in QueryProvider's body: it needs the
+ * QueryClient, which only exists *inside* the provider.
+ */
+function CartSync() {
+  useCartSync();
+  return null;
 }

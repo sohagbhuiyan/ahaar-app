@@ -25,10 +25,21 @@ const brand = {
   900: '#7a003e',
 };
 
+/**
+ * Plan cards' second accent — alternates with the brand pink, as on the web
+ * (the --ahaar-orange tokens in ahaar/src/app/globals.css).
+ */
+const accent = {
+  orange: '#f97316',
+  orangeDark: '#ea580c',
+  orangeSoft: '#fff1e6',
+};
+
 const surface = {
   DEFAULT: '#ffffff', // --ahaar-surface
   secondary: '#fff0f7', // --ahaar-primary-soft (tinted cards)
   muted: '#f9f9f9', // --ahaar-surface-2
+  cream: '#fff9f1', // --ahaar-cream (plan cards)
 };
 
 const text = {
@@ -41,6 +52,7 @@ const text = {
 const border = {
   DEFAULT: '#f0e0ea', // --ahaar-border
   strong: '#e5e7eb',
+  cream: '#f2e6d6', // --ahaar-cream-border (plan cards)
 };
 
 /**
@@ -60,4 +72,4 @@ const status = {
   infoSoft: '#eff6ff',
 };
 
-module.exports = { brand, surface, text, border, status };
+module.exports = { brand, surface, text, border, status, accent };
