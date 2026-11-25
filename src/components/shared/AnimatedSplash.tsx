@@ -3,7 +3,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   Extrapolation,
@@ -19,7 +19,6 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import { AhaarLogo } from '@/components/shared/AhaarLogo';
 import { useAuthHydrated, useOnboardingHydrated } from '@/lib/store';
 import { colors, shadows } from '@/lib/theme';
 
@@ -28,23 +27,19 @@ import { colors, shadows } from '@/lib/theme';
  * first frame of this screen draws the disc exactly where the native splash
  * had it, so the hand-over is invisible and the animation simply begins.
  */
-const PLATE_SIZE = 200;
+const PLATE_SIZE = 220;
 /**
  * The artwork's share of the disc's width, matching the plate PNG — see
  * `scripts/build-splash-plate.js`, which explains why the logo sits on a white
- * disc on the pink field rather than straight on it.
+ * disc on the brand-orange field rather than straight on it.
  */
-const ART_FRACTION = 0.73;
-/**
- * `AhaarLogo` is sized by height and draws the whole 378 × 245 file, of which
- * 366 × 234 is artwork. Working back from the artwork width keeps the JS disc
- * and the baked PNG in agreement to the pixel.
- */
-const LOGO_HEIGHT = Math.round(
-  ((PLATE_SIZE * ART_FRACTION * 378) / 366) * (245 / 378),
-);
+const ART_FRACTION = 0.58;
+/** The "A" mark, trimmed to its artwork (491 × 448) — the same file the plate is baked from. */
+const MARK = require('@/assets/images/brand/ahaar-mark.png');
+const MARK_WIDTH = Math.round(PLATE_SIZE * ART_FRACTION);
+const MARK_HEIGHT = Math.round((MARK_WIDTH * 448) / 491);
 const LIFT = 36;
-const RING_SIZE = 280;
+const RING_SIZE = 300;
 const BAR_WIDTH = 132;
 
 const MIN_VISIBLE_MS = 1800;
@@ -178,7 +173,7 @@ export function AnimatedSplash() {
         { pointerEvents: leaving ? 'none' : 'auto' },
       ]}
     >
-      {/* Pink brand splash extends edge-to-edge behind the transparent status bar.
+      {/* Brand-orange splash extends edge-to-edge behind the transparent status bar.
           Status bar icons are light so they contrast with brand[500]. */}
       <StatusBar style="light" />
       <Animated.View style={[styles.stage, liftStyle]}>
@@ -189,11 +184,21 @@ export function AnimatedSplash() {
         {/* The same white disc the native splash just showed, redrawn here so
             the two frames coincide. */}
         <Animated.View style={[styles.plate, logoStyle]}>
-          <AhaarLogo height={LOGO_HEIGHT} onLoadEnd={hideNativeSplash} />
+          <Image
+            source={MARK}
+            accessibilityIgnoresInvertColors
+            resizeMode="contain"
+            fadeDuration={0}
+            onLoadEnd={hideNativeSplash}
+            style={{ width: MARK_WIDTH, height: MARK_HEIGHT }}
+          />
         </Animated.View>
       </Animated.View>
 
       <Animated.View style={[styles.below, belowStyle]}>
+        <Animated.Text style={[styles.brand, barStyle]} accessibilityRole="header">
+          AHAAR
+        </Animated.Text>
         <View style={styles.tagline}>
           {TAGLINE.map((word, index) => (
             <TaglineWord
@@ -276,9 +281,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Every accent on the pink field is white at low alpha rather than a lighter
-  // brand step: a tint of the background can only ever be a paler pink, which
-  // on #ff2b85 reads as a printing fault rather than light.
+  // Every accent on the brand field is white at low alpha rather than a lighter
+  // brand step: a tint of the background can only ever be a paler orange, which
+  // on #EA580C reads as a printing fault rather than light.
   glow: {
     position: 'absolute',
     width: RING_SIZE * 0.92,
@@ -311,6 +316,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     // Clear of the ripple stage, which is lifted along with the plate.
     marginTop: RING_SIZE / 2 - LIFT + 12,
+  },
+  brand: {
+    marginBottom: 10,
+    fontSize: 30,
+    fontWeight: '900',
+    letterSpacing: 6,
+    color: colors.text.inverse,
   },
   tagline: {
     flexDirection: 'row',

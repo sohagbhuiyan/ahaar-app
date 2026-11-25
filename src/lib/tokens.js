@@ -5,71 +5,71 @@
  * time, and TypeScript imports it through `theme.ts` (Expo's tsconfig sets
  * `allowJs` + `esModuleInterop`). One file, two consumers, no drift.
  *
- * Values are ported verbatim from the web app's `--ahaar-*` CSS variables in
- * `ahaar/src/app/globals.css` so mobile and web render the same brand. The
- * brand ramp is anchored at 500 = `--ahaar-primary`; 50/400/700 are the web's
- * `--ahaar-primary-soft` / `-light` / `-dark` respectively, and the remaining
- * steps interpolate between them.
+ * Palette: AHAAR ui-design.md §2 (shared with the website's `--ahaar-*` CSS
+ * variables in `ahaar/src/app/globals.css`). The brand ramp is anchored at
+ * 500 = Primary #EA580C; 400 = Secondary #F97316; 300 = Accent #FDBA74;
+ * 200 = Border #FED7AA; 50 = Background #FFF7ED. Orange marks actions and
+ * selected states — screens stay warm off-white with white cards.
+ *
+ * Contrast: white on brand-500 is ~3.6:1 — fine for bold/large button labels,
+ * not for small body copy. Small orange text on white uses brand-700.
  */
 
 const brand = {
-  50: '#fff0f7', // --ahaar-primary-soft
-  100: '#ffdcec',
-  200: '#ffbcd9',
-  300: '#ff94c1',
-  400: '#ff6aab', // --ahaar-primary-light
-  500: '#ff2b85', // --ahaar-primary   ← anchor
-  600: '#e60d6c',
-  700: '#d4006b', // --ahaar-primary-dark
-  800: '#a80055',
-  900: '#7a003e',
+  50: '#fff7ed', // Background
+  100: '#ffedd5',
+  200: '#fed7aa', // Border
+  300: '#fdba74', // Accent
+  400: '#f97316', // Secondary
+  500: '#ea580c', // Primary   ← anchor
+  600: '#d9480f',
+  700: '#c2410c', // pressed / small orange text on white
+  800: '#9a3412',
+  900: '#7c2d12',
 };
 
 /**
- * Plan cards' second accent — alternates with the brand pink, as on the web
- * (the --ahaar-orange tokens in ahaar/src/app/globals.css).
+ * Secondary accent (kept as a named group for components that alternate two
+ * accents, e.g. plan cards).
  */
 const accent = {
   orange: '#f97316',
   orangeDark: '#ea580c',
   orangeSoft: '#fff1e6',
+  soft: '#fdba74',
 };
 
 const surface = {
-  DEFAULT: '#ffffff', // --ahaar-surface
-  secondary: '#fff0f7', // --ahaar-primary-soft (tinted cards)
-  muted: '#f9f9f9', // --ahaar-surface-2
-  cream: '#fff9f1', // --ahaar-cream (plan cards)
+  DEFAULT: '#ffffff', // Surface — cards, sheets, panels
+  secondary: '#ffedd5', // tinted cards / selected chips
+  muted: '#fff7ed', // Background — warm screen background
+  cream: '#ffffff', // plan cards
 };
 
 const text = {
-  primary: '#1a1a2e', // --ahaar-text
-  secondary: '#6b7280', // --ahaar-text-muted
-  muted: '#9ca3af',
+  primary: '#1f1f1f', // Text
+  secondary: '#6b5e55',
+  muted: '#8c7f75',
   inverse: '#ffffff',
 };
 
 const border = {
-  DEFAULT: '#f0e0ea', // --ahaar-border
-  strong: '#e5e7eb',
-  cream: '#f2e6d6', // --ahaar-cream-border (plan cards)
+  DEFAULT: '#fed7aa', // Border
+  strong: '#eadbcd',
+  cream: '#fed7aa', // plan cards
 };
 
-/**
- * Status colours. The web app leans on Tailwind's emerald/amber palette for
- * these (see PlanMenuSection's "all set" / "incomplete" states) plus
- * `--destructive`; the same hexes are pinned here so a "Free" badge or a
- * "Sold out" pill reads identically on both platforms.
- */
+/** Semantic status colours (ui-design.md §2) — never the brand orange. */
 const status = {
-  success: '#059669',
-  successSoft: '#ecfdf5',
-  warning: '#d97706',
+  success: '#16a34a', // Online / Success
+  successSoft: '#f0fdf4',
+  warning: '#f59e0b',
   warningSoft: '#fffbeb',
-  danger: '#ef4444', // --destructive
+  danger: '#dc2626', // Error
   dangerSoft: '#fef2f2',
   info: '#2563eb',
   infoSoft: '#eff6ff',
+  disabled: '#94a3b8', // Offline / Disabled
 };
 
 module.exports = { brand, surface, text, border, status, accent };

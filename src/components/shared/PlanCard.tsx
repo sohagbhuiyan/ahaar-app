@@ -13,7 +13,7 @@ import { FoodImage } from './FoodImage';
 
 interface Props {
   plan: Plan;
-  /** Visually promotes this plan (brand-pink accent). */
+  /** Visually promotes this plan (brand ring + glow). */
   featured?: boolean;
   /** The lowest price per day on offer. Ignored when `featured`. */
   bestValue?: boolean;
@@ -46,10 +46,13 @@ export function durationLabel(days: number): string {
   return known[days] ? i18n.t(known[days]) : i18n.t('catalog.duration.days', { count: days });
 }
 
-/** Pink for the recommended plan, orange for the rest — as in the design. */
+/**
+ * Primary (brand #EA580C) for the recommended plan, secondary (#F97316) for the
+ * rest — one orange family, the featured card set apart by its ring and glow.
+ */
 const ACCENTS = {
-  pink: { solid: 'bg-brand-500 active:bg-brand-700', stroke: colors.brand[500] },
-  orange: { solid: 'bg-accent-orange active:bg-accent-orangeDark', stroke: colors.accent.orange },
+  primary: { solid: 'bg-brand-500 active:bg-brand-700', stroke: colors.brand[500] },
+  secondary: { solid: 'bg-brand-500 active:bg-brand-700', stroke: colors.brand[400] },
 } as const;
 
 /**
@@ -74,7 +77,7 @@ function PlanCardComponent({
   className,
 }: Props) {
   const { t } = useTranslation();
-  const accentKey = featured ? 'pink' : 'orange';
+  const accentKey = featured ? 'primary' : 'secondary';
   const accent = ACCENTS[accentKey];
   const perDay = plan.duration_days > 0 ? plan.price / plan.duration_days : 0;
   const ribbon = featured
@@ -97,29 +100,30 @@ function PlanCardComponent({
       })}
       testID={`plan-card-${plan.id}`}
       className={cn(
-        'bg-surface-cream border-border-cream',
-        featured && 'border-brand-300',
-        selected && 'border-brand-500',
+        'bg-surface border-border-cream',
+        featured && 'border-2 border-brand-400',
+        selected && 'border-2 border-brand-500',
         className,
       )}
     >
-      <View className="p-4" testID={`plan-card-${plan.id}-accent-${accentKey}`}>
-        <View>
+      <View className="p-3" testID={`plan-card-${plan.id}-accent-${accentKey}`}>
+        {/* Warm image panel: the plated meal shown whole on a soft warm tint. */}
+        <View className="overflow-hidden rounded-2xl bg-brand-50">
           <FoodImage
             uri={plan.image_url}
             contentFit="contain"
             glyphSize="lg"
             testID={`plan-card-${plan.id}-photo`}
-            className="w-full rounded-2xl"
+            className="w-full"
             style={{ aspectRatio: 16 / 10 }}
           />
 
           <View
             className={cn('flex-row items-center gap-1.5 rounded-full px-3 py-1.5', accent.solid)}
-            style={{ position: 'absolute', top: 4, start: 4 }}
+            style={{ position: 'absolute', top: 10, start: 10 }}
           >
             <CalendarGlyph />
-            <Text className="text-sm font-bold text-text-inverse">
+            <Text className="text-[13px] font-bold text-text-inverse">
               {t('catalog.duration.days', { count: plan.duration_days })}
             </Text>
           </View>
@@ -127,18 +131,19 @@ function PlanCardComponent({
           {ribbon ? (
             <View
               className="rounded-full bg-white/95 px-2.5 py-1"
-              style={{ position: 'absolute', top: 4, end: 4 }}
+              style={{ position: 'absolute', top: 10, end: 10 }}
             >
               <Text className="text-[11px] font-bold text-brand-700">{ribbon}</Text>
             </View>
           ) : (
-            <View style={{ position: 'absolute', top: 4, end: 6 }} pointerEvents="none">
+            <View style={{ position: 'absolute', top: 8, end: 10 }} pointerEvents="none">
               <Sparkle color={accent.stroke} />
             </View>
           )}
         </View>
 
-        <Text className="mt-4 text-2xl font-extrabold text-text-primary">{plan.name}</Text>
+        <View className="px-1.5 pb-1">
+        <Text className="mt-3.5 text-xl font-bold text-text-primary">{plan.name}</Text>
 
         {plan.short_description ? (
           <Text
@@ -150,10 +155,8 @@ function PlanCardComponent({
           </Text>
         ) : null}
 
-        <View className="mt-4 h-px bg-border-cream" />
-
-        <View className="mt-3 flex-row items-end justify-between gap-3">
-          <Text className="text-3xl font-black text-text-primary">{formatMoney(plan.price)}</Text>
+        <View className="mt-3.5 flex-row items-end justify-between gap-3">
+          <Text className="text-2xl font-extrabold text-text-primary">{formatMoney(plan.price)}</Text>
           {savingsPercent && savingsPercent > 0 ? (
             <View className="mb-1 rounded-full bg-success-soft px-2.5 py-0.5">
               <Text className="text-[11px] font-bold text-success">
@@ -172,7 +175,7 @@ function PlanCardComponent({
           <Button
             label={ctaLabel}
             variant={selected ? 'secondary' : 'primary'}
-            className={cn('mt-4 h-14 rounded-full', !selected && accent.solid)}
+            className={cn('mt-3.5 h-[52px] rounded-full', !selected && accent.solid)}
             textClassName="text-base"
             accessibilityLabel={`${ctaLabel}: ${plan.name}`}
             right={selected ? undefined : <Arrow />}
@@ -180,6 +183,7 @@ function PlanCardComponent({
             testID={`plan-card-${plan.id}-cta`}
           />
         ) : null}
+        </View>
       </View>
     </Card>
   );

@@ -3,15 +3,15 @@ import { Image, type ImageStyle, type StyleProp } from 'react-native';
 /**
  * The AHAAR logo, cropped to its artwork.
  *
- * `ahaar2.png` (the app icon and splash art) carries wide transparent margins
- * so it sits well on a splash screen; at header size those margins would shrink
- * the wordmark to an unreadable smudge. This crop is the same artwork with the
- * margins removed, so a given `height` is all logo.
+ * The "A" mark plus the "AHAAR · FOOD CATERING" wordmark on transparency,
+ * trimmed tight to the artwork (no margins), so a given `height` is all logo.
+ * Re-run `node scripts/build-splash-plate.js` whenever this file changes.
  */
 const LOGO = require('@/assets/images/brand/ahaar-logo.png');
 
-/** ahaar-logo.png is 378 × 245. */
-const ASPECT_RATIO = 378 / 245;
+/** Pixel size of ahaar-logo.png — the file is all artwork, no margin. */
+export const LOGO_SIZE = { width: 890, height: 369 } as const;
+const ASPECT_RATIO = LOGO_SIZE.width / LOGO_SIZE.height;
 
 interface Props {
   /** Rendered height in points; the width follows the artwork's proportions. */

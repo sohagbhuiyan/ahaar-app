@@ -408,7 +408,7 @@ export default function HomeScreen() {
           instead of pushing the brand off screen. The bell closes the row at
           its end (right, or left in Arabic: the row mirrors with RTL). */}
       <View className="flex-row items-center border-b border-border bg-surface pl-4 pr-3">
-        <AhaarLogo height={40} />
+        <AhaarLogo height={36} />
         <View className="ml-3 h-9 w-px bg-border" />
         <LocationPill
           variant="bar"
@@ -421,7 +421,7 @@ export default function HomeScreen() {
       <OfflineBanner />
 
       <ScrollView
-        className="flex-1"
+        className="flex-1 bg-surface-muted"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={

@@ -55,7 +55,7 @@ import { colors } from '@/lib/theme';
  * Accents on the brand field.
  *
  * All white at low alpha rather than lighter steps of the brand ramp: tinting
- * #ff2b85 towards white only ever gives a paler pink, which reads as a printing
+ * #EA580C towards white only ever gives a paler orange, which reads as a printing
  * fault next to the real thing. White at 12–35% reads as light falling on the
  * colour, which is what these shapes are for.
  */
@@ -69,7 +69,7 @@ const SKIP_TEXT = 'rgba(255,255,255,0.82)';
  * white and is invisible here — on a pink field only a dark shadow reads.
  */
 const CARD_SHADOW = {
-  shadowColor: '#4a0020',
+  shadowColor: '#431407',
   shadowOpacity: 0.28,
   shadowRadius: 28,
   shadowOffset: { width: 0, height: 12 },
@@ -489,7 +489,7 @@ function Dot({
  * The brand field the whole tour sits on.
  *
  * A gradient rather than a flat fill: a single saturated pink over a full
- * screen goes flat and cheap, while a fall from #ff2b85 to the darker #d4006b
+ * screen goes flat and cheap, while a fall from #EA580C to the darker #C2410C
  * gives the page a light source and lets the white cards lift off it. Drawn
  * with `react-native-svg`, which is already in the build — `expo-linear-gradient`
  * would be a new native dependency and so a new binary for everyone.

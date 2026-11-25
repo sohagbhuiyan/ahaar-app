@@ -17,7 +17,7 @@ export type BrandShade = keyof typeof tokens.brand;
 /**
  * Shadows. React Native needs iOS (`shadow*`) and Android (`elevation`) props
  * rather than a single CSS box-shadow, so the web's `--shadow-card` /
- * `--shadow-pink` are expressed here as style objects.
+ * `--shadow-brand` are expressed here as style objects.
  */
 export const shadows = {
   /** --shadow-card: 0 2px 12px rgba(0,0,0,0.06) */
@@ -28,7 +28,7 @@ export const shadows = {
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  /** --shadow-card-hover: 0 6px 24px rgba(255,43,133,0.12) */
+  /** --shadow-card-hover: brand-tinted lift */
   cardRaised: {
     shadowColor: tokens.brand[500],
     shadowOpacity: 0.12,
@@ -36,7 +36,7 @@ export const shadows = {
     shadowOffset: { width: 0, height: 6 },
     elevation: 4,
   },
-  /** --shadow-pink: 0 4px 24px rgba(255,43,133,0.25) */
+  /** --shadow-brand (was --shadow-pink): brand-orange glow under primary CTAs */
   brand: {
     shadowColor: tokens.brand[500],
     shadowOpacity: 0.25,

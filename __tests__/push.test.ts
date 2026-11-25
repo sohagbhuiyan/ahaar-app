@@ -140,7 +140,7 @@ describe('notification channels (v2)', () => {
         sound: 'order_update.wav',
         enableVibrate: true,
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-        lightColor: '#ff2b85',
+        lightColor: '#ea580c',
       }),
     );
     expect(Notifications.setNotificationChannelAsync).toHaveBeenCalledWith(

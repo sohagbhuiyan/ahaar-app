@@ -443,7 +443,7 @@ If you rebrand, regenerate the store icon by flattening the new artwork onto an 
 - **1024 × 500 px**, PNG or JPG, no transparency. **Required.**
 - Shown at the top of your listing and in promotional placements.
 - Keep text minimal and well inside the centre — the edges get cropped on some surfaces.
-- Suggested: the Ahaar logo on the brand pink (`#ff2b85`) with a plated meal photo, plus a short line such as _"Fresh meals, delivered daily."_
+- Suggested: the Ahaar logo on the brand orange (`#EA580C`) with a plated meal photo, plus a short line such as _"Fresh meals, delivered daily."_
 
 ### Phone screenshots
 

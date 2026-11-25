@@ -45,7 +45,7 @@ export const LEGACY_CHANNEL_ID = 'ahaar-deliveries';
 
 export const UPDATE_SOUND = 'order_update.wav';
 export const NEW_ORDER_SOUND = 'new_order.wav';
-const BRAND_LIGHT = '#ff2b85';
+const BRAND_LIGHT = '#ea580c';
 
 /** This binary can show and receive notifications at all. */
 export const notificationsAvailable =

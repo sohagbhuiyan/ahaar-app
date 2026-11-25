@@ -1,11 +1,14 @@
 /**
- * Builds `assets/images/brand/splash-plate.png` — the AHAAR logo on a white
- * disc, for the native splash screen.
+ * Builds `assets/images/brand/splash-plate.png` — the AHAAR "A" mark on a
+ * white disc, for the native splash screen. The mark (not the wide wordmark)
+ * is used because it fills a circle: the wordmark would have to shrink to fit
+ * the disc's diagonal and read as a tiny logo. The name and tagline are drawn
+ * below the disc by `AnimatedSplash` instead.
  *
- * Why a plate at all: the splash background is now brand pink, and the logo is
- * orange-and-green artwork on transparency. Composited straight onto #ff2b85
- * the orange wordmark all but disappears — pink and burnt orange sit too close
- * in hue. On white it reads exactly as drawn, and a white badge on a brand
+ * Why a plate at all: the splash background is brand orange, and the logo is
+ * orange-and-red artwork on transparency. Composited straight onto #EA580C
+ * the orange wordmark all but disappears — the field and the mark share a
+ * hue. On white it reads exactly as drawn, and a white badge on a brand
  * field is a deliberate-looking mark rather than a sticker.
  *
  * Why a circle and not the rounded rectangle you might expect: from Android 12
@@ -30,7 +33,7 @@ const { PNG } = require('pngjs');
 // Resolved against the working directory, like `reset-project.js` — run this
 // from the project root.
 const ROOT = process.cwd();
-const SOURCE = path.join(ROOT, 'assets/images/brand/ahaar-logo.png');
+const SOURCE = path.join(ROOT, 'assets/images/brand/ahaar-mark.png');
 const OUTPUT = path.join(ROOT, 'assets/images/brand/splash-plate.png');
 
 /**
@@ -41,7 +44,7 @@ const OUTPUT = path.join(ROOT, 'assets/images/brand/splash-plate.png');
  * and the corners clear it with room to spare, while the logo still fills the
  * badge rather than floating in it.
  */
-const ART_FRACTION = 0.73;
+const ART_FRACTION = 0.58;
 
 function main() {
   const logo = PNG.sync.read(fs.readFileSync(SOURCE));

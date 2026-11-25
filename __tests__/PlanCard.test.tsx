@@ -83,13 +83,13 @@ describe('PlanCard', () => {
     expect(screen.getByText('15 দিন')).toBeTruthy();
   });
 
-  it('uses brand pink for the featured plan and orange for the rest', async () => {
+  it('uses the primary accent for the featured plan and secondary for the rest', async () => {
     await render(<PlanCard plan={fromApi()} featured onPress={jest.fn()} />);
-    expect(screen.getByTestId('plan-card-7-accent-pink')).toBeTruthy();
+    expect(screen.getByTestId('plan-card-7-accent-primary')).toBeTruthy();
     expect(screen.getByText('Most popular')).toBeTruthy();
 
     await render(<PlanCard plan={fromApi()} onPress={jest.fn()} />);
-    expect(screen.getByTestId('plan-card-7-accent-orange')).toBeTruthy();
+    expect(screen.getByTestId('plan-card-7-accent-secondary')).toBeTruthy();
   });
 });
 

@@ -19,6 +19,7 @@ module.exports = {
         border,
         success: status.success,
         "success-soft": status.successSoft,
+        disabled: status.disabled,
         warning: status.warning,
         "warning-soft": status.warningSoft,
         danger: status.danger,

@@ -34,7 +34,7 @@ export function PlayBadge({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
       <Svg width={glyph} height={glyph} viewBox="0 0 24 24" // Optical centring of the play triangle. A translate, not `marginLeft`:
         // RTL swaps left/right margins, and a play glyph points right in every language.
         style={{ transform: [{ translateX: size === 'sm' ? 0 : 1.5 }] }}>
-        <Path d="M8 5v14l11-7z" fill={size === 'sm' ? '#ffffff' : '#ff2b85'} />
+        <Path d="M8 5v14l11-7z" fill={size === 'sm' ? '#ffffff' : '#ea580c'} />
       </Svg>
     </View>
   );
@@ -256,7 +256,7 @@ function InlinePlayer({
               <Svg width={24} height={24} viewBox="0 0 24 24">
                 <Path
                   d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"
-                  fill="#ff2b85"
+                  fill="#ea580c"
                 />
               </Svg>
             </View>

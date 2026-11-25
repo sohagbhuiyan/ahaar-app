@@ -18,7 +18,7 @@ export default function MenuIcon({ color, filled = false, size = 24 }: Props) {
             fill="none"
           />
           {/* Small indicator dot */}
-          <Circle cx="18" cy="6" r="2.5" fill="#ff2b85" stroke="#fff" strokeWidth={1} />
+          <Circle cx="18" cy="6" r="2.5" fill="#ea580c" stroke="#fff" strokeWidth={1} />
         </>
       ) : (
         <>
