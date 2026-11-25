@@ -1,8 +1,18 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, Text, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+import Svg, { Defs, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { Button } from '@/components/ui';
 import type { HeroContent } from '@/lib/api/types/home';
@@ -15,7 +25,7 @@ import {
   whatsappHref,
 } from '@/lib/cms';
 import { FOOD_BLURHASH } from '@/lib/constants/images';
-import { shadows } from '@/lib/theme';
+import { colors, shadows } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 
 /**
@@ -48,14 +58,23 @@ interface Props {
   className?: string;
 }
 
+/** Height of the banner photo at the top of the hero. */
+const PHOTO_HEIGHT = 300;
+/** How far the copy rides up over the photo's faded lower edge. */
+const COPY_OVERLAP = 84;
+
 /**
- * The website hero, laid out for a phone.
+ * The website hero, laid out for a phone — the same banner look as the site's
+ * mobile hero.
  *
- * Same content and the same admin controls as the site — badge, headline with
- * its highlighted half, intro, image with the rating card, two buttons, phone
- * and WhatsApp, and the stat band — stacked into one card instead of two
- * columns. The site's "Next delivery" bubble is left out on purpose: it is
- * decorative copy there, and here the real delivery sits a few pixels above.
+ * Full-bleed, no card: the admin's hero photo fills the top and melts into the
+ * warm canvas (#FFF7ED, the Home background) through a gradient, with the copy
+ * riding up over its faded edge — badge, two-tone headline, intro, CTAs, phone
+ * and WhatsApp, stats. An orange glow warms the start side behind the copy and
+ * a few green and orange leaves sit along the edges. A transparent PNG from the
+ * admin shows the same warm canvas through it, so cut-out plates blend in too.
+ * The site's "Next delivery" bubble is left out on purpose: it is decorative
+ * copy there, and here the real delivery sits a few pixels above.
  */
 export function HomeHero({ content, className }: Props) {
   const router = useRouter();
@@ -91,119 +110,297 @@ export function HomeHero({ content, className }: Props) {
     .slice(0, 4);
 
   return (
-    <View className={cn('px-5', className)}>
-      <View className="overflow-hidden rounded-3xl bg-brand-50" style={shadows.card}>
-        <View className="w-full" style={{ aspectRatio: 16 / 10 }}>
-          <Image
-            source={{ uri: image }}
-            placeholder={{ blurhash: FOOD_BLURHASH }}
-            contentFit="cover"
-            transition={250}
-            cachePolicy="memory-disk"
-            style={{ width: '100%', height: '100%' }}
-            accessibilityLabel={t('home.hero.imageAlt')}
-          />
-
-          {ratingValue ? (
-            <View
-              className="absolute bottom-3 left-3 flex-row items-center gap-2.5 rounded-2xl bg-surface px-3 py-2"
-              style={shadows.card}
-            >
-              <View className="h-8 w-8 items-center justify-center rounded-full bg-brand-500">
-                <Text className="text-sm font-bold text-text-inverse">★</Text>
-              </View>
-              <View>
-                <Text className="text-sm font-bold text-text-primary">{ratingValue}</Text>
-                {ratingCaption ? (
-                  <Text className="text-[11px] text-text-secondary">{ratingCaption}</Text>
-                ) : null}
-              </View>
-            </View>
-          ) : null}
+    <View className={cn('overflow-hidden bg-surface-muted', className)}>
+      {/* ── Banner photo, fading down into the warm canvas ─────────────── */}
+      <View style={{ height: PHOTO_HEIGHT }}>
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Svg width="100%" height="100%">
+            <Defs>
+              <RadialGradient id="heroPhotoWarm" cx="70%" cy="40%" rx="70%" ry="60%">
+                <Stop offset="0" stopColor={colors.brand[200]} stopOpacity={1} />
+                <Stop offset="1" stopColor={colors.brand[200]} stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            <Rect width="100%" height="100%" fill="url(#heroPhotoWarm)" />
+          </Svg>
+        </View>
+        <Image
+          source={{ uri: image }}
+          placeholder={{ blurhash: FOOD_BLURHASH }}
+          contentFit="cover"
+          transition={250}
+          cachePolicy="memory-disk"
+          style={StyleSheet.absoluteFill}
+          accessibilityLabel={t('home.hero.imageAlt')}
+        />
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Svg width="100%" height="100%">
+            <Defs>
+              <LinearGradient id="heroPhotoFade" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={CANVAS} stopOpacity={0.95} />
+                <Stop offset="0.2" stopColor={CANVAS} stopOpacity={0} />
+                <Stop offset="0.42" stopColor={CANVAS} stopOpacity={0} />
+                <Stop offset="0.72" stopColor={CANVAS} stopOpacity={0.72} />
+                <Stop offset="1" stopColor={CANVAS} stopOpacity={1} />
+              </LinearGradient>
+            </Defs>
+            <Rect width="100%" height="100%" fill="url(#heroPhotoFade)" />
+          </Svg>
         </View>
 
-        <View className="p-5">
-          {badge ? (
-            <View className="flex-row items-center gap-2 self-start rounded-full border border-brand-500 bg-white/70 px-3 py-1">
-              <View className="h-2 w-2 rounded-full bg-brand-500" />
-              <Text className="text-xs font-semibold text-brand-500">{badge}</Text>
-            </View>
-          ) : null}
-
-          <Text
-            accessibilityRole="header"
-            className="mt-3 text-[28px] font-black leading-[34px] text-text-primary"
+        {ratingValue ? (
+          <View
+            className="absolute end-4 top-4 flex-row items-center gap-2.5 rounded-2xl border border-white/60 bg-white/85 px-3 py-2"
+            style={shadows.card}
           >
-            {title}
-            {highlight ? <Text className="text-brand-500"> {highlight}</Text> : null}
+            <View className="h-8 w-8 items-center justify-center rounded-full bg-brand-100">
+              <Text className="text-sm font-bold text-brand-500">★</Text>
+            </View>
+            <View>
+              <Text className="text-sm font-bold text-text-primary">{ratingValue}</Text>
+              {ratingCaption ? (
+                <Text className="text-[11px] text-text-secondary">{ratingCaption}</Text>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
+      </View>
+
+      {/* Orange glow on the start side, behind the copy. */}
+      <View
+        pointerEvents="none"
+        style={{ position: 'absolute', start: -150, top: PHOTO_HEIGHT - 40, width: 420, height: 420 }}
+      >
+        <Svg width="100%" height="100%">
+          <Defs>
+            <RadialGradient id="heroGlow" cx="50%" cy="50%" r="50%">
+              <Stop offset="0" stopColor={colors.brand[500]} stopOpacity={0.34} />
+              <Stop offset="0.45" stopColor={colors.brand[400]} stopOpacity={0.14} />
+              <Stop offset="1" stopColor={colors.brand[300]} stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill="url(#heroGlow)" />
+        </Svg>
+      </View>
+
+      <HeroLeaves />
+
+      {/* ── Copy, riding up over the photo's faded edge ────────────────── */}
+      <View className="items-center px-5 pb-2" style={{ marginTop: -COPY_OVERLAP }}>
+        {badge ? (
+          <View
+            className="flex-row items-center gap-2 rounded-full border border-brand-200 bg-white/90 px-3.5 py-1.5"
+            style={shadows.card}
+          >
+            <View className="h-5 w-5 items-center justify-center rounded-full bg-brand-100">
+              <View className="h-2 w-2 rounded-full bg-brand-500" />
+            </View>
+            <Text className="text-xs font-semibold text-brand-700">{badge}</Text>
+          </View>
+        ) : null}
+
+        <Text
+          accessibilityRole="header"
+          className="mt-4 text-center text-[34px] font-black leading-[40px] text-text-primary"
+        >
+          {title}
+          {highlight ? (
+            <Text className="text-brand-500">
+              {'\n'}
+              {highlight}
+            </Text>
+          ) : null}
+        </Text>
+
+        {subtitle ? (
+          <Text className="mt-3 text-center text-[15px] leading-6 text-text-secondary">
+            {subtitle}
           </Text>
+        ) : null}
 
-          {subtitle ? (
-            <Text className="mt-2 text-sm leading-5 text-text-secondary">{subtitle}</Text>
-          ) : null}
+        {showPrimary ? (
+          <View className="mt-6 w-full rounded-full" style={shadows.brand}>
+            <Button
+              label={primaryLabel}
+              className="h-14 rounded-full"
+              textClassName="text-base"
+              right={<ArrowGlyph />}
+              onPress={() => openCmsLink(primaryUrl, router)}
+            />
+          </View>
+        ) : null}
 
-          {showPrimary || showSecondary ? (
-            <View className="mt-4 flex-row gap-2">
-              {showPrimary ? (
-                <Button
-                  label={primaryLabel}
-                  fullWidth={false}
-                  className="flex-1"
-                  onPress={() => openCmsLink(primaryUrl, router)}
-                />
-              ) : null}
-              {showSecondary ? (
-                <Button
-                  label={secondaryLabel}
-                  variant="outline"
-                  fullWidth={false}
-                  className="flex-1 border-2 border-brand-500 bg-surface"
-                  textClassName="text-brand-500"
-                  onPress={() => openCmsLink(secondaryUrl, router)}
-                />
-              ) : null}
+        {showSecondary ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => openCmsLink(secondaryUrl, router)}
+            className="mt-3 flex-row items-center gap-3 rounded-full px-2 py-1.5 active:opacity-70"
+          >
+            <View className="h-11 w-11 items-center justify-center rounded-full border-4 border-white bg-brand-100">
+              <CalendarGlyph />
             </View>
-          ) : null}
+            <Text className="text-base font-semibold text-text-primary">{secondaryLabel}</Text>
+          </Pressable>
+        ) : null}
 
-          {phoneLink || whatsapp ? (
-            <View className="mt-3 flex-row flex-wrap gap-2">
-              {phoneLink ? (
-                <ContactChip
-                  label={`${LRM}${phone}`}
-                  accessibilityLabel={t('home.hero.call', { phone })}
-                  onPress={() => openCmsLink(phoneLink, router)}
-                  icon={<PhoneGlyph />}
-                />
-              ) : null}
-              {whatsapp ? (
-                <ContactChip
-                  label={t('home.hero.whatsapp')}
-                  onPress={() => openCmsLink(whatsapp, router)}
-                  icon={<WhatsAppGlyph />}
-                  tone="whatsapp"
-                />
-              ) : null}
-            </View>
-          ) : null}
+        {phoneLink || whatsapp ? (
+          <View className="mt-4 flex-row flex-wrap justify-center gap-2">
+            {phoneLink ? (
+              <ContactChip
+                label={`${LRM}${phone}`}
+                accessibilityLabel={t('home.hero.call', { phone })}
+                onPress={() => openCmsLink(phoneLink, router)}
+                icon={<PhoneGlyph />}
+              />
+            ) : null}
+            {whatsapp ? (
+              <ContactChip
+                label={t('home.hero.whatsapp')}
+                onPress={() => openCmsLink(whatsapp, router)}
+                icon={<WhatsAppGlyph />}
+                tone="whatsapp"
+              />
+            ) : null}
+          </View>
+        ) : null}
 
-          {stats.length > 0 ? (
-            <View className="mt-5 flex-row border-t border-brand-100 pt-4">
-              {stats.map((stat, index) => (
-                <View
-                  key={`${stat.label}-${index}`}
-                  className={cn('flex-1 items-center px-1', index > 0 && 'border-l border-brand-100')}
-                >
-                  <Text className="text-xl font-black text-brand-500">{stat.value}</Text>
-                  <Text className="mt-0.5 text-center text-[11px] text-text-secondary">
-                    {stat.label}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
-        </View>
+        {stats.length > 0 ? (
+          <View className="mt-6 w-full flex-row">
+            {stats.map((stat, index) => (
+              <View
+                key={`${stat.label}-${index}`}
+                className={cn('flex-1 items-center px-1', index > 0 && 'border-s border-brand-200')}
+              >
+                <Text className="text-2xl font-extrabold text-text-primary">{stat.value}</Text>
+                <Text className="mt-0.5 text-center text-xs text-text-secondary">{stat.label}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
       </View>
     </View>
+  );
+}
+
+/** The Home background the photo fades into (brand-50 / ui-design.md Background). */
+const CANVAS = colors.surface.muted;
+
+/**
+ * Leaves along the hero's edges — never behind the copy. Same placement idea
+ * as the website: green over the photo's top corners, orange low on the sides.
+ */
+const LEAVES = [
+  { tone: 'green', size: 58, style: { top: 120, start: -14 }, rotate: -25, delay: 0 },
+  { tone: 'green', size: 44, style: { top: 70, end: 10 }, rotate: 150, delay: 400 },
+  { tone: 'orange', size: 30, style: { top: PHOTO_HEIGHT + 150, end: -6 }, rotate: 200, delay: 800 },
+  { tone: 'orange', size: 26, style: { top: PHOTO_HEIGHT + 330, start: 2 }, rotate: 35, delay: 1200 },
+] as const;
+
+function HeroLeaves() {
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      {LEAVES.map((leaf, i) => (
+        <FloatingLeaf key={i} index={i} {...leaf} />
+      ))}
+    </View>
+  );
+}
+
+function FloatingLeaf({
+  index,
+  tone,
+  size,
+  style,
+  rotate,
+  delay,
+}: {
+  index: number;
+  tone: 'green' | 'orange';
+  size: number;
+  style: { top: number; start?: number; end?: number };
+  rotate: number;
+  delay: number;
+}) {
+  const reduceMotion = useReducedMotion();
+  const drift = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    drift.value = withDelay(
+      delay,
+      withRepeat(withTiming(1, { duration: 3200, easing: Easing.inOut(Easing.sin) }), -1, true),
+    );
+  }, [reduceMotion, delay, drift]);
+
+  const animated = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: -6 * drift.value },
+      { rotate: `${rotate + 5 * drift.value}deg` },
+    ],
+  }));
+
+  return (
+    <Animated.View
+      style={[{ position: 'absolute', width: size, height: size }, style, animated]}
+    >
+      <LeafGlyph tone={tone} id={`heroLeaf${index}`} />
+    </Animated.View>
+  );
+}
+
+/** A single leaf with a midrib, in a green or brand-orange gradient. Decorative. */
+function LeafGlyph({ tone, id }: { tone: 'green' | 'orange'; id: string }) {
+  const [from, to] = tone === 'green' ? ['#86EFAC', '#15803D'] : [colors.brand[300], colors.brand[500]];
+  return (
+    <Svg width="100%" height="100%" viewBox="0 0 64 64">
+      <Defs>
+        <LinearGradient id={id} x1="0" y1="1" x2="1" y2="0">
+          <Stop offset="0" stopColor={to} />
+          <Stop offset="1" stopColor={from} />
+        </LinearGradient>
+      </Defs>
+      <Path d="M8 58C6 34 20 12 58 6c-2 30-20 50-50 52z" fill={`url(#${id})`} />
+      <Path
+        d="M8 58C22 42 34 28 50 14"
+        stroke="rgba(255,255,255,0.55)"
+        strokeWidth={2}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M22 44l-2-10M30 36l-1-10M38 28l0-9M22 44l10 1M30 36l10 0M38 28l9-1"
+        stroke="rgba(255,255,255,0.35)"
+        strokeWidth={1.4}
+        strokeLinecap="round"
+        fill="none"
+      />
+    </Svg>
+  );
+}
+
+/** "→", pointing the reading direction's way. */
+function ArrowGlyph() {
+  return (
+    <View style={{ transform: [{ scaleX: I18nManager.isRTL ? -1 : 1 }] }}>
+      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M5 12h14M13 6l6 6-6 6"
+          stroke={colors.text.inverse}
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    </View>
+  );
+}
+
+function CalendarGlyph() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+      <Rect x={3} y={5} width={18} height={16} rx={3} stroke={colors.brand[500]} strokeWidth={2} />
+      <Path d="M3 10h18M8 3v4M16 3v4" stroke={colors.brand[500]} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
   );
 }
 
