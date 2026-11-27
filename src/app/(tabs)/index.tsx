@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import BannerIllustration from '@/components/illustrations/BannerIllustration';
 import {
   AhaarLogo,
+  CartButton,
   CategoryRail,
   ClosingCta,
   DeliveryCoverage,
@@ -17,8 +18,7 @@ import {
   HomeHero,
   HowItWorksSection,
   KitchenVideosRail,
-  LocationPill,
-  LocationRequiredCard,
+  LanguageSwitcher,
   LocationSheet,
   NotificationBell,
   OfflineBanner,
@@ -55,7 +55,6 @@ import type {
 import {
   FALLBACK_HOME_LAYOUT,
   useCategoryTiles,
-  useCurrentLocation,
   useCurrentSubscription,
   useFeaturedPlanId,
   useFirstLocationPrompt,
@@ -100,7 +99,7 @@ function anchorOf(sections: HomeSection[], candidates: AppSectionType[]): AppSec
  *
  * ── Layout ──────────────────────────────────────────────────────────────────
  * Two halves. The top is pinned and is this customer's own day: greeting,
- * delivery location, today's meals and their subscription. Nothing the admin
+ * today's meals and their subscription. Nothing the admin
  * does can move it, because it is not marketing.
  *
  * Everything below comes from `GET /home?platform=app` — the same admin panel
@@ -150,10 +149,9 @@ export default function HomeScreen() {
   const { data: cmsLayout, refetch: refetchHome } = useHomeLayout();
   const layout = cmsLayout ?? FALLBACK_HOME_LAYOUT;
 
-  // Where the food goes. Offered once a session (and after each sign-in) while
-  // nothing is set, backed by a full-width card on the screen itself, and
-  // always one tap away in the sticky bar.
-  const location = useCurrentLocation();
+  // Where the food goes. Managed from the Account tab ("Delivery location");
+  // Home only offers it once a session (and after each sign-in) while nothing
+  // is set, so a first order is never blocked on finding the setting.
   const [locationSheetOpen, setLocationSheetOpen] = useState(false);
   const openLocationSheet = useCallback(() => setLocationSheetOpen(true), []);
   useFirstLocationPrompt(openLocationSheet);
@@ -401,21 +399,18 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={['top', 'left', 'right']}>
-      {/* Brand and delivery location — sticky: outside the ScrollView, flush
-          under the safe area, so the logo and where the food goes stay in view
-          however far down the customer scrolls. The logo is fixed-size and the
-          location takes the rest of the row, so a long address truncates
-          instead of pushing the brand off screen. The bell closes the row at
-          its end (right, or left in Arabic: the row mirrors with RTL). */}
-      <View className="flex-row items-center border-b border-border bg-surface pl-4 pr-3">
+      {/* Sticky top bar: outside the ScrollView, flush under the safe area.
+          Brand at the start; basket, language and the bell at the end (right,
+          or left in Arabic: the row mirrors with RTL). The delivery location
+          lives in the Account tab. */}
+      <View
+        testID="home-header"
+        className="h-14 flex-row items-center gap-2 border-b border-border bg-surface pl-4 pr-3"
+      >
         <AhaarLogo height={36} />
-        <View className="ml-3 h-9 w-px bg-border" />
-        <LocationPill
-          variant="bar"
-          location={location}
-          onPress={openLocationSheet}
-          className="flex-1 pl-3"
-        />
+        <View className="flex-1" />
+        <CartButton />
+        <LanguageSwitcher />
         <NotificationBell />
       </View>
       <OfflineBanner />
@@ -457,14 +452,6 @@ export default function HomeScreen() {
             <Avatar name={displayName} size="md" />
           </Pressable>
         </Animated.View>
-
-        {/* No delivery location yet: the one gap that blocks every order, so
-            it leads the screen until it's filled. */}
-        {!location.isLoading && location.source === null ? (
-          <Animated.View entering={FadeInDown.delay(60).duration(400)} className="mb-5 px-5">
-            <LocationRequiredCard onPress={openLocationSheet} />
-          </Animated.View>
-        ) : null}
 
         {/* Today */}
         <Animated.View entering={FadeInDown.delay(120).duration(400)} className="px-5">

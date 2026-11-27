@@ -19,6 +19,8 @@ import { z } from 'zod';
 import { AhaarLogo } from '@/components/shared/AhaarLogo';
 import { GoogleSignInButton } from '@/components/shared/GoogleSignInButton';
 import { Button, InlineError, Input, PasswordInput } from '@/components/ui';
+import { emailVerificationChallengeFrom } from '@/lib/api/endpoints/auth';
+import { verifyEmailRoute } from '@/lib/auth/verifyEmailRoute';
 import { useLogin } from '@/lib/query/hooks';
 
 const schema = z.object({
@@ -37,6 +39,10 @@ type FormValues = z.infer<typeof schema>;
  * Success lands on Home. The screen doesn't navigate itself: `AuthGate` moves
  * a signed-in customer off the auth screens the moment the token exists, and
  * Home then asks for a delivery location if the account has none.
+ *
+ * An email account that never proved its address is refused with 403
+ * `email_unverified` (only once the password was right) — that one goes on to
+ * the verify-email screen instead of showing an error.
  */
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -59,7 +65,12 @@ export default function LoginScreen() {
 
   const onSubmit = (values: FormValues) => {
     if (login.isPending) return;
-    login.mutate(values);
+    login.mutate(values, {
+      onError: (error) => {
+        const challenge = emailVerificationChallengeFrom(error, values.email);
+        if (challenge) router.push(verifyEmailRoute(challenge));
+      },
+    });
   };
 
   return (
@@ -98,7 +109,9 @@ export default function LoginScreen() {
 
             {/* Field-level errors come from Zod; this shows the API's own
                 message (bad credentials, inactive account, rate limit). */}
-            {login.isError ? <InlineError error={login.error} className="mb-4" /> : null}
+            {login.isError && !emailVerificationChallengeFrom(login.error) ? (
+              <InlineError error={login.error} className="mb-4" />
+            ) : null}
 
             <View className="gap-4">
               <Controller

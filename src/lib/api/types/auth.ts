@@ -1,9 +1,11 @@
 /**
  * Auth + profile shapes.
  *
- * Mirrors `App\Http\Resources\Customer\UserResource` and the
- * `POST /auth/login` / `POST /auth/register` payloads, which both return
- * `{ data: { user, token }, message }` with a Sanctum plain-text token.
+ * Mirrors `App\Http\Resources\Customer\UserResource` and the auth payloads.
+ * `POST /auth/login` and `POST /auth/email/verify` return
+ * `{ data: { user, token }, message }` with a Sanctum plain-text token;
+ * `POST /auth/register` returns no token, only an email-verification
+ * challenge (see `EmailVerificationChallenge`).
  */
 import type { Address } from './catalog';
 
@@ -37,6 +39,16 @@ export interface User {
   default_address?: Address | null;
   default_slot_id: number | null;
   status: UserStatus;
+  /**
+   * Name, phone and a default delivery address are all present. False means
+   * no order or subscription yet: `AuthGate` suggests completing it once per
+   * launch, and the API answers purchases with 403 `profile_incomplete`,
+   * which does send the customer to the complete-profile screen. Optional so
+   * an older API never blocks anyone.
+   */
+  profile_complete?: boolean;
+  /** What is still missing, in the API's terms. */
+  profile_missing?: ('name' | 'phone' | 'address')[];
   /** Only present when the endpoint eager-loads roles (login/register do). */
   roles?: UserRole[];
 }
@@ -47,6 +59,49 @@ export interface AuthResult {
   /** Google sign-in only: the account was created by this sign-in. */
   isNewUser?: boolean;
 }
+
+/**
+ * What the API answers when an email account still has to prove its address:
+ * `POST /auth/register` → 201 `{ data }`, and `POST /auth/login` → 403
+ * `{ code: 'email_unverified', data }` for an unverified customer (only once
+ * the password was right). No session exists yet — the customer enters the
+ * 6-digit code mailed to `email` on the verify-email screen.
+ */
+export interface EmailVerificationChallenge {
+  verification_required: boolean;
+  email: string;
+  /** False when no new code went out (a recent one is still valid). */
+  otp_sent: boolean;
+  /** Seconds the current code stays valid. */
+  expires_in: number;
+  /** Seconds until another code may be requested. */
+  resend_available_in: number;
+}
+
+/** POST /auth/email/verify */
+export interface VerifyEmailPayload {
+  email: string;
+  /** The 6 digits from the email. */
+  code: string;
+  device_name?: string;
+}
+
+/** POST /auth/email/resend → `{ data }` */
+export interface ResendEmailCodeResult {
+  expires_in: number;
+  resend_available_in: number;
+}
+
+/**
+ * Domain codes the email-OTP endpoints put on their refusals (`body.code`,
+ * read from `ApiError.details.code`).
+ */
+export type EmailOtpErrorCode =
+  | 'otp_invalid'
+  | 'otp_expired'
+  | 'otp_attempts_exceeded'
+  | 'otp_resend_throttled'
+  | 'otp_delivery_failed';
 
 export interface LoginPayload {
   email: string;
@@ -62,7 +117,6 @@ export interface RegisterPayload {
   password: string;
   password_confirmation: string;
   locale?: string;
-  device_name?: string;
 }
 
 /** PATCH /me */

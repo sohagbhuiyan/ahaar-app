@@ -17,7 +17,15 @@
  */
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
-import type { LoginPayload, RegisterPayload, User } from '../../api/types/auth';
+import * as authApi from '../../api/endpoints/auth';
+import type {
+  EmailVerificationChallenge,
+  LoginPayload,
+  RegisterPayload,
+  ResendEmailCodeResult,
+  User,
+  VerifyEmailPayload,
+} from '../../api/types/auth';
 import { requestGoogleIdToken } from '../../auth/google';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useCartStore } from '../../store/useCartStore';
@@ -68,21 +76,49 @@ export function useLogin(options?: { onSuccess?: (user: User) => void }) {
   });
 }
 
-export function useRegister(options?: { onSuccess?: (user: User) => void }) {
+/**
+ * Create an email account. Resolves with the verification challenge, not a
+ * session: the API issues the token only once the mailed code is entered
+ * (`useVerifyEmail`), so nothing about the session or cache changes here.
+ */
+export function useRegister(options?: {
+  onSuccess?: (challenge: EmailVerificationChallenge) => void;
+}) {
+  return useMutation({
+    mutationFn: (payload: RegisterPayload) => authApi.register(payload),
+    onSuccess: (challenge) => options?.onSuccess?.(challenge),
+  });
+}
+
+/**
+ * Enter the 6-digit code. Success is a sign-in in every respect — same store
+ * write, same cache reset and same `beginSession` as `useLogin` — after which
+ * `AuthGate` moves the customer off the auth screens.
+ */
+export function useVerifyEmail(options?: { onSuccess?: (user: User) => void }) {
   const queryClient = useQueryClient();
-  const register = useAuthStore((s) => s.register);
+  const verifyEmail = useAuthStore((s) => s.verifyEmail);
 
   return useMutation({
-    mutationFn: async (payload: RegisterPayload) => {
-      // Evicted synchronously, before the token; the disk write isn't awaited
-      // for the same reason as sign-in.
+    mutationFn: async (payload: VerifyEmailPayload) => {
+      // Same ordering rule as `useLogin`: evict private queries before the token.
       void clearPrivateQueries(queryClient);
-      return register(payload);
+      return verifyEmail(payload);
     },
     onSuccess: (user) => {
       beginSession(queryClient, user);
       options?.onSuccess?.(user);
     },
+  });
+}
+
+/** Mail a fresh code. 60 s cooldown and 3 per hour, enforced by the API. */
+export function useResendEmailCode(options?: {
+  onSuccess?: (result: ResendEmailCodeResult) => void;
+}) {
+  return useMutation({
+    mutationFn: (email: string) => authApi.resendEmailCode(email),
+    onSuccess: (result) => options?.onSuccess?.(result),
   });
 }
 

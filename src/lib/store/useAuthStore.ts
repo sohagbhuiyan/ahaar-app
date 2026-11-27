@@ -24,7 +24,7 @@ import { AUTH_TOKEN_KEY, setAuthToken } from '../api/client';
 import * as authApi from '../api/endpoints/auth';
 import { signOutOfGoogle } from '../auth/google';
 import { unregisterFromPush } from '../notifications/push';
-import type { LoginPayload, RegisterPayload, User, UserRole } from '../api/types/auth';
+import type { LoginPayload, User, UserRole, VerifyEmailPayload } from '../api/types/auth';
 
 /** SecureStore key for the identity snapshot. Distinct from the token's key. */
 const SESSION_KEY = 'ahaar.auth.session';
@@ -83,7 +83,12 @@ interface AuthState {
    * caller seeds the profile cache with it so the account renders at once.
    */
   login: (payload: LoginPayload) => Promise<User>;
-  register: (payload: RegisterPayload) => Promise<User>;
+  /**
+   * Exchange the mailed 6-digit code for a session. Registration itself no
+   * longer signs in (`POST /auth/register` returns no token), so this is how
+   * a new email account gets its first session — stored exactly like login.
+   */
+  verifyEmail: (payload: VerifyEmailPayload) => Promise<User>;
   /** Sign in with an ID token from native Google Sign-In (see `lib/auth/google.ts`). */
   loginWithGoogle: (idToken: string) => Promise<{ user: User; isNewUser: boolean }>;
   logout: () => Promise<void>;
@@ -110,8 +115,8 @@ export const useAuthStore = create<AuthState>()(
         return user;
       },
 
-      register: async (payload) => {
-        const { user, token } = await authApi.register(payload);
+      verifyEmail: async (payload) => {
+        const { user, token } = await authApi.verifyEmail(payload);
 
         await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token).catch(() => undefined);
         setAuthToken(token);

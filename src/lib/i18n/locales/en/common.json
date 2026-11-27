@@ -24,7 +24,8 @@
     "ar": "Arabic",
     "restartTitle": "Restart to switch layout",
     "restartBody": "Arabic reads right to left, so the app will restart to change its layout. Nothing you have saved is lost.",
-    "restartConfirm": "Restart now"
+    "restartConfirm": "Restart now",
+    "restartHint": "Restarts the app to change the layout"
   },
   "actions": {
     "save": "Save",

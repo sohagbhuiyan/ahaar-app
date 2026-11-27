@@ -8,6 +8,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-
 import OnboardingScreen from '@/app/onboarding';
 import { OnboardingGate } from '@/components/shared/OnboardingGate';
 import { useOnboardingStore } from '@/lib/store';
+import { useLanguageStore } from '@/lib/store/useLanguageStore';
 
 const mockReplace = jest.fn();
 let mockSegments: string[] = ['(tabs)'];
@@ -15,6 +16,7 @@ let mockSegments: string[] = ['(tabs)'];
 jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: mockReplace }),
   useSegments: () => mockSegments,
+  useFocusEffect: jest.fn(),
 }));
 
 /**
@@ -93,6 +95,40 @@ describe('OnboardingGate', () => {
 });
 
 describe('OnboardingScreen', () => {
+  afterEach(async () => {
+    await act(async () => {
+      await useLanguageStore.getState().setLocale('en');
+    });
+  });
+
+  it('opens with English selected and no language card in the way', async () => {
+    await render(<OnboardingScreen />);
+
+    // The compact switcher in the top bar, not an inline picker.
+    expect(screen.getByTestId('language-switcher')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Change language (English)' })).toBeTruthy();
+    expect(screen.queryByRole('radiogroup')).toBeNull();
+    expect(screen.queryByText('Choose your language')).toBeNull();
+  });
+
+  it('applies a language on the first tap and closes the sheet by itself', async () => {
+    await render(<OnboardingScreen />);
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('language-switcher'));
+    });
+    expect(screen.getByTestId('language-option-bn')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('language-option-bn'));
+    });
+
+    expect(useLanguageStore.getState().locale).toBe('bn');
+    expect(useLanguageStore.getState().chosen).toBe(true);
+    // Closed without a "Done": the options are gone.
+    await waitFor(() => expect(screen.queryByTestId('language-option-bn')).toBeNull());
+  });
+
   it('offers Skip on the way in, and marks the tour seen when taken', async () => {
     await render(<OnboardingScreen />);
 

@@ -164,6 +164,9 @@ function RootLayout() {
                   <Stack.Screen name="payments" />
                   <Stack.Screen name="notifications" />
                   <Stack.Screen name="profile" />
+                  {/* Finishing registration — suggested, never forced, so it
+                      leaves like any other screen. */}
+                  <Stack.Screen name="complete-profile" />
                   {/* `orders.tsx` + `orders/[id].tsx` rather than an `orders/`
                       folder with an `index`: the flat file keeps the generated
                       route literal a stable `/orders`, which the folder form

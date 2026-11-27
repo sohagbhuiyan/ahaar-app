@@ -400,6 +400,11 @@ function ComparePlans({
                 <Text numberOfLines={1} className="text-sm font-bold text-text-primary">
                   {plan.name}
                 </Text>
+                {plan.short_description ? (
+                  <Text numberOfLines={1} className="mt-0.5 text-[11px] text-text-muted">
+                    {plan.short_description}
+                  </Text>
+                ) : null}
                 {tag ? (
                   <Text className="mt-0.5 text-[11px] font-semibold text-brand-500">{tag}</Text>
                 ) : null}

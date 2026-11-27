@@ -39,7 +39,9 @@
   },
   "basket": {
     "view": "عرض السلة",
-    "a11y": "عرض السلة، {{items}}، {{total}}"
+    "a11y": "عرض السلة، {{items}}، {{total}}",
+    "iconA11y": "السلة",
+    "iconA11yCount": "السلة، {{items}}"
   },
   "foods": {
     "title": "الأطباق",

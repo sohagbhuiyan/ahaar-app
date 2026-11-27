@@ -27,7 +27,9 @@
   },
   "basket": {
     "view": "View basket",
-    "a11y": "View basket, {{items}}, {{total}}"
+    "a11y": "View basket, {{items}}, {{total}}",
+    "iconA11y": "Basket",
+    "iconA11yCount": "Basket, {{items}}"
   },
   "foods": {
     "title": "Foods",

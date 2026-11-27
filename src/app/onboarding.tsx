@@ -46,7 +46,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AhaarLogo } from '@/components/shared/AhaarLogo';
-import { LanguagePicker } from '@/components/shared/LanguagePicker';
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import { Button } from '@/components/ui';
 import { useOnboardingStore } from '@/lib/store';
 import { colors } from '@/lib/theme';
@@ -232,21 +232,28 @@ export default function OnboardingScreen() {
           <AhaarLogo height={32} />
         </View>
 
-        {isLast ? (
-          <View className="h-10 w-16" />
-        ) : (
-          <Pressable
-            onPress={finish}
-            accessibilityRole="button"
-            accessibilityLabel={t('ui.onboarding.skipA11y')}
-            hitSlop={12}
-            className="h-10 w-16 items-end justify-center active:opacity-60"
-          >
-            <Text className="text-sm font-semibold" style={{ color: SKIP_TEXT }}>
-              {t('ui.onboarding.skip')}
-            </Text>
-          </Pressable>
-        )}
+        <View className="flex-row items-center gap-2">
+          {/* First-run language choice: English is selected until the visitor
+              picks; a tap applies it and closes the sheet. Choosing Arabic
+              restarts into RTL, and the tour (not yet completed) shows again. */}
+          <LanguageSwitcher tone="onBrand" />
+
+          {isLast ? (
+            <View className="h-10 w-16" />
+          ) : (
+            <Pressable
+              onPress={finish}
+              accessibilityRole="button"
+              accessibilityLabel={t('ui.onboarding.skipA11y')}
+              hitSlop={12}
+              className="h-10 w-16 items-end justify-center active:opacity-60"
+            >
+              <Text className="text-sm font-semibold" style={{ color: SKIP_TEXT }}>
+                {t('ui.onboarding.skip')}
+              </Text>
+            </Pressable>
+          )}
+        </View>
       </View>
 
       <Animated.ScrollView
@@ -293,16 +300,6 @@ export default function OnboardingScreen() {
           {SLIDES.map((slide, dotIndex) => (
             <Dot key={slide.key} index={dotIndex} scrollX={scrollX} width={width} />
           ))}
-        </View>
-
-        {/* First-run language choice. On a white card: the picker is drawn for a
-            light surface, like the logo above. Choosing Arabic restarts the app
-            into RTL, and the tour (not yet completed) simply shows again. */}
-        <View className="rounded-2xl bg-surface px-4 pb-3 pt-2.5" style={CARD_SHADOW}>
-          <Text className="mb-2 text-xs font-semibold text-text-secondary">
-            {t('ui.onboarding.chooseLanguage')}
-          </Text>
-          <LanguagePicker />
         </View>
 
         {/* White on the brand field rather than the usual brand-on-white: a

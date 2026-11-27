@@ -27,7 +27,9 @@
   },
   "basket": {
     "view": "ঝুড়ি দেখুন",
-    "a11y": "ঝুড়ি দেখুন, {{items}}, {{total}}"
+    "a11y": "ঝুড়ি দেখুন, {{items}}, {{total}}",
+    "iconA11y": "ঝুড়ি",
+    "iconA11yCount": "ঝুড়ি, {{items}}"
   },
   "foods": {
     "title": "খাবার",

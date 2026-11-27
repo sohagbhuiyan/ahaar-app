@@ -248,14 +248,6 @@ export default function ProfileScreen() {
             actionLabel={t('common.actions.signIn')}
             onAction={() => promptLogin(t('profile.signedOut.reason'))}
           />
-          <Card className="mt-6">
-            <View className="gap-2 p-4">
-              <Text className="text-sm font-bold text-text-primary">
-                {t('profile.appLanguage')}
-              </Text>
-              <LanguagePicker />
-            </View>
-          </Card>
         </View>
       </SafeAreaView>
     );

@@ -99,6 +99,17 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): voi
   onUnauthorized = handler;
 }
 
+/**
+ * Called when the API refuses a purchase because the profile is incomplete
+ * (403 `code: profile_incomplete`). Registered by `AuthGate`, which sends the
+ * customer to the complete-profile screen.
+ */
+let onProfileIncomplete: (() => void) | null = null;
+
+export function setProfileIncompleteHandler(handler: (() => void) | null): void {
+  onProfileIncomplete = handler;
+}
+
 // ── Interceptors ─────────────────────────────────────────────────────────────
 
 apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
@@ -122,6 +133,10 @@ apiClient.interceptors.response.use(
       setAuthToken(null);
       await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY).catch(() => undefined);
       await onUnauthorized?.();
+    }
+
+    if (normalized.status === 403 && (normalized.details as { code?: string } | undefined)?.code === 'profile_incomplete') {
+      onProfileIncomplete?.();
     }
 
     return Promise.reject(normalized);

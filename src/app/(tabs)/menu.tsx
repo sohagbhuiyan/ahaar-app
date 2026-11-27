@@ -36,6 +36,7 @@ import {
   useFilteredOrders,
   useHomeLayout,
   useIsSignedIn,
+  useLogout,
   usePayments,
   useProfile,
   useSubscriptions,
@@ -92,9 +93,10 @@ export default function AccountScreen() {
     useSubscriptions();
   const { orders, refetch: refetchOrders } = useFilteredOrders();
   const { data: payments, refetch: refetchPayments } = usePayments();
-  const location = useCurrentLocation();
   const { data: cmsLayout, refetch: refetchHome } = useHomeLayout();
   const layout = cmsLayout ?? FALLBACK_HOME_LAYOUT;
+  // Signing out leaves the customer here, on the signed-out version of the tab.
+  const logout = useLogout();
 
   // Tabs stay mounted: coming back after ordering elsewhere shows the order.
   useRefreshOnFocus(ACCOUNT_QUERIES);
@@ -250,18 +252,7 @@ export default function AccountScreen() {
           />
         </View>
 
-        {/* ── Delivery location ───────────────────────────────────────────── */}
-        <View className="mt-6 px-5">
-          <SectionTitle>{t("profile.accountTab.deliveryLocation")}</SectionTitle>
-          {location.source === null && !location.isLoading ? (
-            <LocationRequiredCard onPress={() => setLocationSheetOpen(true)} />
-          ) : (
-            <LocationPill
-              location={location}
-              onPress={() => setLocationSheetOpen(true)}
-            />
-          )}
-        </View>
+        <DeliveryLocationSection onPress={() => setLocationSheetOpen(true)} />
 
         {/* ── Active plan snapshot ────────────────────────────────────────── */}
         {subscription ? (
@@ -372,6 +363,18 @@ export default function AccountScreen() {
               hint={t("profile.accountTab.rows.videosHint")}
               onPress={() => router.push("/media")}
             />
+
+            {/* Direct sign-out — the same action as the button at the foot of
+                Edit profile, which stays. Signed-in only: this whole list is. */}
+            <SectionRow
+              glyph="🚪"
+              label={t("profile.logout")}
+              hint={t("profile.accountTab.rows.logoutHint")}
+              testID="account-logout"
+              tone="danger"
+              disabled={logout.isPending}
+              onPress={() => logout.mutate()}
+            />
           </View>
         </View>
 
@@ -426,6 +429,7 @@ function SignedOutAccount({ layout }: { layout: HomeLayout }) {
   const router = useRouter();
   const { t } = useTranslation();
   const promptLogin = useAuthPromptStore((s) => s.prompt);
+  const [locationSheetOpen, setLocationSheetOpen] = useState(false);
 
   return (
     <SafeAreaView
@@ -511,6 +515,9 @@ function SignedOutAccount({ layout }: { layout: HomeLayout }) {
           </View>
         </View>
 
+        {/* Where the food goes can be set before signing in, too. */}
+        <DeliveryLocationSection onPress={() => setLocationSheetOpen(true)} />
+
         <Offers layout={layout} />
 
         <LanguageSection />
@@ -521,7 +528,31 @@ function SignedOutAccount({ layout }: { layout: HomeLayout }) {
 
         <BrandFooter />
       </ScrollView>
+
+      <LocationSheet
+        open={locationSheetOpen}
+        onClose={() => setLocationSheetOpen(false)}
+      />
     </SafeAreaView>
+  );
+}
+
+/**
+ * "Set delivery" — the home of the delivery location (it used to sit at the
+ * top of Home). The pill when one is set, the full-width prompt when not.
+ */
+function DeliveryLocationSection({ onPress }: { onPress: () => void }) {
+  const { t } = useTranslation();
+  const location = useCurrentLocation();
+  return (
+    <View className="mt-6 px-5" testID="account-delivery-location">
+      <SectionTitle>{t("profile.accountTab.deliveryLocation")}</SectionTitle>
+      {location.source === null && !location.isLoading ? (
+        <LocationRequiredCard onPress={onPress} />
+      ) : (
+        <LocationPill location={location} onPress={onPress} />
+      )}
+    </View>
   );
 }
 
@@ -660,6 +691,9 @@ function SectionRow({
   count,
   badge,
   badgeVariant = "muted",
+  tone = "default",
+  disabled,
+  testID,
   onPress,
 }: {
   glyph: string;
@@ -670,22 +704,36 @@ function SectionRow({
   /** Something that needs attention, e.g. an unpaid order. */
   badge?: string;
   badgeVariant?: "muted" | "warning";
+  /** `danger` for a destructive row such as Log out. */
+  tone?: "default" | "danger";
+  disabled?: boolean;
+  testID?: string;
   onPress: () => void;
 }) {
+  const danger = tone === "danger";
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel={`${label}. ${hint}`}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
       onPress={onPress}
-      className="flex-row items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 active:bg-surface-muted"
+      className={`flex-row items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 active:bg-surface-muted${disabled ? " opacity-60" : ""}`}
     >
-      <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand-50">
+      <View
+        className={`h-10 w-10 items-center justify-center rounded-xl ${danger ? "bg-danger-soft" : "bg-brand-50"}`}
+      >
         <Text className="text-lg">{glyph}</Text>
       </View>
 
       <View className="flex-1">
         <View className="flex-row items-center gap-2">
-          <Text className="text-sm font-bold text-text-primary">{label}</Text>
+          <Text
+            className={`text-sm font-bold ${danger ? "text-danger" : "text-text-primary"}`}
+          >
+            {label}
+          </Text>
           {badge ? <Badge label={badge} variant={badgeVariant} /> : null}
         </View>
         <Text numberOfLines={1} className="mt-0.5 text-xs text-text-muted">

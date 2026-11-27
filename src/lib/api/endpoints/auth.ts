@@ -1,18 +1,21 @@
 /**
  * Auth endpoints — `routes/api_auth.php`.
  *
- * All four are rate-limited by the `throttle:auth` middleware, so a 429 here
+ * All of them are rate-limited by the `throttle:auth` middleware, so a 429 here
  * is expected under retry pressure and surfaces as `code: 'rate_limited'`.
  */
 import { apiClient, unwrap } from '../client';
 import { normalizeAddress } from '../normalize';
 import type {
   AuthResult,
+  EmailVerificationChallenge,
   LoginPayload,
   RegisterPayload,
+  ResendEmailCodeResult,
   User,
+  VerifyEmailPayload,
 } from '../types/auth';
-import type { ApiEnvelope } from '../types/common';
+import { isApiError, type ApiEnvelope } from '../types/common';
 
 type Raw = Record<string, unknown>;
 
@@ -58,13 +61,78 @@ export async function login(payload: LoginPayload): Promise<AuthResult> {
   return normalizeAuthResult(unwrap(data));
 }
 
-/** POST /auth/register → 201 `{ data: { user, token } }` */
-export async function register(payload: RegisterPayload): Promise<AuthResult> {
-  const { data } = await apiClient.post<ApiEnvelope<Raw>>('/auth/register', {
+function normalizeChallenge(raw: Raw, fallbackEmail = ''): EmailVerificationChallenge {
+  return {
+    verification_required: raw.verification_required !== false,
+    email: (raw.email as string | undefined) ?? fallbackEmail,
+    otp_sent: raw.otp_sent !== false,
+    expires_in: Number(raw.expires_in ?? 300),
+    resend_available_in: Math.max(0, Number(raw.resend_available_in ?? 0)),
+  };
+}
+
+/**
+ * POST /auth/register → 201 `{ data: { verification_required, email, otp_sent,
+ * expires_in, resend_available_in } }`.
+ *
+ * No token: the account is signed in only once its email is verified with
+ * the mailed code (`verifyEmail`). Re-registering an email that is still
+ * unverified answers the same 201, so the customer simply lands on the code
+ * screen again.
+ */
+export async function register(payload: RegisterPayload): Promise<EmailVerificationChallenge> {
+  const { data } = await apiClient.post<ApiEnvelope<Raw>>('/auth/register', payload);
+  return normalizeChallenge(unwrap(data), payload.email);
+}
+
+/**
+ * POST /auth/email/verify → `{ data: { user, token } }` — the login shape.
+ *
+ * 422 refusals carry `code`: `otp_invalid` (with `attempts_remaining`),
+ * `otp_expired` and `otp_attempts_exceeded` (both need a new code).
+ */
+export async function verifyEmail(payload: VerifyEmailPayload): Promise<AuthResult> {
+  const { data } = await apiClient.post<ApiEnvelope<Raw>>('/auth/email/verify', {
     device_name: 'ahaar-mobile',
     ...payload,
   });
   return normalizeAuthResult(unwrap(data));
+}
+
+/**
+ * POST /auth/email/resend → `{ data: { expires_in, resend_available_in } }`.
+ *
+ * 429 `otp_resend_throttled` carries `retry_after`; 503 `otp_delivery_failed`
+ * means the mail could not be sent.
+ */
+export async function resendEmailCode(email: string): Promise<ResendEmailCodeResult> {
+  const { data } = await apiClient.post<ApiEnvelope<Raw>>('/auth/email/resend', { email });
+  const raw = unwrap(data) ?? {};
+  return {
+    expires_in: Number(raw.expires_in ?? 300),
+    resend_available_in: Math.max(0, Number(raw.resend_available_in ?? 60)),
+  };
+}
+
+/**
+ * The verification challenge behind a refused sign-in — 403 `email_unverified`
+ * from `POST /auth/login` — or `null` for any other error.
+ */
+export function emailVerificationChallengeFrom(
+  error: unknown,
+  fallbackEmail = '',
+): EmailVerificationChallenge | null {
+  if (!isApiError(error) || error.status !== 403) return null;
+  const details = error.details as { code?: string; data?: Raw } | undefined;
+  if (details?.code !== 'email_unverified') return null;
+  return normalizeChallenge(details.data ?? {}, fallbackEmail);
+}
+
+/** The domain `code` on an API refusal (`otp_invalid`, …), if it has one. */
+export function apiErrorDomainCode(error: unknown): string | undefined {
+  if (!isApiError(error)) return undefined;
+  const code = (error.details as { code?: unknown } | undefined)?.code;
+  return typeof code === 'string' ? code : undefined;
 }
 
 /**

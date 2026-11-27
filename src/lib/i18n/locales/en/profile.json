@@ -149,7 +149,8 @@
       "profile": "Profile",
       "profileHint": "Details, addresses and dietary preferences",
       "videos": "Kitchen videos",
-      "videosHint": "See how your meals are made, and join the conversation"
+      "videosHint": "See how your meals are made, and join the conversation",
+      "logoutHint": "Sign out of Ahaar on this device"
     },
     "benefits": {
       "orders": "Orders & deliveries",
@@ -169,5 +170,29 @@
     "browsingFree": "Browsing plans and dishes never needs an account.",
     "tagline": "Fresh meals, delivered daily",
     "version": "Version {{version}}"
+  },
+  "complete": {
+    "title": "Complete your profile",
+    "subtitle": "One last step before you can order: tell us who you are, how to reach you and where to deliver.",
+    "phone": "Phone number",
+    "phoneHint": "Your rider calls this number on delivery.",
+    "address": "Delivery address",
+    "addressHint": "Pick the spot on the map — we deliver your meals here.",
+    "submit": "Save and continue",
+    "signOut": "Sign out",
+    "done": "Profile complete — you are ready to order!",
+    "stillMissing": "A few details are still missing.",
+    "saveError": "Could not save your profile. Please try again.",
+    "errors": {
+      "phoneRequired": "A phone number is required.",
+      "phone": "Enter a valid phone number.",
+      "address": "Set your delivery address to continue."
+    }
+  },
+  "completePrompt": {
+    "title": "Complete your profile",
+    "body": "To place an order we need your name, a phone number your rider can call, and a delivery address. It takes a minute.",
+    "completeNow": "Complete now",
+    "later": "Later"
   }
 }

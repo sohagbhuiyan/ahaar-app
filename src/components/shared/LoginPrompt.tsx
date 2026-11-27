@@ -8,6 +8,8 @@ import { toast } from 'sonner-native';
 import { z } from 'zod';
 
 import { Button, InlineError, Input, PasswordInput, Sheet } from '@/components/ui';
+import { emailVerificationChallengeFrom } from '@/lib/api/endpoints/auth';
+import { verifyEmailRoute } from '@/lib/auth/verifyEmailRoute';
 import { useLogin } from '@/lib/query/hooks';
 import { useAuthPromptStore } from '@/lib/store';
 
@@ -72,7 +74,16 @@ export function LoginPrompt() {
 
   const onSubmit = (values: FormValues) => {
     if (login.isPending) return;
-    login.mutate(values);
+    login.mutate(values, {
+      onError: (error) => {
+        // An unverified email account (403 `email_unverified`): the code
+        // screen needs room a sheet doesn't have, so this one navigates.
+        const challenge = emailVerificationChallengeFrom(error, values.email);
+        if (!challenge) return;
+        handleClose();
+        router.push(verifyEmailRoute(challenge));
+      },
+    });
   };
 
   const goToRegister = () => {
@@ -123,7 +134,9 @@ export function LoginPrompt() {
         }}
       />
 
-      {login.isError ? <InlineError error={login.error} className="mb-4" /> : null}
+      {login.isError && !emailVerificationChallengeFrom(login.error) ? (
+        <InlineError error={login.error} className="mb-4" />
+      ) : null}
 
       <View className="gap-4 pb-2">
         <Controller

@@ -6,12 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { toast } from 'sonner-native';
 import { z } from 'zod';
 
 import { AhaarLogo } from '@/components/shared/AhaarLogo';
 import { GoogleSignInButton } from '@/components/shared/GoogleSignInButton';
 import { Button, InlineError, Input, PasswordInput } from '@/components/ui';
+import { verifyEmailRoute } from '@/lib/auth/verifyEmailRoute';
 import { useRegister } from '@/lib/query/hooks';
 
 /**
@@ -48,8 +48,10 @@ function validationMessage(t: TFunction, message?: string) {
 /**
  * Create an account.
  *
- * A new account lands on Home, where the first thing asked is where to deliver
- * — `AuthGate` does the navigating once the token exists.
+ * The API answers with no session: the email has to be proven first, so a
+ * successful submit goes on to the verify-email screen, and the account is
+ * signed in once the mailed code is entered there. (Nothing to fight with
+ * `AuthGate` here — it only moves *signed-in* customers off `(auth)`.)
  */
 export default function RegisterScreen() {
   const { t } = useTranslation();
@@ -61,7 +63,7 @@ export default function RegisterScreen() {
   };
 
   const register = useRegister({
-    onSuccess: (user) => toast.success(t('auth.toast.welcomeNew', { name: user.name.split(' ')[0] })),
+    onSuccess: (challenge) => router.push(verifyEmailRoute(challenge)),
   });
 
   const { control, handleSubmit } = useForm<FormValues>({

@@ -228,6 +228,15 @@ export default function CheckoutScreen() {
           <Card>
             <View className="p-5">
               <Text className="text-lg font-bold text-text-primary">{plan.name}</Text>
+              {planDetail?.short_description ? (
+                <Text
+                  testID="checkout-plan-short-description"
+                  numberOfLines={2}
+                  className="mt-0.5 text-sm text-text-primary"
+                >
+                  {planDetail.short_description}
+                </Text>
+              ) : null}
               <Text className="mt-0.5 text-sm text-text-secondary">
                 {planSlots.length > 1
                   ? t('ordering.checkout.mealsPerDay', {

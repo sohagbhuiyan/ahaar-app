@@ -131,6 +131,17 @@ export default function PlanDetailScreen() {
         />
 
         <View className="px-5 pt-5">
+          {/* The card's one-liner, so the plan reads the same here as where it
+              was picked. */}
+          {plan.short_description ? (
+            <Text
+              testID="plan-short-description"
+              className="mb-3 text-base font-semibold leading-6 text-brand-700"
+            >
+              {plan.short_description}
+            </Text>
+          ) : null}
+
           <View className="flex-row items-end gap-2">
             <Text className="text-3xl font-bold text-text-primary">
               {formatMoney(plan.price)}

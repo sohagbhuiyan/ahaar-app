@@ -3,7 +3,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import AccountScreen from '@/app/(tabs)/menu';
 import { LoginPrompt } from '@/components/shared/LoginPrompt';
-import { useAuthPromptStore } from '@/lib/store';
+import { apiClient } from '@/lib/api/client';
+import { useAuthPromptStore, useAuthStore } from '@/lib/store';
 
 const mockPush = jest.fn();
 const mockNavigate = jest.fn();
@@ -86,5 +87,48 @@ describe('Account tab, signed out', () => {
     await press('Create an account');
 
     expect(mockPush).toHaveBeenCalledWith('/(auth)/register');
+  });
+});
+
+describe('Account tab, signed in', () => {
+  const realLogout = useAuthStore.getState().logout;
+  const mockLogout = jest.fn(async () => {
+    useAuthStore.setState({ token: null, user: null });
+  });
+
+  beforeEach(() => {
+    mockLogout.mockClear();
+    // Every private read stays pending: this test is about the layout.
+    jest.spyOn(apiClient, 'get').mockImplementation(() => new Promise(() => {}));
+    useAuthStore.setState({ token: 'test-token', logout: mockLogout });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    useAuthStore.setState({ token: null, user: null, logout: realLogout });
+  });
+
+  it('lists a direct Log out, which signs out in place', async () => {
+    await renderSignedOut();
+
+    // The delivery location moved here from the top of Home.
+    expect(screen.getByTestId('account-delivery-location')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('account-logout'));
+    });
+
+    expect(mockLogout).toHaveBeenCalledTimes(1);
+    // Back to the signed-out tab — and no Log out row there.
+    expect(await screen.findByText('Create an account')).toBeTruthy();
+    expect(screen.queryByTestId('account-logout')).toBeNull();
+  });
+});
+
+describe('Account tab, signed out — delivery location', () => {
+  it('can set the delivery location before signing in', async () => {
+    await renderSignedOut();
+    expect(screen.getByTestId('account-delivery-location')).toBeTruthy();
+    expect(screen.queryByTestId('account-logout')).toBeNull();
   });
 });

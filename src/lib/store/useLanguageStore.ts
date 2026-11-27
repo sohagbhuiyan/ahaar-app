@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getLocales } from 'expo-localization';
 import * as Updates from 'expo-updates';
 import { DevSettings, I18nManager } from 'react-native';
 import { create } from 'zustand';
@@ -12,7 +11,7 @@ export type { AppLocale } from '../i18n/config';
 
 export interface LanguageState {
   locale: AppLocale;
-  /** False until the customer picks a language themselves (device default until then). */
+  /** False until the customer picks a language themselves (English until then). */
   chosen: boolean;
   hydrated: boolean;
   /**
@@ -25,15 +24,12 @@ export interface LanguageState {
 
 export const LANGUAGE_STORAGE_KEY = 'ahaar.app.locale';
 
-/** The device's first preferred language we speak, else English. */
-function deviceLocale(): AppLocale {
-  try {
-    for (const l of getLocales()) {
-      if (isLocale(l.languageCode)) return l.languageCode;
-    }
-  } catch {
-    // native module unavailable (tests, web) — fall through
-  }
+/**
+ * English until the customer picks a language themselves — onboarding opens
+ * with English selected, whatever the phone's own language is, and the choice
+ * is one tap away there (and in Home's header) from then on.
+ */
+function initialLocale(): AppLocale {
   return DEFAULT_LOCALE;
 }
 
@@ -82,7 +78,7 @@ export function syncLayoutDirection(locale: AppLocale): boolean {
 export const useLanguageStore = create<LanguageState>()(
   persist(
     (set, get) => ({
-      locale: deviceLocale(),
+      locale: initialLocale(),
       chosen: false,
       hydrated: false,
       setLocale: async (next) => {
@@ -106,8 +102,8 @@ export const useLanguageStore = create<LanguageState>()(
       partialize: (s) => ({ locale: s.locale, chosen: s.chosen }),
       onRehydrateStorage: () => (state) => {
         const stored = state?.locale;
-        // Not chosen yet → follow the device, which may have changed.
-        const locale = state?.chosen && isLocale(stored) ? stored : deviceLocale();
+        // Not chosen yet → English.
+        const locale = state?.chosen && isLocale(stored) ? stored : initialLocale();
         void i18n.changeLanguage(locale).finally(() => {
           useLanguageStore.setState({ locale, hydrated: true });
         });

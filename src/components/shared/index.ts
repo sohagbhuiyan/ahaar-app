@@ -38,6 +38,8 @@ export { LocationRequiredCard } from './LocationRequiredCard';
 export { KitchenVideosRail } from './KitchenVideosRail';
 export { HomeHero } from './HomeHero';
 export { AhaarLogo } from './AhaarLogo';
+export { CartButton } from './CartButton';
+export { LanguageSwitcher } from './LanguageSwitcher';
 export { DeliveryCalendar } from './DeliveryCalendar';
 export {
   ClosingCta,
